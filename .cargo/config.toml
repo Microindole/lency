@@ -1,0 +1,5 @@
+# Cargo 配置
+# 设置 LLVM 路径，供 inkwell 使用
+
+[env]
+LLVM_SYS_150_PREFIX = "/usr/lib/llvm-15"

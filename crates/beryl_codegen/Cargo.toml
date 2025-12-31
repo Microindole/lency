@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+beryl_syntax = { workspace = true }
+beryl_sema = { path = "../beryl_sema" }
+inkwell = { workspace = true }
+thiserror = { workspace = true }
