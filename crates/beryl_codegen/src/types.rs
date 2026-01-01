@@ -67,7 +67,7 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
 
 /// 检查类型是否为整数类型
 pub fn is_int_type(ty: &Type) -> bool {
-    matches!(ty, Type::Int | Type::Bool)
+    matches!(ty, Type::Int)
 }
 
 /// 检查类型是否为浮点类型
@@ -76,8 +76,11 @@ pub fn is_float_type(ty: &Type) -> bool {
 }
 
 /// 检查类型是否为数值类型
+///
+/// 使用 TypeInfo trait 进行统一判断，避免硬编码
 pub fn is_numeric_type(ty: &Type) -> bool {
-    is_int_type(ty) || is_float_type(ty)
+    use beryl_sema::types::TypeInfo;
+    ty.is_numeric()
 }
 
 #[cfg(test)]

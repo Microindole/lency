@@ -1,0 +1,12 @@
+int add(int a, int b) {
+    if a > b {
+        return a + b;
+    }
+    return a - b;
+}
+
+int main() {
+    var x = 10;
+    var y = 20;
+    return add(x, y);
+}

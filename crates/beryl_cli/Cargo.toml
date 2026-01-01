@@ -3,6 +3,11 @@ name = "beryl_cli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "berylc"
+path = "src/main.rs"
+
 [dependencies]
-beryl_driver = { workspace = true }
+beryl_driver = { path = "../beryl_driver" }
 clap = { workspace = true }
+anyhow = { workspace = true }

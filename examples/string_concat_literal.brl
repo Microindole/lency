@@ -1,0 +1,4 @@
+int main() {
+    var msg = "Hello" + "World";
+    return 0;
+}

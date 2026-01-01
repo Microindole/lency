@@ -1,0 +1,93 @@
+// 综合 Bool 类型测试
+// 测试所有布尔运算和逻辑操作
+
+int test_literals() {
+    var t = true;
+    var f = false;
+    if t && !f {
+        return 1;
+    }
+    return 0;
+}
+
+int test_logical_ops() {
+    var a = true;
+    var b = false;
+    
+    // AND 运算
+    var and_result = a && b;
+    if and_result {
+        return 0;
+    }
+    
+    // OR 运算
+    var or_result = a || b;
+    if !or_result {
+        return 0;
+    }
+    
+    // NOT 运算
+    var not_result = !a;
+    if not_result {
+        return 0;
+    }
+    
+    return 1;
+}
+
+int test_comparison() {
+    var x = 5;
+    var y = 10;
+    
+    var is_greater = x > y;
+    var is_less = x < y;
+    var is_equal = x == y;
+    var is_not_equal = x != y;
+    
+    if !is_greater && is_less && !is_equal && is_not_equal {
+        return 1;
+    }
+    return 0;
+}
+
+int test_complex_logic() {
+    var a = true;
+    var b = false;
+    var c = true;
+    
+    // (true && false) || true = true
+    var result1 = a && b || c;
+    if !result1 {
+        return 0;
+    }
+    
+    // !(true || false) = false
+    var result2 = !(a || b);
+    if result2 {
+        return 0;
+    }
+    
+    // (true && true) && !false = true
+    var result3 = a && c && !b;
+    if !result3 {
+        return 0;
+    }
+    
+    return 1;
+}
+
+int main() {
+    if test_literals() == 0 {
+        return 1;
+    }
+    if test_logical_ops() == 0 {
+        return 2;
+    }
+    if test_comparison() == 0 {
+        return 3;
+    }
+    if test_complex_logic() == 0 {
+        return 4;
+    }
+    return 0;
+}

@@ -1,0 +1,5 @@
+int main() {
+    var msg1 = "Hello";
+    var msg2 = msg1;
+    return 0;
+}

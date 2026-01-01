@@ -73,7 +73,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
                 .build_store(alloca, param_value)
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
-            locals.insert(param.name.clone(), alloca);
+            locals.insert(param.name.clone(), (alloca, param_type));
         }
 
         // 生成函数体

@@ -15,3 +15,6 @@ target/
 # 4. 临时文件
 tmp/
 *.log
+
+# LLVM
+*.ll

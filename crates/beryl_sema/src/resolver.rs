@@ -154,8 +154,12 @@ impl Resolver {
 
                 // 推导类型（如果没有显式声明）
                 let var_ty = ty.clone().unwrap_or_else(|| {
-                    // 这里暂时用 Error 占位，实际推导在 TypeChecker 中完成
-                    Type::Error
+                    // 使用 TypeInferer 推导变量类型
+                    let inferer = crate::type_infer::TypeInferer::with_scope(
+                        &self.scopes,
+                        self.scopes.current_scope(),
+                    );
+                    inferer.infer(value).unwrap_or(Type::Error)
                 });
 
                 // 添加变量到当前作用域

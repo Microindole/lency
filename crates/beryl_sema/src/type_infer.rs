@@ -3,26 +3,33 @@
 //! 类型推导模块，处理 Beryl 中 `var x = 10` 这种省略类型声明的情况。
 //! 遵循 "Crystal Clear" 哲学：推导规则透明可预测。
 
-use beryl_syntax::ast::{BinaryOp, Expr, ExprKind, Literal, Type, UnaryOp};
 use crate::error::SemanticError;
+use crate::operators::{BinaryOpRegistry, UnaryOpRegistry};
 use crate::scope::{ScopeId, ScopeStack};
 use crate::symbol::Symbol;
+use beryl_syntax::ast::{Expr, ExprKind, Literal, Type, UnaryOp};
 
 /// 类型推导器
-/// 
+///
 /// 注意：TypeInferer 需要知道当前所在的作用域，
 /// 因为变量查找需要从正确的作用域开始。
 pub struct TypeInferer<'a> {
     scopes: &'a ScopeStack,
     /// 当前作用域 ID（由调用者设置，用于正确的符号查找）
     current_scope: ScopeId,
+    /// 二元运算符注册表
+    binary_ops: BinaryOpRegistry,
+    /// 一元运算符注册表
+    unary_ops: UnaryOpRegistry,
 }
 
 impl<'a> TypeInferer<'a> {
     pub fn new(scopes: &'a ScopeStack) -> Self {
-        Self { 
+        Self {
             scopes,
             current_scope: scopes.current_scope(),
+            binary_ops: BinaryOpRegistry::new(),
+            unary_ops: UnaryOpRegistry::new(),
         }
     }
 
@@ -31,6 +38,8 @@ impl<'a> TypeInferer<'a> {
         Self {
             scopes,
             current_scope: scope_id,
+            binary_ops: BinaryOpRegistry::new(),
+            unary_ops: UnaryOpRegistry::new(),
         }
     }
 
@@ -48,32 +57,24 @@ impl<'a> TypeInferer<'a> {
     pub fn infer(&self, expr: &Expr) -> Result<Type, SemanticError> {
         match &expr.kind {
             ExprKind::Literal(lit) => Ok(self.infer_literal(lit)),
-            
+
             ExprKind::Variable(name) => self.infer_variable(name, &expr.span),
-            
-            ExprKind::Binary(left, op, right) => {
-                self.infer_binary(left, op, right, &expr.span)
-            }
-            
-            ExprKind::Unary(op, operand) => {
-                self.infer_unary(op, operand, &expr.span)
-            }
-            
-            ExprKind::Call { callee, args: _ } => {
-                self.infer_call(callee, &expr.span)
-            }
-            
-            ExprKind::Get { object, name } => {
-                self.infer_get(object, name, &expr.span)
-            }
-            
-            ExprKind::New { class_name, generics, args: _ } => {
-                self.infer_new(class_name, generics, &expr.span)
-            }
-            
-            ExprKind::Array(elements) => {
-                self.infer_array(elements, &expr.span)
-            }
+
+            ExprKind::Binary(left, op, right) => self.infer_binary(left, op, right, &expr.span),
+
+            ExprKind::Unary(op, operand) => self.infer_unary(op, operand, &expr.span),
+
+            ExprKind::Call { callee, args: _ } => self.infer_call(callee, &expr.span),
+
+            ExprKind::Get { object, name } => self.infer_get(object, name, &expr.span),
+
+            ExprKind::New {
+                class_name,
+                generics,
+                args: _,
+            } => self.infer_new(class_name, generics, &expr.span),
+
+            ExprKind::Array(elements) => self.infer_array(elements, &expr.span),
         }
     }
 
@@ -89,7 +90,11 @@ impl<'a> TypeInferer<'a> {
     }
 
     /// 推导变量类型
-    fn infer_variable(&self, name: &str, span: &std::ops::Range<usize>) -> Result<Type, SemanticError> {
+    fn infer_variable(
+        &self,
+        name: &str,
+        span: &std::ops::Range<usize>,
+    ) -> Result<Type, SemanticError> {
         match self.lookup(name) {
             Some(symbol) => {
                 match symbol.ty() {
@@ -114,83 +119,25 @@ impl<'a> TypeInferer<'a> {
     }
 
     /// 推导二元表达式类型
+    ///
+    /// 使用运算符注册表进行类型查找
     fn infer_binary(
         &self,
         left: &Expr,
-        op: &BinaryOp,
+        op: &beryl_syntax::ast::BinaryOp,
         right: &Expr,
         span: &std::ops::Range<usize>,
     ) -> Result<Type, SemanticError> {
         let left_ty = self.infer(left)?;
         let right_ty = self.infer(right)?;
 
-        match op {
-            // 算术运算符：返回数值类型
-            BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
-                self.infer_arithmetic(&left_ty, &right_ty, op, span)
-            }
-            
-            // 比较运算符：返回 bool
-            BinaryOp::Eq | BinaryOp::Neq | BinaryOp::Lt | BinaryOp::Gt | 
-            BinaryOp::Leq | BinaryOp::Geq => {
-                Ok(Type::Bool)
-            }
-            
-            // 逻辑运算符：返回 bool
-            BinaryOp::And | BinaryOp::Or => {
-                self.check_bool_operands(&left_ty, &right_ty, op, span)?;
-                Ok(Type::Bool)
-            }
-        }
-    }
-
-    /// 推导算术表达式类型
-    fn infer_arithmetic(
-        &self,
-        left: &Type,
-        right: &Type,
-        op: &BinaryOp,
-        span: &std::ops::Range<usize>,
-    ) -> Result<Type, SemanticError> {
-        match (left, right) {
-            // int op int -> int
-            (Type::Int, Type::Int) => Ok(Type::Int),
-            // float op float -> float
-            (Type::Float, Type::Float) => Ok(Type::Float),
-            // int op float / float op int -> float (数值提升)
-            (Type::Int, Type::Float) | (Type::Float, Type::Int) => Ok(Type::Float),
-            // string + string -> string (字符串连接)
-            (Type::String, Type::String) if *op == BinaryOp::Add => Ok(Type::String),
-            // 其他情况报错
-            _ => Err(SemanticError::InvalidBinaryOp {
-                op: format!("{:?}", op),
-                left: left.to_string(),
-                right: right.to_string(),
-                span: span.clone(),
-            }),
-        }
-    }
-
-    /// 检查逻辑运算符的操作数是否为 bool
-    fn check_bool_operands(
-        &self,
-        left: &Type,
-        right: &Type,
-        op: &BinaryOp,
-        span: &std::ops::Range<usize>,
-    ) -> Result<(), SemanticError> {
-        if *left != Type::Bool || *right != Type::Bool {
-            return Err(SemanticError::InvalidBinaryOp {
-                op: format!("{:?}", op),
-                left: left.to_string(),
-                right: right.to_string(),
-                span: span.clone(),
-            });
-        }
-        Ok(())
+        // 使用运算符表查找
+        self.binary_ops.lookup(op, &left_ty, &right_ty, span)
     }
 
     /// 推导一元表达式类型
+    ///
+    /// 使用运算符注册表进行类型查找
     fn infer_unary(
         &self,
         op: &UnaryOp,
@@ -199,30 +146,8 @@ impl<'a> TypeInferer<'a> {
     ) -> Result<Type, SemanticError> {
         let operand_ty = self.infer(operand)?;
 
-        match op {
-            UnaryOp::Neg => {
-                match &operand_ty {
-                    Type::Int => Ok(Type::Int),
-                    Type::Float => Ok(Type::Float),
-                    _ => Err(SemanticError::InvalidUnaryOp {
-                        op: "-".to_string(),
-                        operand: operand_ty.to_string(),
-                        span: span.clone(),
-                    }),
-                }
-            }
-            UnaryOp::Not => {
-                if operand_ty == Type::Bool {
-                    Ok(Type::Bool)
-                } else {
-                    Err(SemanticError::InvalidUnaryOp {
-                        op: "!".to_string(),
-                        operand: operand_ty.to_string(),
-                        span: span.clone(),
-                    })
-                }
-            }
-        }
+        // 使用运算符表查找
+        self.unary_ops.lookup(op, &operand_ty, span)
     }
 
     /// 推导函数调用类型
@@ -334,7 +259,7 @@ impl<'a> TypeInferer<'a> {
 
         // 推导第一个元素的类型作为数组元素类型
         let first_ty = self.infer(&elements[0])?;
-        
+
         // 检查所有元素类型一致
         for elem in elements.iter().skip(1) {
             let elem_ty = self.infer(elem)?;
@@ -357,16 +282,16 @@ pub fn is_compatible(expected: &Type, actual: &Type) -> bool {
     match (expected, actual) {
         // 完全相同
         (a, b) if a == b => true,
-        
+
         // int 可以隐式转为 float（Beryl 设计决策：这是唯一允许的隐式转换）
         (Type::Float, Type::Int) => true,
-        
+
         // 可空类型可以接受非空类型
         (Type::Nullable(inner), actual) => is_compatible(inner, actual),
-        
+
         // Error 类型用于错误恢复，总是兼容
         (Type::Error, _) | (_, Type::Error) => true,
-        
+
         _ => false,
     }
 }

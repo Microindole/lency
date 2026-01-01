@@ -18,20 +18,24 @@
 
 pub mod error;
 pub mod null_safety;
+pub mod operators;
 pub mod resolver;
 pub mod scope;
 pub mod symbol;
 pub mod type_check;
 pub mod type_infer;
+pub mod types;
 
 // 重新导出核心类型
 pub use error::SemanticError;
 pub use null_safety::NullSafetyChecker;
+pub use operators::{BinaryOpRegistry, UnaryOpRegistry};
 pub use resolver::Resolver;
 pub use scope::{Scope, ScopeId, ScopeKind, ScopeStack};
 pub use symbol::{ClassSymbol, FunctionSymbol, Symbol, SymbolId, VariableSymbol};
 pub use type_check::TypeChecker;
 pub use type_infer::TypeInferer;
+pub use types::{TypeInfo, TypeRegistry};
 
 use beryl_syntax::ast::Program;
 

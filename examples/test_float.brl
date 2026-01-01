@@ -1,0 +1,7 @@
+// Float 类型测试
+int test_float() {
+    var x = 3.14;
+    var y = 2.0;
+    var sum = x + y;
+    return 0;
+}

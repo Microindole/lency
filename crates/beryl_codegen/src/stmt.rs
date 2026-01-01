@@ -14,15 +14,15 @@ use crate::expr::ExprGenerator;
 /// 语句代码生成器
 pub struct StmtGenerator<'ctx, 'a> {
     ctx: &'a CodegenContext<'ctx>,
-    /// 局部变量表
-    locals: &'a mut HashMap<String, PointerValue<'ctx>>,
+    /// 局部变量表 (变量名 -> (指针, LLVM类型))
+    locals: &'a mut HashMap<String, (PointerValue<'ctx>, inkwell::types::BasicTypeEnum<'ctx>)>,
 }
 
 impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     /// 创建语句生成器
     pub fn new(
         ctx: &'a CodegenContext<'ctx>,
-        locals: &'a mut HashMap<String, PointerValue<'ctx>>,
+        locals: &'a mut HashMap<String, (PointerValue<'ctx>, inkwell::types::BasicTypeEnum<'ctx>)>,
     ) -> Self {
         Self { ctx, locals }
     }
@@ -84,8 +84,9 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
             .build_store(alloca, val)
             .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
-        // 记录变量
-        self.locals.insert(name.to_string(), alloca);
+        // 记录变量（保存指针和类型）
+        self.locals
+            .insert(name.to_string(), (alloca, val.get_type()));
 
         Ok(())
     }
@@ -99,7 +100,7 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
         };
 
         // 查找变量
-        let ptr = self
+        let (ptr, _) = self
             .locals
             .get(var_name)
             .ok_or_else(|| CodegenError::UndefinedVariable(var_name.clone()))?;
