@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub type SymbolId = usize;
 
 /// 符号 - 程序中所有命名实体的统一表示
-/// 
+///
 /// 设计原则：
 /// - 每个变体对应一种语义实体
 /// - 可扩展：未来可添加 Module, Trait, Const 等
@@ -55,13 +55,13 @@ impl Symbol {
 }
 
 /// 变量符号
-/// 
+///
 /// 对应 `var x: int = 10` 或 `const PI = 3.14`
 #[derive(Debug, Clone)]
 pub struct VariableSymbol {
     pub name: String,
     pub ty: Type,
-    pub is_mutable: bool,  // var = true, const = false
+    pub is_mutable: bool, // var = true, const = false
     pub span: Span,
     /// 是否已初始化（用于检测使用未初始化变量）
     pub is_initialized: bool,
@@ -93,12 +93,7 @@ pub struct FunctionSymbol {
 }
 
 impl FunctionSymbol {
-    pub fn new(
-        name: String,
-        params: Vec<(String, Type)>,
-        return_type: Type,
-        span: Span,
-    ) -> Self {
+    pub fn new(name: String, params: Vec<(String, Type)>, return_type: Type, span: Span) -> Self {
         Self {
             name,
             params,
@@ -184,6 +179,11 @@ pub struct ParameterSymbol {
 
 impl ParameterSymbol {
     pub fn new(name: String, ty: Type, span: Span, index: usize) -> Self {
-        Self { name, ty, span, index }
+        Self {
+            name,
+            ty,
+            span,
+            index,
+        }
     }
 }

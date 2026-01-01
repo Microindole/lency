@@ -92,6 +92,26 @@ impl Resolver {
                     self.errors.push(e);
                 }
             }
+            Decl::ExternFunction {
+                name,
+                params,
+                return_type,
+                span,
+            } => {
+                let func_symbol = FunctionSymbol::new(
+                    name.clone(),
+                    params
+                        .iter()
+                        .map(|p| (p.name.clone(), p.ty.clone()))
+                        .collect(),
+                    return_type.clone(),
+                    span.clone(),
+                );
+
+                if let Err(e) = self.scopes.define(Symbol::Function(func_symbol)) {
+                    self.errors.push(e);
+                }
+            }
         }
     }
 
@@ -137,6 +157,9 @@ impl Resolver {
                 // 退出类作用域
                 self.scopes.exit_scope();
             }
+            Decl::ExternFunction { .. } => {
+                // No body to resolve
+            }
         }
     }
 
@@ -169,6 +192,7 @@ impl Resolver {
                     true, // var 是可变的
                     span.clone(),
                 );
+
                 if let Err(e) = self.scopes.define(Symbol::Variable(var_symbol)) {
                     self.errors.push(e);
                 }
@@ -223,10 +247,45 @@ impl Resolver {
                 }
                 self.scopes.exit_scope();
             }
+            Stmt::For {
+                init,
+                condition,
+                update,
+                body,
+                ..
+            } => {
+                // For 循环创建自己的作用域（因为 init 中可能声明变量）
+                self.scopes.enter_scope(ScopeKind::Block);
+
+                // 解析初始化语句
+                if let Some(init_stmt) = init {
+                    self.resolve_stmt(init_stmt);
+                }
+
+                // 解析条件表达式
+                if let Some(cond) = condition {
+                    self.resolve_expr(cond);
+                }
+
+                // 解析更新语句
+                if let Some(upd) = update {
+                    self.resolve_stmt(upd);
+                }
+
+                // 解析循环体
+                for stmt in body {
+                    self.resolve_stmt(stmt);
+                }
+
+                self.scopes.exit_scope();
+            }
             Stmt::Return { value, .. } => {
                 if let Some(expr) = value {
                     self.resolve_expr(expr);
                 }
+            }
+            Stmt::Break { .. } | Stmt::Continue { .. } => {
+                // 不需要解析
             }
         }
     }
@@ -281,6 +340,22 @@ impl Resolver {
             }
             ExprKind::Literal(_) => {
                 // 字面量不需要解析
+            }
+            ExprKind::Match {
+                value,
+                cases,
+                default,
+            } => {
+                self.resolve_expr(value);
+                for case in cases {
+                    self.resolve_expr(&case.body);
+                }
+                if let Some(default_expr) = default {
+                    self.resolve_expr(default_expr);
+                }
+            }
+            ExprKind::Print(expr) => {
+                self.resolve_expr(expr);
             }
         }
     }

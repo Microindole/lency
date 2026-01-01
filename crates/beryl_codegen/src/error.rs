@@ -38,6 +38,10 @@ pub enum CodegenError {
     /// LLVM 构建错误
     #[error("LLVM build error: {0}")]
     LLVMBuildError(String),
+
+    /// 不支持的特性
+    #[error("unsupported feature: {0}")]
+    UnsupportedFeature(String),
 }
 
 /// 代码生成结果类型

@@ -12,7 +12,7 @@ pub enum Type {
     // --- 复杂类型 ---
     // 类引用: User, MyClass
     Class(String),
-    
+
     // 泛型实例化: List<int>, Map<string, int>
     Generic(String, Vec<Type>),
 
@@ -37,11 +37,13 @@ impl Display for Type {
             Type::Generic(name, args) => {
                 write!(f, "{}<", name)?;
                 for (i, arg) in args.iter().enumerate() {
-                    if i > 0 { write!(f, ", ")?; }
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
                     write!(f, "{}", arg)?;
                 }
                 write!(f, ">")
-            },
+            }
             Type::Nullable(inner) => write!(f, "{}?", inner),
             Type::Error => write!(f, "<?>"),
         }

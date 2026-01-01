@@ -62,6 +62,26 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
                 methods: vec![],
             });
 
-        class_decl.or(func)
+        // 外部函数声明: extern int print(int n);
+        let extern_decl = just(Token::Extern)
+            .ignore_then(type_parser())
+            .then(ident_parser())
+            .then(
+                type_parser()
+                    .then(ident_parser())
+                    .map(|(ty, name)| Param { name, ty })
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::LParen), just(Token::RParen)),
+            )
+            .then_ignore(just(Token::Semicolon))
+            .map_with_span(|((return_type, name), params), span| Decl::ExternFunction {
+                span,
+                name,
+                params,
+                return_type,
+            });
+
+        class_decl.or(extern_decl).or(func)
     })
 }

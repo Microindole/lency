@@ -1,7 +1,0 @@
-int test_bool() {
-    var flag = true;
-    if !flag {
-        return 0;
-    }
-    return 1;
-}

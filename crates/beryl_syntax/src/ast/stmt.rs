@@ -1,5 +1,5 @@
-use crate::ast::types::Type;
 use crate::ast::expr::{Expr, Span};
+use crate::ast::types::Type;
 
 // 顶层定义：只能出现在文件最外层
 #[derive(Debug, Clone)]
@@ -12,14 +12,23 @@ pub enum Decl {
         return_type: Type,
         body: Vec<Stmt>,
     },
-    
+
     // 类定义: class User { ... }
     Class {
         span: Span,
         name: String,
         generics: Vec<String>, // class Box<T>
         fields: Vec<Field>,
-        methods: Vec<Decl>, // 方法也是 Function Decl
+        // 方法也是 Function Decl
+        methods: Vec<Decl>,
+    },
+
+    // 外部函数声明: extern int print(int n);
+    ExternFunction {
+        span: Span,
+        name: String,
+        params: Vec<Param>,
+        return_type: Type,
     },
 }
 
@@ -74,9 +83,24 @@ pub enum Stmt {
         body: Vec<Stmt>,
     },
 
+    // For 循环: for init; condition; update { ... }
+    For {
+        span: Span,
+        init: Option<Box<Stmt>>,   // 初始化语句: var i = 0
+        condition: Option<Expr>,   // 条件表达式: i < 10
+        update: Option<Box<Stmt>>, // 更新语句: i = i + 1
+        body: Vec<Stmt>,           // 循环体
+    },
+
     // 返回: return 1;
     Return {
         span: Span,
         value: Option<Expr>,
+    },
+    Break {
+        span: Span,
+    },
+    Continue {
+        span: Span,
     },
 }

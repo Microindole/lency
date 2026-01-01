@@ -10,27 +10,17 @@ use thiserror::Error;
 #[derive(Debug, Clone, Error)]
 pub enum SemanticError {
     // ============ 名称解析错误 ============
-    
     /// 未定义的变量
     #[error("undefined variable '{name}'")]
-    UndefinedVariable {
-        name: String,
-        span: Span,
-    },
+    UndefinedVariable { name: String, span: Span },
 
     /// 未定义的函数
     #[error("undefined function '{name}'")]
-    UndefinedFunction {
-        name: String,
-        span: Span,
-    },
+    UndefinedFunction { name: String, span: Span },
 
     /// 未定义的类型
     #[error("undefined type '{name}'")]
-    UndefinedType {
-        name: String,
-        span: Span,
-    },
+    UndefinedType { name: String, span: Span },
 
     /// 重复定义
     #[error("'{name}' is already defined in this scope")]
@@ -41,7 +31,6 @@ pub enum SemanticError {
     },
 
     // ============ 类型检查错误 ============
-
     /// 类型不匹配
     #[error("type mismatch: expected '{expected}', found '{found}'")]
     TypeMismatch {
@@ -52,10 +41,7 @@ pub enum SemanticError {
 
     /// 无法推导类型
     #[error("cannot infer type for '{name}', please add type annotation")]
-    CannotInferType {
-        name: String,
-        span: Span,
-    },
+    CannotInferType { name: String, span: Span },
 
     /// 二元操作类型错误
     #[error("operator '{op}' cannot be applied to types '{left}' and '{right}'")]
@@ -75,23 +61,15 @@ pub enum SemanticError {
     },
 
     // ============ Null Safety 错误 (Beryl 核心特性) ============
-
     /// 将 null 赋给非空类型
     #[error("cannot assign 'null' to non-nullable type '{ty}'")]
-    NullAssignmentToNonNullable {
-        ty: String,
-        span: Span,
-    },
+    NullAssignmentToNonNullable { ty: String, span: Span },
 
     /// 未检查可空类型就直接使用
     #[error("value of type '{ty}' might be null, use 'if != null' check or '?' operator")]
-    PossibleNullAccess {
-        ty: String,
-        span: Span,
-    },
+    PossibleNullAccess { ty: String, span: Span },
 
     // ============ 函数调用错误 ============
-
     /// 参数数量不匹配
     #[error("function '{name}' expects {expected} arguments, but got {found}")]
     ArgumentCountMismatch {
@@ -118,7 +96,6 @@ pub enum SemanticError {
     },
 
     // ============ 类相关错误 ============
-
     /// 未定义的字段
     #[error("type '{class}' has no field named '{field}'")]
     UndefinedField {
@@ -137,17 +114,19 @@ pub enum SemanticError {
 
     /// 不是类类型
     #[error("'{ty}' is not a class type, cannot access members")]
-    NotAClass {
-        ty: String,
-        span: Span,
-    },
+    NotAClass { ty: String, span: Span },
 
     /// 不可调用
     #[error("'{ty}' is not callable")]
-    NotCallable {
-        ty: String,
-        span: Span,
-    },
+    NotCallable { ty: String, span: Span },
+
+    /// break 语句不在循环内
+    #[error("'break' outside loop")]
+    BreakOutsideLoop { span: Span },
+
+    /// continue 语句不在循环内
+    #[error("'continue' outside loop")]
+    ContinueOutsideLoop { span: Span },
 }
 
 impl SemanticError {
@@ -171,6 +150,8 @@ impl SemanticError {
             Self::UndefinedMethod { span, .. } => span,
             Self::NotAClass { span, .. } => span,
             Self::NotCallable { span, .. } => span,
+            Self::BreakOutsideLoop { span } => span,
+            Self::ContinueOutsideLoop { span } => span,
         }
     }
 }

@@ -42,9 +42,31 @@ pub enum ExprKind {
         generics: Vec<Type>, // new List<int>()
         args: Vec<Expr>,     // 构造函数参数
     },
-    
+
     // 数组/列表字面量: [1, 2, 3]
     Array(Vec<Expr>),
+
+    // Match 表达式
+    Match {
+        value: Box<Expr>,
+        cases: Vec<MatchCase>,
+        default: Option<Box<Expr>>, // Derived from `_ => ...`
+    },
+
+    // Intrinsic Print
+    Print(Box<Expr>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MatchCase {
+    pub pattern: MatchPattern,
+    pub body: Box<Expr>,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MatchPattern {
+    Literal(Literal), // Only Int for now
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -58,10 +80,19 @@ pub enum Literal {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinaryOp {
-    Add, Sub, Mul, Div, Mod, // +, -, *, /, %
-    Eq, Neq,                 // ==, !=
-    Lt, Gt, Leq, Geq,        // <, >, <=, >=
-    And, Or,                 // &&, ||
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod, // +, -, *, /, %
+    Eq,
+    Neq, // ==, !=
+    Lt,
+    Gt,
+    Leq,
+    Geq, // <, >, <=, >=
+    And,
+    Or, // &&, ||
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

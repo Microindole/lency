@@ -83,12 +83,17 @@ fn cmd_run(input: &str) -> Result<()> {
     fs::write(temp_ir, result.ir)?;
 
     // 3. 使用 lli 运行 LLVM IR
-    let output = std::process::Command::new("lli").arg(temp_ir).output()?;
+    let output = std::process::Command::new("lli-15").arg(temp_ir).output()?;
 
     print!("{}", String::from_utf8_lossy(&output.stdout));
     eprint!("{}", String::from_utf8_lossy(&output.stderr));
 
     if !output.status.success() {
+        if let Some(code) = output.status.code() {
+            println!("\n[Program exited with code {}]", code);
+        } else {
+            eprintln!("\n[Program terminated by signal]");
+        }
         std::process::exit(output.status.code().unwrap_or(1));
     }
 

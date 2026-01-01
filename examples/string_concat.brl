@@ -1,6 +1,0 @@
-int main() {
-    var hello = "Hello";
-    var world = "World";
-    var greeting = hello + " " + world;
-    return 0;
-}

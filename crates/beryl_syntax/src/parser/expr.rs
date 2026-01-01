@@ -13,15 +13,18 @@ pub type ParserError = Simple<Token>;
 pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
     recursive(|expr| {
         // 字面量
-        let val = select! {
+        // 字面量 (Literal Parser)
+        let literal = select! {
             Token::Int(x) => Literal::Int(x),
             Token::Float(s) => Literal::Float(s.parse().unwrap_or(0.0)),
             Token::String(s) => Literal::String(s),
             Token::True => Literal::Bool(true),
             Token::False => Literal::Bool(false),
             Token::Null => Literal::Null,
-        }
-        .map_with_span(|lit, span| Expr {
+        };
+
+        // 字面量
+        let val = literal.map_with_span(|lit, span| Expr {
             kind: ExprKind::Literal(lit),
             span,
         });
@@ -55,7 +58,68 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                 span,
             });
 
-        let atom = val.or(call).or(ident).or(paren);
+        let match_expr = just(Token::Match)
+            .ignore_then(expr.clone())
+            .then(
+                // 解析 match body { ... }
+                // 格式: literal => expr (重复)
+                // 最后可选: _ => expr
+                ident_parser()
+                    .or_not()
+                    .ignore_then(just(Token::LBrace)) // Hack: ident_parser check is weird here? No, just brace.
+                    .ignore_then(
+                        // Cases: value => expr
+                        literal
+                            .then_ignore(just(Token::Arrow))
+                            .then(expr.clone())
+                            .map_with_span(|(pattern, body), span| MatchCase {
+                                pattern: MatchPattern::Literal(pattern),
+                                body: Box::new(body),
+                                span,
+                            })
+                            .repeated()
+                            .then(
+                                // Default: _ => expr
+                                just(Token::Underscore)
+                                    .ignore_then(just(Token::Arrow))
+                                    .ignore_then(expr.clone())
+                                    .map(Box::new)
+                                    .or_not(),
+                            )
+                            .delimited_by(
+                                just(Token::LBrace).or_not(), // .or_not because we might have consumed it? No.
+                                just(Token::RBrace),
+                            ),
+                    ),
+            )
+            .map_with_span(|(value, (cases, default)), span| Expr {
+                kind: ExprKind::Match {
+                    value: Box::new(value),
+                    cases,
+                    default,
+                },
+                span,
+            });
+
+        // Print expression: print(x)
+        let print_expr = just(Token::Print)
+            .ignore_then(
+                expr.clone()
+                    .delimited_by(just(Token::LParen), just(Token::RParen)),
+            )
+            .map_with_span(|arg, span| Expr {
+                kind: ExprKind::Print(Box::new(arg)),
+                span,
+            });
+
+        // let atom = val.or(call).or(ident).or(paren);
+        // Integrate match_expr. Should be high precedence.
+        let atom = match_expr
+            .or(print_expr)
+            .or(val)
+            .or(call)
+            .or(ident)
+            .or(paren);
 
         // 一元运算符 (!, -)
         let unary = just(Token::Bang)
@@ -149,7 +213,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
             });
 
         // 逻辑或 (||)
-        let logical_or = logical_and
+        logical_and
             .clone()
             .then(
                 just(Token::Or)
@@ -163,8 +227,6 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                     kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
                     span,
                 }
-            });
-
-        logical_or
+            })
     })
 }

@@ -1,7 +1,0 @@
-// 简化的类型提升测试
-int main() {
-    var i = 5;
-    var f = 2.5;
-    var result = i + f;
-    return 0;
-}

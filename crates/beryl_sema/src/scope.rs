@@ -193,7 +193,8 @@ impl ScopeStack {
 
     /// 获取子作用域列表（用于遍历）
     pub fn get_child_scopes(&self, parent_id: ScopeId) -> Vec<ScopeId> {
-        self.scopes.iter()
+        self.scopes
+            .iter()
             .filter(|s| s.parent == Some(parent_id))
             .map(|s| s.id)
             .collect()
@@ -231,11 +232,9 @@ impl ScopeStack {
                 // 但更好的方式是在进入函数时记录函数名
                 // 这里简化处理，查找父作用域的函数定义
                 if let Some(parent_id) = scope.parent {
-                    for (name, _) in &self.scopes[parent_id].symbols {
-                        if let Some(sym) = self.lookup(name) {
-                            if let Symbol::Function(_) = sym {
-                                return Some(name);
-                            }
+                    for name in self.scopes[parent_id].symbols.keys() {
+                        if let Some(Symbol::Function(_)) = self.lookup(name) {
+                            return Some(name);
                         }
                     }
                 }
@@ -266,24 +265,14 @@ mod tests {
     #[test]
     fn test_scope_nesting() {
         let mut scopes = ScopeStack::new();
-        
+
         // 全局作用域
-        let var_x = Symbol::Variable(VariableSymbol::new(
-            "x".to_string(),
-            Type::Int,
-            true,
-            0..1,
-        ));
+        let var_x = Symbol::Variable(VariableSymbol::new("x".to_string(), Type::Int, true, 0..1));
         scopes.define(var_x).unwrap();
 
         // 进入函数作用域
         scopes.enter_scope(ScopeKind::Function);
-        let var_y = Symbol::Variable(VariableSymbol::new(
-            "y".to_string(),
-            Type::Int,
-            true,
-            2..3,
-        ));
+        let var_y = Symbol::Variable(VariableSymbol::new("y".to_string(), Type::Int, true, 2..3));
         scopes.define(var_y).unwrap();
 
         // 可以查到外层的 x
@@ -304,12 +293,7 @@ mod tests {
     fn test_duplicate_definition() {
         let mut scopes = ScopeStack::new();
 
-        let var1 = Symbol::Variable(VariableSymbol::new(
-            "x".to_string(),
-            Type::Int,
-            true,
-            0..1,
-        ));
+        let var1 = Symbol::Variable(VariableSymbol::new("x".to_string(), Type::Int, true, 0..1));
         scopes.define(var1).unwrap();
 
         let var2 = Symbol::Variable(VariableSymbol::new(
@@ -319,7 +303,7 @@ mod tests {
             2..3,
         ));
         let result = scopes.define(var2);
-        
+
         assert!(result.is_err());
         if let Err(SemanticError::DuplicateDefinition { name, .. }) = result {
             assert_eq!(name, "x");

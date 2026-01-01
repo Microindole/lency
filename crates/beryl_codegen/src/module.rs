@@ -38,6 +38,14 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     // 类定义暂不支持，跳过
                     continue;
                 }
+                Decl::ExternFunction {
+                    name,
+                    params,
+                    return_type,
+                    ..
+                } => {
+                    func_gen.declare(name, params, return_type)?;
+                }
             }
         }
 
@@ -48,8 +56,9 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 Decl::Function { .. } => {
                     func_gen.generate(decl)?;
                 }
-                Decl::Class { .. } => {
+                Decl::Class { .. } | Decl::ExternFunction { .. } => {
                     // 类定义暂不支持，跳过
+                    // 外部函数没有体，跳过
                     continue;
                 }
             }

@@ -1,12 +1,12 @@
-pub mod types;
 pub mod expr;
 pub mod stmt;
+pub mod types;
 pub mod visitor;
 
 // 重新导出核心类型，方便外部直接使用 beryl_syntax::ast::Expr 等
+pub use expr::{BinaryOp, Expr, ExprKind, Literal, MatchCase, MatchPattern, Span, UnaryOp};
+pub use stmt::{Decl, Field, Param, Stmt};
 pub use types::Type;
-pub use expr::{Expr, ExprKind, BinaryOp, UnaryOp, Literal, Span};
-pub use stmt::{Stmt, Decl, Param, Field};
 pub use visitor::Visitor;
 
 // 整个程序的数据结构

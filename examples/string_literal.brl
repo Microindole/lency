@@ -1,4 +1,0 @@
-int main() {
-    var msg = "Hello, Beryl!";
-    return 0;
-}

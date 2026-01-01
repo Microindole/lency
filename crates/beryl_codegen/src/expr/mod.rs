@@ -4,7 +4,9 @@
 
 mod binary;
 mod call;
+mod intrinsic;
 mod literal;
+mod match_expr;
 mod string_ops;
 mod unary;
 mod variable;
@@ -53,7 +55,7 @@ impl<'ctx, 'a> ExprGenerator<'ctx, 'a> {
 /// 内部辅助函数：生成表达式代码
 ///
 /// 这个函数被各个子模块使用，用于递归生成子表达式
-pub(self) fn generate_expr<'ctx>(
+fn generate_expr<'ctx>(
     ctx: &CodegenContext<'ctx>,
     locals: &HashMap<
         String,
@@ -70,6 +72,12 @@ pub(self) fn generate_expr<'ctx>(
         ExprKind::Binary(left, op, right) => binary::gen_binary(ctx, locals, left, op, right),
         ExprKind::Unary(op, operand) => unary::gen_unary(ctx, locals, op, operand),
         ExprKind::Call { callee, args } => call::gen_call(ctx, locals, callee, args),
+        ExprKind::Match {
+            value,
+            cases,
+            default,
+        } => match_expr::gen_match(ctx, locals, value, cases, default.as_deref()),
+        ExprKind::Print(arg) => intrinsic::gen_print(ctx, locals, arg),
         _ => Err(CodegenError::UnsupportedExpression),
     }
 }

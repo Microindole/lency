@@ -18,3 +18,5 @@ tmp/
 
 # LLVM
 *.ll
+
+# test
