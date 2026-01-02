@@ -9,27 +9,27 @@ use std::collections::HashMap;
 use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 
-use super::generate_expr;
+use crate::expr::{generate_expr, CodegenValue};
 
 /// 生成一元运算代码
 pub(super) fn gen_unary<'ctx>(
     ctx: &CodegenContext<'ctx>,
-    locals: &HashMap<
-        String,
-        (
-            inkwell::values::PointerValue<'ctx>,
-            inkwell::types::BasicTypeEnum<'ctx>,
-        ),
-    >,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     op: &UnaryOp,
     operand: &Expr,
-) -> CodegenResult<BasicValueEnum<'ctx>> {
-    let val = generate_expr(ctx, locals, operand)?;
+) -> CodegenResult<CodegenValue<'ctx>> {
+    let val_wrapper = generate_expr(ctx, locals, operand)?;
+    let val = val_wrapper.value;
 
-    match op {
-        UnaryOp::Neg => gen_neg(ctx, val),
-        UnaryOp::Not => gen_not(ctx, val),
-    }
+    let result_val = match op {
+        UnaryOp::Neg => gen_neg(ctx, val)?,
+        UnaryOp::Not => gen_not(ctx, val)?,
+    };
+
+    Ok(CodegenValue {
+        value: result_val,
+        ty: val_wrapper.ty,
+    })
 }
 
 fn gen_neg<'ctx>(

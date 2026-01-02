@@ -18,7 +18,7 @@ pub type SymbolId = usize;
 pub enum Symbol {
     Variable(VariableSymbol),
     Function(FunctionSymbol),
-    Class(ClassSymbol),
+
     Parameter(ParameterSymbol),
     Struct(StructSymbol), // 新增：结构体符号
 }
@@ -29,7 +29,7 @@ impl Symbol {
         match self {
             Symbol::Variable(v) => &v.name,
             Symbol::Function(f) => &f.name,
-            Symbol::Class(c) => &c.name,
+
             Symbol::Parameter(p) => &p.name,
             Symbol::Struct(s) => &s.name,
         }
@@ -40,7 +40,7 @@ impl Symbol {
         match self {
             Symbol::Variable(v) => &v.span,
             Symbol::Function(f) => &f.span,
-            Symbol::Class(c) => &c.span,
+
             Symbol::Parameter(p) => &p.span,
             Symbol::Struct(s) => &s.span,
         }
@@ -51,7 +51,7 @@ impl Symbol {
         match self {
             Symbol::Variable(v) => Some(&v.ty),
             Symbol::Function(_) => None, // 函数本身不是值类型
-            Symbol::Class(_) => None,    // 类本身不是值类型
+
             Symbol::Parameter(p) => Some(&p.ty),
             Symbol::Struct(_) => None, // 结构体本身不是值类型
         }
@@ -113,60 +113,11 @@ impl FunctionSymbol {
     }
 }
 
-/// 类符号
-///
-/// 对应 `class User { ... }` 或 `class Box<T> { ... }`
-#[derive(Debug, Clone)]
-pub struct ClassSymbol {
-    pub name: String,
-    pub generics: Vec<String>,
-    pub fields: HashMap<String, FieldInfo>,
-    pub methods: HashMap<String, FunctionSymbol>,
-    pub span: Span,
-}
-
 /// 字段信息
 #[derive(Debug, Clone)]
 pub struct FieldInfo {
     pub ty: Type,
     pub span: Span,
-}
-
-impl ClassSymbol {
-    pub fn new(name: String, generics: Vec<String>, span: Span) -> Self {
-        Self {
-            name,
-            generics,
-            fields: HashMap::new(),
-            methods: HashMap::new(),
-            span,
-        }
-    }
-
-    /// 添加字段
-    pub fn add_field(&mut self, name: String, ty: Type, span: Span) {
-        self.fields.insert(name, FieldInfo { ty, span });
-    }
-
-    /// 添加方法
-    pub fn add_method(&mut self, func: FunctionSymbol) {
-        self.methods.insert(func.name.clone(), func);
-    }
-
-    /// 查找字段
-    pub fn get_field(&self, name: &str) -> Option<&FieldInfo> {
-        self.fields.get(name)
-    }
-
-    /// 查找方法
-    pub fn get_method(&self, name: &str) -> Option<&FunctionSymbol> {
-        self.methods.get(name)
-    }
-
-    /// 是否是泛型类
-    pub fn is_generic(&self) -> bool {
-        !self.generics.is_empty()
-    }
 }
 
 /// 参数符号

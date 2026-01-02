@@ -82,11 +82,7 @@ pub fn check_expr(checker: &mut NullSafetyChecker, expr: &Expr) {
         ExprKind::Print(expr) => {
             checker.check_expr(expr);
         }
-        ExprKind::New { args, .. } => {
-            for arg in args {
-                checker.check_expr(arg);
-            }
-        }
+
         ExprKind::StructLiteral { fields, .. } => {
             // Check all field value expressions
             for (_, value) in fields {

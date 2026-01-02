@@ -24,7 +24,11 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
     }
 
     /// 生成函数代码
-    pub fn generate(&mut self, decl: &Decl) -> CodegenResult<FunctionValue<'ctx>> {
+    pub fn generate(
+        &mut self,
+        decl: &Decl,
+        llvm_name_override: Option<&str>,
+    ) -> CodegenResult<FunctionValue<'ctx>> {
         let Decl::Function {
             name,
             params,
@@ -37,11 +41,12 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         };
 
         // 获取函数（应该已经在声明阶段创建）
+        let llvm_name = llvm_name_override.unwrap_or(name);
         let function = self
             .ctx
             .module
-            .get_function(name)
-            .ok_or_else(|| CodegenError::FunctionNotFound(name.clone()))?;
+            .get_function(llvm_name)
+            .ok_or_else(|| CodegenError::FunctionNotFound(llvm_name.to_string()))?;
 
         // 如果函数体为空（extern 函数），直接返回
         if body.is_empty() {
@@ -53,7 +58,8 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         self.ctx.builder.position_at_end(entry);
 
         // 局部变量表
-        let mut locals = HashMap::new();
+        let mut locals: HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)> =
+            HashMap::new();
 
         // 为参数分配空间并存储
         for (i, param) in params.iter().enumerate() {
@@ -61,7 +67,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
                 .get_nth_param(i as u32)
                 .ok_or_else(|| CodegenError::LLVMBuildError(format!("missing parameter {}", i)))?;
 
-            let param_type = param.ty.to_llvm_type(self.ctx.context)?;
+            let param_type = param.ty.to_llvm_type(self.ctx)?;
             let alloca = self
                 .ctx
                 .builder
@@ -73,7 +79,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
                 .build_store(alloca, param_value)
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
-            locals.insert(param.name.clone(), (alloca, param_type));
+            locals.insert(param.name.clone(), (alloca, param.ty.clone()));
         }
 
         // 生成函数体
@@ -106,7 +112,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         // 构建参数类型列表
         let mut param_types = Vec::new();
         for param in params {
-            let param_ty = param.ty.to_llvm_type(self.ctx.context)?;
+            let param_ty = param.ty.to_llvm_type(self.ctx)?;
             param_types.push(param_ty.into());
         }
 
@@ -114,7 +120,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         let fn_type = if *return_type == Type::Void {
             self.ctx.context.void_type().fn_type(&param_types, false)
         } else {
-            let ret_ty = return_type.to_llvm_type(self.ctx.context)?;
+            let ret_ty = return_type.to_llvm_type(self.ctx)?;
             ret_ty.fn_type(&param_types, false)
         };
 

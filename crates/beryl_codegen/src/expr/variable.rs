@@ -2,30 +2,32 @@
 //!
 //! 变量引用代码生成
 
-use inkwell::values::BasicValueEnum;
 use std::collections::HashMap;
 
 use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
+use crate::expr::CodegenValue;
+use crate::types::ToLLVMType;
 
 /// 生成变量引用代码
 pub(super) fn gen_variable<'ctx>(
     ctx: &CodegenContext<'ctx>,
-    locals: &HashMap<
-        String,
-        (
-            inkwell::values::PointerValue<'ctx>,
-            inkwell::types::BasicTypeEnum<'ctx>,
-        ),
-    >,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     name: &str,
-) -> CodegenResult<BasicValueEnum<'ctx>> {
-    let (ptr, llvm_type) = locals
+) -> CodegenResult<CodegenValue<'ctx>> {
+    let (ptr, ty) = locals
         .get(name)
         .ok_or_else(|| CodegenError::UndefinedVariable(name.to_string()))?;
 
     // 使用保存的类型信息进行加载
-    ctx.builder
-        .build_load(*llvm_type, *ptr, name)
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))
+    let llvm_type = ty.to_llvm_type(ctx)?;
+    let val = ctx
+        .builder
+        .build_load(llvm_type, *ptr, name)
+        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+    Ok(CodegenValue {
+        value: val,
+        ty: ty.clone(),
+    })
 }

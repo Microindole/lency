@@ -22,7 +22,7 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
             Token::TypeString => Type::String,
             Token::TypeBool => Type::Bool,
             Token::TypeVoid => Type::Void,
-            Token::Ident(name) => Type::Class(name),
+            Token::Ident(name) => Type::Struct(name),
         };
 
         // 数组类型: [N]T (Go-style)

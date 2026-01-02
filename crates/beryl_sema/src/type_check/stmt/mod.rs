@@ -124,7 +124,7 @@ pub fn check_stmt(checker: &mut TypeChecker, stmt: &Stmt) {
 
 fn check_var_decl(
     checker: &mut TypeChecker,
-    _name: &str,
+    name: &str,
     declared_ty: Option<&Type>,
     value: &Expr,
     span: &std::ops::Range<usize>,
@@ -146,6 +146,23 @@ fn check_var_decl(
                 found: value_ty.to_string(),
                 span: span.clone(),
             });
+        }
+    }
+
+    // 更新符号表中的变量类型
+    // 因为 Resolver 阶段可能只记录了声明类型（如果没有就是 Error/Unknown），
+    // 这里需要根据推导结果更新类型，以便后续使用
+    // 注意：如果是显式声明类型，通常 Resolver 已经设好了，但如果 var p = ... (没有类型)，这里必须更新
+    if let Some(symbol_id) = checker.scopes.lookup_id(name) {
+        if let Some(crate::symbol::Symbol::Variable(var_sym)) =
+            checker.scopes.get_symbol_mut(symbol_id)
+        {
+            // 如果没有显式声明类型，或者推导类型更具体（例如 null check?）
+            // 对于 var declaration，我们通常使用推导出的类型（如果有显式声明且兼容，推导出的可能更具体？）
+            // 简单起见，如果声明了类型，就用声明的（已经check兼容）。如果没有，用推导的。
+            if declared_ty.is_none() {
+                var_sym.ty = value_ty;
+            }
         }
     }
 }

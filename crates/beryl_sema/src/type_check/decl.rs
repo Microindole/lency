@@ -14,14 +14,7 @@ pub fn check_decl(checker: &mut TypeChecker, decl: &Decl) {
         } => {
             check_function(checker, name, params, return_type, body, span);
         }
-        Decl::Class {
-            name,
-            fields,
-            methods,
-            ..
-        } => {
-            check_class(checker, name, fields, methods);
-        }
+
         Decl::ExternFunction { .. } => {
             // Nothing to check for extern declarations (types checked at parser/resolver level implicitly)
         }
@@ -86,36 +79,4 @@ pub fn check_function(
 
     // 恢复作用域
     checker.scopes.set_current(parent_scope);
-}
-
-pub fn check_class(
-    checker: &mut TypeChecker,
-    _name: &str,
-    _fields: &[beryl_syntax::ast::Field],
-    methods: &[Decl],
-) {
-    // 保存当前作用域和索引
-    let parent_scope = checker.scopes.current_scope();
-    let children = checker.scopes.get_child_scopes(parent_scope);
-
-    // 进入类作用域（如果有）
-    if let Some(&class_scope) = children.get(checker.next_child_index) {
-        checker.scopes.set_current(class_scope);
-        checker.next_child_index += 1;
-
-        // 重置子索引以处理方法
-        let prev_index = checker.next_child_index;
-        checker.next_child_index = 0;
-
-        // 检查每个方法
-        for method in methods {
-            check_decl(checker, method);
-        }
-
-        // 恢复索引
-        checker.next_child_index = prev_index;
-
-        // 恢复作用域
-        checker.scopes.set_current(parent_scope);
-    }
 }

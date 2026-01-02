@@ -44,35 +44,12 @@ impl<'a> TypeInferer<'a> {
         let obj_ty = self.infer(object)?;
 
         match &obj_ty {
-            // 类成员访问
-            Type::Class(class_name) => {
-                // 查找类定义并获取字段
-                if let Some(crate::symbol::Symbol::Class(class_sym)) =
-                    self.scopes.lookup(class_name)
-                {
-                    // 查找字段
-                    if let Some(field_info) = class_sym.get_field(field_name) {
-                        return Ok(field_info.ty.clone());
-                    } else {
-                        return Err(SemanticError::UndefinedField {
-                            class: class_name.clone(),
-                            field: field_name.to_string(),
-                            span: span.clone(),
-                        });
-                    }
-                }
-
-                Err(SemanticError::NotAClass {
-                    ty: class_name.clone(),
-                    span: span.clone(),
-                })
-            }
-
             // 结构体成员访问
             Type::Struct(struct_name) => {
                 // 查找结构体定义并获取字段
+                // 查找结构体定义并获取字段
                 if let Some(crate::symbol::Symbol::Struct(struct_sym)) =
-                    self.scopes.lookup(struct_name)
+                    self.scopes.lookup_from(struct_name, self.current_scope)
                 {
                     // 查找字段
                     if let Some(field_info) = struct_sym.get_field(field_name) {

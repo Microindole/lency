@@ -2,28 +2,29 @@
 //!
 //! Beryl 类型到 LLVM 类型的映射
 
+use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 use beryl_syntax::ast::Type;
-use inkwell::context::Context;
 use inkwell::types::{BasicType, BasicTypeEnum};
 use inkwell::AddressSpace;
 
 /// Type 到 LLVM 类型的转换 trait
 pub trait ToLLVMType<'ctx> {
     /// 转换为 LLVM BasicTypeEnum
-    fn to_llvm_type(&self, context: &'ctx Context) -> CodegenResult<BasicTypeEnum<'ctx>>;
+    fn to_llvm_type(&self, context: &CodegenContext<'ctx>) -> CodegenResult<BasicTypeEnum<'ctx>>;
 }
 
 impl<'ctx> ToLLVMType<'ctx> for Type {
-    fn to_llvm_type(&self, context: &'ctx Context) -> CodegenResult<BasicTypeEnum<'ctx>> {
+    fn to_llvm_type(&self, context: &CodegenContext<'ctx>) -> CodegenResult<BasicTypeEnum<'ctx>> {
         match self {
             // 基础类型映射
-            Type::Int => Ok(context.i64_type().as_basic_type_enum()),
-            Type::Float => Ok(context.f64_type().as_basic_type_enum()),
-            Type::Bool => Ok(context.bool_type().as_basic_type_enum()),
+            Type::Int => Ok(context.context.i64_type().as_basic_type_enum()),
+            Type::Float => Ok(context.context.f64_type().as_basic_type_enum()),
+            Type::Bool => Ok(context.context.bool_type().as_basic_type_enum()),
 
             // 字符串用 i8* 表示 (C 风格字符串指针)
             Type::String => Ok(context
+                .context
                 .i8_type()
                 .ptr_type(AddressSpace::default())
                 .as_basic_type_enum()),
@@ -41,30 +42,31 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                     .as_basic_type_enum())
             }
 
-            // 类类型用指针表示
-            Type::Class(_name) => {
-                // 暂时用 opaque pointer (i8*) 表示类实例
-                // 未来可以实现完整的类布局
-                Ok(context
-                    .i8_type()
-                    .ptr_type(AddressSpace::default())
-                    .as_basic_type_enum())
-            }
-
             // 数组类型: [T; N] -> [N x T]
             Type::Array { element_type, size } => {
                 let elem_type = element_type.to_llvm_type(context)?;
                 Ok(elem_type.array_type(*size as u32).as_basic_type_enum())
             }
 
-            // 结构体类型：用 opaque pointer 表示（简化实现）
-            Type::Struct(_name) => {
-                // 暂时用 i8* 表示结构体实例
-                // 完整实现需要struct布局定义
-                Ok(context
-                    .i8_type()
-                    .ptr_type(AddressSpace::default())
-                    .as_basic_type_enum())
+            // 结构体类型
+            Type::Struct(name) => {
+                // 查找已注册的结构体类型
+                if let Some(struct_type) = context.struct_types.get(name) {
+                    // 结构体通过指针传递
+                    Ok(struct_type
+                        .ptr_type(AddressSpace::default())
+                        .as_basic_type_enum())
+                } else {
+                    // 如果找不到（可能是因为前向引用或者尚未定义），暂时先返回 i8*
+                    // 在 Pass 1 应该已经全部定义了，所以这里找不到通常是错误
+                    // 但为了鲁棒性，或者支持某些边缘情况，我们也可以报错
+                    // 鉴于我们是按顺序生成的，如果找不到，说明是声明顺序问题或逻辑错误。
+                    // 但考虑到 module 生成分两遍，body 生成时应该都能找到了。
+                    Err(CodegenError::UnsupportedType(format!(
+                        "Struct type '{}' not found in context",
+                        name
+                    )))
+                }
             }
 
             // 泛型类型（如 List<int>）暂不支持
@@ -102,6 +104,7 @@ pub fn is_numeric_type(ty: &Type) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use inkwell::context::Context;
 
     #[test]
     fn test_is_numeric() {
@@ -114,14 +117,15 @@ mod tests {
     #[test]
     fn test_to_llvm_type() {
         let context = Context::create();
+        let codegen_ctx = CodegenContext::new(&context, "test");
 
         // 测试基础类型
-        assert!(Type::Int.to_llvm_type(&context).is_ok());
-        assert!(Type::Float.to_llvm_type(&context).is_ok());
-        assert!(Type::Bool.to_llvm_type(&context).is_ok());
-        assert!(Type::String.to_llvm_type(&context).is_ok());
+        assert!(Type::Int.to_llvm_type(&codegen_ctx).is_ok());
+        assert!(Type::Float.to_llvm_type(&codegen_ctx).is_ok());
+        assert!(Type::Bool.to_llvm_type(&codegen_ctx).is_ok());
+        assert!(Type::String.to_llvm_type(&codegen_ctx).is_ok());
 
         // Void 应该报错
-        assert!(Type::Void.to_llvm_type(&context).is_err());
+        assert!(Type::Void.to_llvm_type(&codegen_ctx).is_err());
     }
 }

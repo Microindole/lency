@@ -25,8 +25,7 @@ pub struct LoopContext<'ctx> {
 pub struct StmtGenerator<'ctx, 'a> {
     pub(crate) ctx: &'a CodegenContext<'ctx>,
     /// 局部变量表
-    pub(crate) locals:
-        &'a mut HashMap<String, (PointerValue<'ctx>, inkwell::types::BasicTypeEnum<'ctx>)>,
+    pub(crate) locals: &'a mut HashMap<String, (PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     /// 循环上下文栈
     pub(crate) loop_stack: Vec<LoopContext<'ctx>>,
 }
@@ -35,7 +34,7 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     /// 创建语句生成器
     pub fn new(
         ctx: &'a CodegenContext<'ctx>,
-        locals: &'a mut HashMap<String, (PointerValue<'ctx>, inkwell::types::BasicTypeEnum<'ctx>)>,
+        locals: &'a mut HashMap<String, (PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     ) -> Self {
         Self {
             ctx,
@@ -103,11 +102,20 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     fn gen_var_decl(
         &mut self,
         name: &str,
-        _declared_ty: Option<&Type>,
+        declared_ty: Option<&Type>,
         value: &Expr,
     ) -> CodegenResult<()> {
         let expr_gen = ExprGenerator::new(self.ctx, self.locals);
-        let val = expr_gen.generate(value)?;
+        let val_wrapper = expr_gen.generate(value)?;
+        let val = val_wrapper.value;
+
+        // 若有显式类型声明，优先使用（这里假定类型检查已通过）
+        // 若无，使用推导类型
+        let var_ty = if let Some(ty) = declared_ty {
+            ty.clone()
+        } else {
+            val_wrapper.ty.clone()
+        };
 
         // 分配栈空间
         let alloca = self
@@ -122,35 +130,26 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
             .build_store(alloca, val)
             .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
-        // 记录变量（保存指针和类型）
-        self.locals
-            .insert(name.to_string(), (alloca, val.get_type()));
+        // 记录变量（保存指针和 Beryl 类型）
+        self.locals.insert(name.to_string(), (alloca, var_ty));
 
         Ok(())
     }
 
     /// 生成赋值语句
     fn gen_assignment(&mut self, target: &Expr, value: &Expr) -> CodegenResult<()> {
-        // 获取目标变量名
-        let var_name = match &target.kind {
-            beryl_syntax::ast::ExprKind::Variable(name) => name,
-            _ => return Err(CodegenError::UnsupportedExpression),
-        };
-
-        // 查找变量
-        let (ptr, _) = self
-            .locals
-            .get(var_name)
-            .ok_or_else(|| CodegenError::UndefinedVariable(var_name.clone()))?;
+        // 生成目标地址（LValue）
+        let expr_gen = ExprGenerator::new(self.ctx, self.locals);
+        let (ptr, _ty) = expr_gen.generate_lvalue_addr(target)?;
 
         // 生成值
-        let expr_gen = ExprGenerator::new(self.ctx, self.locals);
-        let val = expr_gen.generate(value)?;
+        let val_wrapper = expr_gen.generate(value)?;
+        let val = val_wrapper.value;
 
         // 存储
         self.ctx
             .builder
-            .build_store(*ptr, val)
+            .build_store(ptr, val)
             .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
         Ok(())
@@ -160,10 +159,10 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     fn gen_return(&mut self, value: Option<&Expr>) -> CodegenResult<()> {
         if let Some(expr) = value {
             let expr_gen = ExprGenerator::new(self.ctx, self.locals);
-            let val = expr_gen.generate(expr)?;
+            let val_wrapper = expr_gen.generate(expr)?;
             self.ctx
                 .builder
-                .build_return(Some(&val))
+                .build_return(Some(&val_wrapper.value))
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
         } else {
             self.ctx

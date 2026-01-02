@@ -5,24 +5,19 @@ use std::collections::HashMap;
 use crate::context::CodegenContext;
 use crate::error::CodegenError;
 use crate::error::CodegenResult;
-use crate::expr::generate_expr;
+use crate::expr::{generate_expr, CodegenValue};
+use beryl_syntax::ast::Type;
 
 pub fn gen_match<'ctx>(
     ctx: &CodegenContext<'ctx>,
-    locals: &HashMap<
-        String,
-        (
-            inkwell::values::PointerValue<'ctx>,
-            inkwell::types::BasicTypeEnum<'ctx>,
-        ),
-    >,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     value: &Expr,
     cases: &[MatchCase],
     default: Option<&Expr>,
-) -> CodegenResult<LLVMValue<'ctx>> {
+) -> CodegenResult<CodegenValue<'ctx>> {
     // 1. Generate condition value
-    let cond_val = generate_expr(ctx, locals, value)?;
-    let cond_int = match cond_val {
+    let cond_val_wrapper = generate_expr(ctx, locals, value)?;
+    let cond_int = match cond_val_wrapper.value {
         LLVMValue::IntValue(v) => v,
         _ => return Err(CodegenError::TypeMismatch),
     };
@@ -66,12 +61,17 @@ pub fn gen_match<'ctx>(
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     // 4. Generate code for cases
-    let mut incoming_values = Vec::new();
+    let mut incoming_values: Vec<(LLVMValue<'ctx>, inkwell::basic_block::BasicBlock<'ctx>)> =
+        Vec::new();
+    let mut result_type = Type::Void; // Placeholder
 
     for (i, case) in cases.iter().enumerate() {
         ctx.builder.position_at_end(case_blocks[i]);
-        let body_val = generate_expr(ctx, locals, &case.body)?;
-        incoming_values.push((body_val, case_blocks[i]));
+        let body_wrapper = generate_expr(ctx, locals, &case.body)?;
+        incoming_values.push((body_wrapper.value, case_blocks[i]));
+        if i == 0 {
+            result_type = body_wrapper.ty;
+        }
 
         // Branch to merge
         if ctx
@@ -90,8 +90,11 @@ pub fn gen_match<'ctx>(
     // 5. Generate code for default
     ctx.builder.position_at_end(default_bb);
     if let Some(def_expr) = default {
-        let def_val = generate_expr(ctx, locals, def_expr)?;
-        incoming_values.push((def_val, default_bb));
+        let def_wrapper = generate_expr(ctx, locals, def_expr)?;
+        incoming_values.push((def_wrapper.value, default_bb));
+        if cases.is_empty() {
+            result_type = def_wrapper.ty;
+        }
     }
 
     // Always flow from default_bb to merge_bb if default_bb is reached (via switch default)
@@ -143,5 +146,8 @@ pub fn gen_match<'ctx>(
         phi.add_incoming(&[(&val, bb)]);
     }
 
-    Ok(phi.as_basic_value())
+    Ok(CodegenValue {
+        value: phi.as_basic_value(),
+        ty: result_type,
+    })
 }

@@ -11,7 +11,6 @@ pub enum Type {
 
     // --- 复杂类型 ---
     // 类引用: User, MyClass
-    Class(String),
 
     // 泛型实例化: List<int>, Map<string, int>
     Generic(String, Vec<Type>),
@@ -43,7 +42,7 @@ impl Display for Type {
             Type::Bool => write!(f, "bool"),
             Type::String => write!(f, "string"),
             Type::Void => write!(f, "void"),
-            Type::Class(name) => write!(f, "{}", name),
+
             Type::Generic(name, args) => {
                 write!(f, "{}<", name)?;
                 for (i, arg) in args.iter().enumerate() {

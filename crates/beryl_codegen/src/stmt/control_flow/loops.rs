@@ -33,7 +33,7 @@ pub fn gen_while<'ctx, 'a>(
     gen.ctx.builder.position_at_end(cond_bb);
     let expr_gen = ExprGenerator::new(gen.ctx, gen.locals);
     let cond_val = expr_gen.generate(condition)?;
-    let cond_int = cond_val.into_int_value();
+    let cond_int = cond_val.value.into_int_value();
     gen.ctx
         .builder
         .build_conditional_branch(cond_int, body_bb, after_bb)
@@ -105,7 +105,7 @@ pub fn gen_for<'ctx, 'a>(
     if let Some(cond) = condition {
         let expr_gen = ExprGenerator::new(gen.ctx, gen.locals);
         let cond_val = expr_gen.generate(cond)?;
-        let cond_int = cond_val.into_int_value();
+        let cond_int = cond_val.value.into_int_value();
         gen.ctx
             .builder
             .build_conditional_branch(cond_int, body_bb, after_bb)

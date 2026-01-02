@@ -1,0 +1,30 @@
+struct Point {
+    int x;
+    int y;
+}
+
+struct Rect {
+    Point top_left;
+    Point bottom_right;
+}
+
+int main() {
+    var p1 = Point { x: 10, y: 20 };
+    var p2 = Point { x: 30, y: 40 };
+
+    print(p1.x);
+    print(p1.y);
+
+    var rect = Rect {
+        top_left: p1,
+        bottom_right: p2
+    }
+
+    print(rect.top_left.x)
+    print(rect.bottom_right.y)
+
+    var arr = [1, 2, 3]
+    print(arr.length)
+    print(arr[0])
+    return 0
+}

@@ -79,12 +79,6 @@ impl<'a> TypeInferer<'a> {
 
             ExprKind::Get { object, name } => self.infer_get(object, name, &expr.span),
 
-            ExprKind::New {
-                class_name,
-                generics,
-                args: _,
-            } => self.infer_new(class_name, generics, &expr.span),
-
             ExprKind::Array(elements) => self.infer_array(elements, &expr.span),
 
             ExprKind::Index { array, index } => self.infer_index(array, index, &expr.span),

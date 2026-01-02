@@ -9,64 +9,60 @@ mod intrinsic;
 mod literal;
 mod match_expr;
 mod string_ops;
+mod struct_access;
+mod struct_init;
 mod unary;
 mod variable;
 
 use beryl_syntax::ast::{Expr, ExprKind};
-use inkwell::values::BasicValueEnum;
+use inkwell::values::{BasicValueEnum, PointerValue};
 use std::collections::HashMap;
 
 use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 
+pub struct CodegenValue<'ctx> {
+    pub value: BasicValueEnum<'ctx>,
+    pub ty: beryl_syntax::ast::Type,
+}
+
 /// 表达式代码生成器（保持向后兼容的公共API）
 pub struct ExprGenerator<'ctx, 'a> {
     ctx: &'a CodegenContext<'ctx>,
-    /// 局部变量表 (变量名 -> (指针, LLVM类型))
-    locals: &'a HashMap<
-        String,
-        (
-            inkwell::values::PointerValue<'ctx>,
-            inkwell::types::BasicTypeEnum<'ctx>,
-        ),
-    >,
+    /// 局部变量表 (变量名 -> (指针, Beryl类型))
+    locals: &'a HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
 }
 
 impl<'ctx, 'a> ExprGenerator<'ctx, 'a> {
     /// 创建表达式生成器
     pub fn new(
         ctx: &'a CodegenContext<'ctx>,
-        locals: &'a HashMap<
-            String,
-            (
-                inkwell::values::PointerValue<'ctx>,
-                inkwell::types::BasicTypeEnum<'ctx>,
-            ),
-        >,
+        locals: &'a HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     ) -> Self {
         Self { ctx, locals }
     }
 
     /// 生成表达式代码（主分发方法）
-    pub fn generate(&self, expr: &Expr) -> CodegenResult<BasicValueEnum<'ctx>> {
+    pub fn generate(&self, expr: &Expr) -> CodegenResult<CodegenValue<'ctx>> {
         generate_expr(self.ctx, self.locals, expr)
+    }
+
+    /// 生成左值地址（用于赋值）
+    pub fn generate_lvalue_addr(
+        &self,
+        expr: &Expr,
+    ) -> CodegenResult<(PointerValue<'ctx>, beryl_syntax::ast::Type)> {
+        // Return Type too for verification if needed
+        generate_lvalue_addr(self.ctx, self.locals, expr)
     }
 }
 
 /// 内部辅助函数：生成表达式代码
-///
-/// 这个函数被各个子模块使用，用于递归生成子表达式
 fn generate_expr<'ctx>(
     ctx: &CodegenContext<'ctx>,
-    locals: &HashMap<
-        String,
-        (
-            inkwell::values::PointerValue<'ctx>,
-            inkwell::types::BasicTypeEnum<'ctx>,
-        ),
-    >,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     expr: &Expr,
-) -> CodegenResult<BasicValueEnum<'ctx>> {
+) -> CodegenResult<CodegenValue<'ctx>> {
     match &expr.kind {
         ExprKind::Literal(lit) => literal::gen_literal(ctx, lit),
         ExprKind::Variable(name) => variable::gen_variable(ctx, locals, name),
@@ -81,15 +77,75 @@ fn generate_expr<'ctx>(
         ExprKind::Print(arg) => intrinsic::gen_print(ctx, locals, arg),
         ExprKind::Array(elements) => array::gen_array_literal(ctx, locals, elements),
         ExprKind::Index { array, index } => array::gen_index_access(ctx, locals, array, index),
-        ExprKind::Get { object, name } => array::gen_get_property(ctx, locals, object, name),
-        ExprKind::StructLiteral { .. } => {
-            // 简化实现：返回 null 指针
-            // 完整实现需要：1. 分配结构体内存 2. 初始化字段 3. 返回指针
-            let ptr_type = ctx
-                .context
-                .i8_type()
-                .ptr_type(inkwell::AddressSpace::default());
-            Ok(ptr_type.const_null().into())
+        ExprKind::Get { object, name } => {
+            struct_access::gen_member_access(ctx, locals, object, name)
+        }
+        ExprKind::StructLiteral { type_name, fields } => {
+            struct_init::gen_struct_literal(ctx, locals, type_name, fields)
+        }
+    }
+}
+
+/// 内部辅助函数：生成左值地址
+fn generate_lvalue_addr<'ctx>(
+    ctx: &CodegenContext<'ctx>,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
+    expr: &Expr,
+) -> CodegenResult<(PointerValue<'ctx>, beryl_syntax::ast::Type)> {
+    match &expr.kind {
+        ExprKind::Variable(name) => {
+            let (ptr, ty) = locals
+                .get(name)
+                .ok_or_else(|| CodegenError::UndefinedVariable(name.clone()))?;
+            Ok((*ptr, ty.clone()))
+        }
+        ExprKind::Get { object, name } => {
+            let ptr = struct_access::gen_struct_member_ptr(ctx, locals, object, name)?;
+            // Need to return type of field for verification?
+            // Currently generate_lvalue_addr returns (ptr, type).
+            // We need to look up field type.
+            // Re-implement logic or use helper?
+            // Hacking: Use struct_access logic again roughly?
+            // Or better: Let gen_struct_member_ptr return (ptr, type)?
+            // Changing gen_struct_member_ptr signature would affect others?
+            // No, gen_member_access calls it.
+            // But gen_member_access ignored return type there?
+            // Let's look up type here.
+
+            // We need struct name. Parse expr again?
+            // Or just trust caller?
+            // This is getting complicated.
+            // Let's assume for now we can get it.
+
+            // To get type, we need object type.
+            // generate_expr(object) -> type.
+            // But we might want address of object?
+            // generate_lvalue_addr is for assignment: a.x = 1.
+
+            let obj_val = generate_expr(ctx, locals, object)?;
+            let struct_name = match obj_val.ty {
+                beryl_syntax::ast::Type::Struct(n) => n,
+                _ => return Err(CodegenError::TypeMismatch),
+            };
+
+            let field_names = ctx
+                .struct_fields
+                .get(&struct_name)
+                .ok_or(CodegenError::TypeMismatch)?;
+            let idx = field_names
+                .iter()
+                .position(|n| n == name)
+                .ok_or(CodegenError::TypeMismatch)?;
+            let field_types = ctx
+                .struct_field_types
+                .get(&struct_name)
+                .ok_or(CodegenError::TypeMismatch)?;
+            let field_ty = field_types
+                .get(idx)
+                .cloned()
+                .ok_or(CodegenError::TypeMismatch)?;
+
+            Ok((ptr, field_ty))
         }
         _ => Err(CodegenError::UnsupportedExpression),
     }

@@ -17,6 +17,14 @@ pub struct CodegenContext<'ctx> {
     pub module: Module<'ctx>,
     /// LLVM IR Builder
     pub builder: Builder<'ctx>,
+    /// Named Struct Types
+    pub struct_types: std::collections::HashMap<String, inkwell::types::StructType<'ctx>>,
+    /// Struct Field Names (ordered) - used to map field name to index
+    pub struct_fields: std::collections::HashMap<String, Vec<String>>,
+    /// Function Return Types - used for type propagation
+    pub function_signatures: std::collections::HashMap<String, beryl_syntax::ast::Type>,
+    /// Struct Field Types (ordered) - used to recover Beryl Type from field access
+    pub struct_field_types: std::collections::HashMap<String, Vec<beryl_syntax::ast::Type>>,
 }
 
 impl<'ctx> CodegenContext<'ctx> {
@@ -30,6 +38,10 @@ impl<'ctx> CodegenContext<'ctx> {
             context,
             module: context.create_module(module_name),
             builder: context.create_builder(),
+            struct_types: std::collections::HashMap::new(),
+            struct_fields: std::collections::HashMap::new(),
+            function_signatures: std::collections::HashMap::new(),
+            struct_field_types: std::collections::HashMap::new(),
         }
     }
 

@@ -1,6 +1,6 @@
 use super::Resolver;
 use crate::scope::ScopeKind;
-use crate::symbol::{ClassSymbol, FunctionSymbol, ParameterSymbol, Symbol};
+use crate::symbol::{FunctionSymbol, ParameterSymbol, Symbol};
 use beryl_syntax::ast::Decl;
 
 /// 收集顶层声明（Pass 1）
@@ -27,28 +27,7 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
                 resolver.errors.push(e);
             }
         }
-        Decl::Class {
-            name,
-            generics,
-            fields,
-            span,
-            ..
-        } => {
-            let mut class_symbol = ClassSymbol::new(name.clone(), generics.clone(), span.clone());
 
-            // 收集字段
-            for field in fields {
-                class_symbol.add_field(
-                    field.name.clone(),
-                    field.ty.clone(),
-                    span.clone(), // 使用类的 span（理想情况下应该用字段的 span）
-                );
-            }
-
-            if let Err(e) = resolver.scopes.define(Symbol::Class(class_symbol)) {
-                resolver.errors.push(e);
-            }
-        }
         Decl::ExternFunction {
             name,
             params,
@@ -120,18 +99,7 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
             // 退出函数作用域
             resolver.scopes.exit_scope();
         }
-        Decl::Class { methods, .. } => {
-            // 进入类作用域
-            resolver.scopes.enter_scope(ScopeKind::Class);
 
-            // 解析方法
-            for method in methods {
-                resolver.resolve_decl(method);
-            }
-
-            // 退出类作用域
-            resolver.scopes.exit_scope();
-        }
         Decl::ExternFunction { .. } => {
             // No body to resolve
         }

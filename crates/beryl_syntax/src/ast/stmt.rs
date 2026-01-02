@@ -13,16 +13,6 @@ pub enum Decl {
         body: Vec<Stmt>,
     },
 
-    // 类定义: class User { ... }
-    Class {
-        span: Span,
-        name: String,
-        generics: Vec<String>, // class Box<T>
-        fields: Vec<Field>,
-        // 方法也是 Function Decl
-        methods: Vec<Decl>,
-    },
-
     // 外部函数声明: extern int print(int n);
     ExternFunction {
         span: Span,

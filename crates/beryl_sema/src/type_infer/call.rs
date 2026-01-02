@@ -28,27 +28,4 @@ impl<'a> TypeInferer<'a> {
             Ok(Type::Error)
         }
     }
-
-    /// 推导 new 表达式类型
-    pub(crate) fn infer_new(
-        &self,
-        class_name: &str,
-        generics: &[Type],
-        span: &std::ops::Range<usize>,
-    ) -> Result<Type, SemanticError> {
-        // 检查类是否存在（类始终在全局作用域）
-        match self.scopes.lookup_global(class_name) {
-            Some(Symbol::Class(_)) => {
-                if generics.is_empty() {
-                    Ok(Type::Class(class_name.to_string()))
-                } else {
-                    Ok(Type::Generic(class_name.to_string(), generics.to_vec()))
-                }
-            }
-            _ => Err(SemanticError::UndefinedType {
-                name: class_name.to_string(),
-                span: span.clone(),
-            }),
-        }
-    }
 }

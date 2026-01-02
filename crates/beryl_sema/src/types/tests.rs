@@ -33,7 +33,7 @@ fn test_is_primitive() {
     assert!(Type::String.is_primitive());
     assert!(Type::Void.is_primitive());
 
-    assert!(!Type::Class("User".to_string()).is_primitive());
+    assert!(!Type::Struct("User".to_string()).is_primitive());
     assert!(!Type::Nullable(Box::new(Type::Int)).is_primitive());
 }
 
@@ -68,7 +68,7 @@ fn test_is_array() {
     assert!(float_array.is_array());
     assert!(!Type::Int.is_array());
     assert!(!Type::String.is_array());
-    assert!(!Type::Class("User".to_string()).is_array());
+    assert!(!Type::Struct("User".to_string()).is_array());
 }
 
 #[test]

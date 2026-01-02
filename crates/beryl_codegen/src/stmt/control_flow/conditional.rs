@@ -13,8 +13,8 @@ pub fn gen_if<'ctx, 'a>(
 ) -> CodegenResult<()> {
     // 生成条件
     let expr_gen = ExprGenerator::new(gen.ctx, gen.locals);
-    let cond_val = expr_gen.generate(condition)?;
-    let cond_int = cond_val.into_int_value();
+    let cond_wrapper = expr_gen.generate(condition)?;
+    let cond_int = cond_wrapper.value.into_int_value();
 
     // 获取当前函数
     let function = gen

@@ -1,5 +1,3 @@
-use crate::ast::types::Type;
-
 // 简单的 Span 定义 (也就是源码中的起止位置: 0..5)
 pub type Span = std::ops::Range<usize>;
 
@@ -33,14 +31,6 @@ pub enum ExprKind {
     Get {
         object: Box<Expr>,
         name: String,
-    },
-
-    // 实例化类: new User { name: "Beryl" }
-    // 这种写法符合 C# / Java 程序员的直觉
-    New {
-        class_name: String,
-        generics: Vec<Type>, // new List<int>()
-        args: Vec<Expr>,     // 构造函数参数
     },
 
     // 数组/列表字面量: [1, 2, 3]

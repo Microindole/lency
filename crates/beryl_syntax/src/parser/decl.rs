@@ -39,29 +39,6 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
                 },
             );
 
-        // 类声明: class User { ... }
-        let class_decl = just(Token::Class)
-            .ignore_then(ident_parser())
-            .then(
-                ident_parser()
-                    .separated_by(just(Token::Comma))
-                    .delimited_by(just(Token::Lt), just(Token::Gt))
-                    .or_not()
-                    .map(|g| g.unwrap_or_default()),
-            )
-            .then(
-                field_parser()
-                    .repeated()
-                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
-            )
-            .map_with_span(|((name, generics), fields), span| Decl::Class {
-                span,
-                name,
-                generics,
-                fields,
-                methods: vec![],
-            });
-
         // 外部函数声明: extern int print(int n);
         let extern_decl = just(Token::Extern)
             .ignore_then(type_parser())
@@ -106,6 +83,6 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
                 methods,
             });
 
-        choice((struct_decl, impl_decl, class_decl, extern_decl, func))
+        choice((struct_decl, impl_decl, extern_decl, func))
     })
 }

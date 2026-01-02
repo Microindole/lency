@@ -3,13 +3,13 @@
 //! 二元运算代码生成
 
 use beryl_syntax::ast::{BinaryOp, Expr};
-use inkwell::values::BasicValueEnum;
 use std::collections::HashMap;
 
 use crate::context::CodegenContext;
 use crate::error::CodegenResult;
 
-use super::generate_expr;
+use crate::expr::{generate_expr, CodegenValue};
+use beryl_syntax::ast::Type;
 
 pub mod arithmetic;
 pub mod comparison;
@@ -22,33 +22,42 @@ use logical::{gen_and, gen_or};
 /// 生成二元运算代码
 pub(super) fn gen_binary<'ctx>(
     ctx: &CodegenContext<'ctx>,
-    locals: &HashMap<
-        String,
-        (
-            inkwell::values::PointerValue<'ctx>,
-            inkwell::types::BasicTypeEnum<'ctx>,
-        ),
-    >,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     left: &Expr,
     op: &BinaryOp,
     right: &Expr,
-) -> CodegenResult<BasicValueEnum<'ctx>> {
-    let lhs = generate_expr(ctx, locals, left)?;
-    let rhs = generate_expr(ctx, locals, right)?;
+) -> CodegenResult<CodegenValue<'ctx>> {
+    let lhs_wrapper = generate_expr(ctx, locals, left)?;
+    let rhs_wrapper = generate_expr(ctx, locals, right)?;
 
-    match op {
-        BinaryOp::Add => gen_add(ctx, lhs, rhs),
-        BinaryOp::Sub => gen_sub(ctx, lhs, rhs),
-        BinaryOp::Mul => gen_mul(ctx, lhs, rhs),
-        BinaryOp::Div => gen_div(ctx, lhs, rhs),
-        BinaryOp::Mod => gen_mod(ctx, lhs, rhs),
-        BinaryOp::Eq => gen_eq(ctx, lhs, rhs),
-        BinaryOp::Neq => gen_neq(ctx, lhs, rhs),
-        BinaryOp::Lt => gen_lt(ctx, lhs, rhs),
-        BinaryOp::Gt => gen_gt(ctx, lhs, rhs),
-        BinaryOp::Leq => gen_leq(ctx, lhs, rhs),
-        BinaryOp::Geq => gen_geq(ctx, lhs, rhs),
-        BinaryOp::And => gen_and(ctx, lhs, rhs),
-        BinaryOp::Or => gen_or(ctx, lhs, rhs),
-    }
+    let lhs_val = lhs_wrapper.value;
+    let rhs_val = rhs_wrapper.value;
+
+    let result_val = match op {
+        BinaryOp::Add => gen_add(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Sub => gen_sub(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Mul => gen_mul(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Div => gen_div(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Mod => gen_mod(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Eq => gen_eq(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Neq => gen_neq(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Lt => gen_lt(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Gt => gen_gt(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Leq => gen_leq(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Geq => gen_geq(ctx, lhs_val, rhs_val)?,
+        BinaryOp::And => gen_and(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Or => gen_or(ctx, lhs_val, rhs_val)?,
+    };
+
+    let result_ty = match op {
+        BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
+            lhs_wrapper.ty
+        }
+        _ => Type::Bool,
+    };
+
+    Ok(CodegenValue {
+        value: result_val,
+        ty: result_ty,
+    })
 }

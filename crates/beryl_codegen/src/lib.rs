@@ -41,10 +41,10 @@ use module::ModuleGenerator;
 /// * `Err(CodegenError)` - 代码生成错误
 pub fn compile_to_ir(program: &Program, module_name: &str) -> CodegenResult<String> {
     let context = Context::create();
-    let ctx = CodegenContext::new(&context, module_name);
+    let mut ctx = CodegenContext::new(&context, module_name);
 
     // 生成代码
-    let mut module_gen = ModuleGenerator::new(&ctx);
+    let mut module_gen = ModuleGenerator::new(&mut ctx);
     module_gen.generate(program)?;
 
     // 验证生成的 IR
@@ -69,10 +69,10 @@ pub fn compile_to_module<'ctx>(
     context: &'ctx Context,
     module_name: &str,
 ) -> CodegenResult<Module<'ctx>> {
-    let ctx = CodegenContext::new(context, module_name);
+    let mut ctx = CodegenContext::new(context, module_name);
 
     // 生成代码
-    let mut module_gen = ModuleGenerator::new(&ctx);
+    let mut module_gen = ModuleGenerator::new(&mut ctx);
     module_gen.generate(program)?;
 
     // 验证生成的 IR
@@ -115,9 +115,11 @@ mod tests {
         let ir = result.unwrap();
         println!("Generated IR:\n{}", ir);
 
-        // 检查 IR 中包含 main 函数
-        assert!(ir.contains("define i64 @main()"));
-        // 检查返回 42
+        // 检查用户代码被重命名为 __beryl_main
+        assert!(ir.contains("define i64 @__beryl_main()"));
+        // 检查生成了 main 包装函数
+        assert!(ir.contains("define i32 @main()"));
+        // 检查返回 42 (in __beryl_main)
         assert!(ir.contains("ret i64 42"));
     }
 

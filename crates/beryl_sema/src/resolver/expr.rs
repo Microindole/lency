@@ -30,20 +30,7 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &Expr) {
             resolver.resolve_expr(object);
             // 字段名的解析在类型检查阶段完成
         }
-        ExprKind::New {
-            class_name, args, ..
-        } => {
-            // 检查类是否存在
-            if resolver.scopes.lookup(class_name).is_none() {
-                resolver.errors.push(SemanticError::UndefinedType {
-                    name: class_name.clone(),
-                    span: expr.span.clone(),
-                });
-            }
-            for arg in args {
-                resolver.resolve_expr(arg);
-            }
-        }
+
         ExprKind::Array(elements) => {
             for elem in elements {
                 resolver.resolve_expr(elem);

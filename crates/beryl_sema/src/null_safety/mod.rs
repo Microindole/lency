@@ -99,14 +99,7 @@ impl<'a> NullSafetyChecker<'a> {
                     }
                 });
             }
-            Decl::Class { methods, .. } => {
-                // Enter class scope? Class decls usually create scope.
-                self.with_child_scope(|checker| {
-                    for method in methods {
-                        checker.check_decl(method);
-                    }
-                });
-            }
+
             Decl::ExternFunction { .. } => {
                 // Extern function does not have a body/scope
             }

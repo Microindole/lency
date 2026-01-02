@@ -24,12 +24,12 @@ pub fn gen_for_in<'ctx, 'a>(
     let array_val = expr_gen.generate(iterable)?;
 
     // Safety check: must be array type (Sema ensured this)
-    if !array_val.is_array_value() {
+    if !array_val.value.is_array_value() {
         return Err(CodegenError::LLVMBuildError(
             "For-in iterable must be an array".to_string(),
         ));
     }
-    let array_type = array_val.get_type().into_array_type();
+    let array_type = array_val.value.get_type().into_array_type();
     let size = array_type.len() as u64;
 
     // Store array temporary on stack (to allow GEP)
@@ -40,7 +40,7 @@ pub fn gen_for_in<'ctx, 'a>(
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
     gen.ctx
         .builder
-        .build_store(array_alloca, array_val)
+        .build_store(array_alloca, array_val.value)
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     // 2. Index variable (alloca)
@@ -118,10 +118,14 @@ pub fn gen_for_in<'ctx, 'a>(
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     // Add to locals (Handle shadowing)
-    let old_local = gen.locals.insert(
-        iterator.to_string(),
-        (iter_alloca, array_type.get_element_type()),
-    );
+    let elem_ty = match array_val.ty {
+        beryl_syntax::ast::Type::Array { element_type, .. } => *element_type,
+        _ => return Err(CodegenError::TypeMismatch),
+    };
+
+    let old_local = gen
+        .locals
+        .insert(iterator.to_string(), (iter_alloca, elem_ty));
 
     // Push Loop Context
     gen.loop_stack.push(LoopContext {

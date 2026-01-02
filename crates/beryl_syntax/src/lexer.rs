@@ -25,10 +25,6 @@ pub enum Token {
     Continue,
     #[token("return")]
     Return,
-    #[token("class")]
-    Class,
-    #[token("new")]
-    New,
     #[token("import")]
     Import,
     #[token("extern")]
