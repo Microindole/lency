@@ -87,6 +87,12 @@ pub fn check_expr(checker: &mut NullSafetyChecker, expr: &Expr) {
                 checker.check_expr(arg);
             }
         }
+        ExprKind::StructLiteral { fields, .. } => {
+            // Check all field value expressions
+            for (_, value) in fields {
+                checker.check_expr(value);
+            }
+        }
         // Variable 和 Literal 不需要递归检查
         _ => {}
     }

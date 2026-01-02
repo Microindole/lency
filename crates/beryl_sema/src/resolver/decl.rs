@@ -69,6 +69,24 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
                 resolver.errors.push(e);
             }
         }
+        Decl::Struct { name, fields, span } => {
+            let mut struct_symbol = crate::symbol::StructSymbol::new(name.clone(), span.clone());
+
+            // 收集字段
+            for field in fields {
+                struct_symbol.add_field(field.name.clone(), field.ty.clone(), span.clone());
+            }
+
+            if let Err(e) = resolver.scopes.define(Symbol::Struct(struct_symbol)) {
+                resolver.errors.push(e);
+            }
+        }
+        Decl::Impl {
+            type_name, methods, ..
+        } => {
+            // TODO: Register methods (Phase 2)
+            let _ = (type_name, methods);
+        }
     }
 }
 
@@ -116,6 +134,15 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
         }
         Decl::ExternFunction { .. } => {
             // No body to resolve
+        }
+        Decl::Struct { .. } => {
+            // TODO: Resolve struct fields (Phase 2)
+        }
+        Decl::Impl { methods, .. } => {
+            // TODO: Resolve impl methods (Phase 2)
+            for method in methods {
+                resolve_decl(resolver, method);
+            }
         }
     }
 }

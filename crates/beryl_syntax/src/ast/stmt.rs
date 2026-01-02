@@ -30,6 +30,20 @@ pub enum Decl {
         params: Vec<Param>,
         return_type: Type,
     },
+
+    // 结构体定义: struct Point { int x int y }
+    Struct {
+        span: Span,
+        name: String,
+        fields: Vec<Field>,
+    },
+
+    // impl 块: impl Point { ... }
+    Impl {
+        span: Span,
+        type_name: String,  // 实现的类型名称
+        methods: Vec<Decl>, // 方法列表（都是 Function）
+    },
 }
 
 #[derive(Debug, Clone)]

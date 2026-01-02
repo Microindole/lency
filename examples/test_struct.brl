@@ -1,0 +1,21 @@
+// 测试结构体定义
+struct Point {
+    int x
+    int y
+}
+
+int main() {
+    // 测试结构体字面量（暂时简化，先不用方法）
+    var p = Point { x: 10, y: 20 }
+    
+    // 测试字段访问
+    print(p.x)
+    print(p.y)
+    
+    // 测试修改
+    var sum = p.x + p.y
+    print(sum)
+    
+    return 0
+}
+

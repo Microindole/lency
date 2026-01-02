@@ -61,6 +61,12 @@ pub enum ExprKind {
         array: Box<Expr>,
         index: Box<Expr>,
     },
+
+    // 结构体字面量: Point { x: 10, y: 20 }
+    StructLiteral {
+        type_name: String,
+        fields: Vec<(String, Expr)>, // (field_name, value)
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

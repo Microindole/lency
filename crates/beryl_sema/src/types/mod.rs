@@ -21,5 +21,8 @@
 pub mod info;
 pub mod registry;
 
+#[cfg(test)]
+mod tests;
+
 pub use info::TypeInfo;
 pub use registry::TypeRegistry;

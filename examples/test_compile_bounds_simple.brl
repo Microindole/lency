@@ -1,8 +1,0 @@
-int main() {
-    var arr: [3]int = [1, 2, 3]
-    
-    // Direct access - should fail at compile time
-    var x = arr[5]
-    
-    return 0
-}

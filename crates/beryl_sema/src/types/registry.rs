@@ -61,24 +61,3 @@ impl Default for TypeRegistry {
         Self::new()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_create_registry() {
-        let registry = TypeRegistry::new();
-        // 当前版本只确保能创建
-        assert!(registry.aliases.is_empty());
-    }
-
-    #[test]
-    fn test_register_alias() {
-        let mut registry = TypeRegistry::new();
-        registry.register_alias("integer".to_string(), Type::Int);
-
-        assert_eq!(registry.lookup("integer"), Some(&Type::Int));
-        assert_eq!(registry.lookup("unknown"), None);
-    }
-}

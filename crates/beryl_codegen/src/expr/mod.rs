@@ -82,6 +82,15 @@ fn generate_expr<'ctx>(
         ExprKind::Array(elements) => array::gen_array_literal(ctx, locals, elements),
         ExprKind::Index { array, index } => array::gen_index_access(ctx, locals, array, index),
         ExprKind::Get { object, name } => array::gen_get_property(ctx, locals, object, name),
+        ExprKind::StructLiteral { .. } => {
+            // 简化实现：返回 null 指针
+            // 完整实现需要：1. 分配结构体内存 2. 初始化字段 3. 返回指针
+            let ptr_type = ctx
+                .context
+                .i8_type()
+                .ptr_type(inkwell::AddressSpace::default());
+            Ok(ptr_type.const_null().into())
+        }
         _ => Err(CodegenError::UnsupportedExpression),
     }
 }

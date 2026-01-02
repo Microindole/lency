@@ -11,6 +11,9 @@ mod control;
 mod literal;
 mod operators;
 
+#[cfg(test)]
+mod tests;
+
 use crate::error::SemanticError;
 use crate::operators::{BinaryOpRegistry, UnaryOpRegistry};
 use crate::scope::{ScopeId, ScopeStack};
@@ -95,6 +98,31 @@ impl<'a> TypeInferer<'a> {
             ExprKind::Print(expr) => {
                 self.infer(expr)?;
                 Ok(Type::Void)
+            }
+
+            ExprKind::StructLiteral { type_name, fields } => {
+                // 查找结构体类型并检查字段
+                if let Some(crate::symbol::Symbol::Struct(struct_sym)) = self.lookup(type_name) {
+                    // 检查所有字段
+                    for (field_name, field_expr) in fields {
+                        // 验证字段存在
+                        if struct_sym.get_field(field_name).is_none() {
+                            return Err(SemanticError::UndefinedField {
+                                class: type_name.clone(),
+                                field: field_name.clone(),
+                                span: field_expr.span.clone(),
+                            });
+                        }
+                        // 推导字段值的类型
+                        self.infer(field_expr)?;
+                    }
+                    Ok(Type::Struct(type_name.clone()))
+                } else {
+                    Err(SemanticError::UndefinedType {
+                        name: type_name.clone(),
+                        span: expr.span.clone(),
+                    })
+                }
             }
         }
     }

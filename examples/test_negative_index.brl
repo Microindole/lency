@@ -1,8 +1,0 @@
-int main() {
-    var arr: [3]int = [1, 2, 3]
-    
-    // Test negative index - should fail at compile time
-    print(arr[-1])
-    
-    return 0
-}

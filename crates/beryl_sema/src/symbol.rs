@@ -20,6 +20,7 @@ pub enum Symbol {
     Function(FunctionSymbol),
     Class(ClassSymbol),
     Parameter(ParameterSymbol),
+    Struct(StructSymbol), // 新增：结构体符号
 }
 
 impl Symbol {
@@ -30,6 +31,7 @@ impl Symbol {
             Symbol::Function(f) => &f.name,
             Symbol::Class(c) => &c.name,
             Symbol::Parameter(p) => &p.name,
+            Symbol::Struct(s) => &s.name,
         }
     }
 
@@ -40,6 +42,7 @@ impl Symbol {
             Symbol::Function(f) => &f.span,
             Symbol::Class(c) => &c.span,
             Symbol::Parameter(p) => &p.span,
+            Symbol::Struct(s) => &s.span,
         }
     }
 
@@ -50,6 +53,7 @@ impl Symbol {
             Symbol::Function(_) => None, // 函数本身不是值类型
             Symbol::Class(_) => None,    // 类本身不是值类型
             Symbol::Parameter(p) => Some(&p.ty),
+            Symbol::Struct(_) => None, // 结构体本身不是值类型
         }
     }
 }
@@ -185,5 +189,35 @@ impl ParameterSymbol {
             span,
             index,
         }
+    }
+}
+
+/// 结构体符号
+///
+/// 对应 `struct Point { int x int y }`
+#[derive(Debug, Clone)]
+pub struct StructSymbol {
+    pub name: String,
+    pub fields: HashMap<String, FieldInfo>,
+    pub span: Span,
+}
+
+impl StructSymbol {
+    pub fn new(name: String, span: Span) -> Self {
+        Self {
+            name,
+            fields: HashMap::new(),
+            span,
+        }
+    }
+
+    /// 添加字段
+    pub fn add_field(&mut self, name: String, ty: Type, span: Span) {
+        self.fields.insert(name, FieldInfo { ty, span });
+    }
+
+    /// 查找字段
+    pub fn get_field(&self, name: &str) -> Option<&FieldInfo> {
+        self.fields.get(name)
     }
 }

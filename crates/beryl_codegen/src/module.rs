@@ -46,6 +46,12 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 } => {
                     func_gen.declare(name, params, return_type)?;
                 }
+                Decl::Struct { .. } => {
+                    // TODO: Struct codegen (Phase 2)
+                }
+                Decl::Impl { .. } => {
+                    // TODO: Impl codegen (Phase 2)
+                }
             }
         }
 
@@ -60,6 +66,12 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     // 类定义暂不支持，跳过
                     // 外部函数没有体，跳过
                     continue;
+                }
+                Decl::Struct { .. } => {
+                    // TODO: Struct codegen (Phase 2)
+                }
+                Decl::Impl { .. } => {
+                    // TODO: Impl codegen (Phase 2)
                 }
             }
         }

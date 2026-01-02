@@ -43,6 +43,23 @@ pub trait TypeInfo {
     /// 基础类型包括：int, float, bool, string, void
     fn is_primitive(&self) -> bool;
 
+    /// 是否是数组类型
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use beryl_sema::types::TypeInfo;
+    /// use beryl_syntax::ast::Type;
+    ///
+    /// let arr = Type::Array {
+    ///     element_type: Box::new(Type::Int),
+    ///     size: 5,
+    /// };
+    /// assert!(arr.is_array());
+    /// assert!(!Type::Int.is_array());
+    /// ```
+    fn is_array(&self) -> bool;
+
     /// 获取内层类型（用于 Nullable<T> 返回 T）
     ///
     /// # Returns
@@ -72,6 +89,10 @@ impl TypeInfo for Type {
         )
     }
 
+    fn is_array(&self) -> bool {
+        matches!(self, Type::Array { .. })
+    }
+
     fn inner_type(&self) -> Option<&Type> {
         match self {
             Type::Nullable(inner) => Some(inner),
@@ -81,58 +102,5 @@ impl TypeInfo for Type {
 
     fn display_name(&self) -> String {
         self.to_string()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_numeric() {
-        assert!(Type::Int.is_numeric());
-        assert!(Type::Float.is_numeric());
-        assert!(!Type::Bool.is_numeric());
-        assert!(!Type::String.is_numeric());
-        assert!(!Type::Void.is_numeric());
-    }
-
-    #[test]
-    fn test_is_nullable() {
-        let nullable_int = Type::Nullable(Box::new(Type::Int));
-        let nullable_string = Type::Nullable(Box::new(Type::String));
-
-        assert!(nullable_int.is_nullable());
-        assert!(nullable_string.is_nullable());
-        assert!(!Type::Int.is_nullable());
-        assert!(!Type::String.is_nullable());
-    }
-
-    #[test]
-    fn test_is_primitive() {
-        assert!(Type::Int.is_primitive());
-        assert!(Type::Float.is_primitive());
-        assert!(Type::Bool.is_primitive());
-        assert!(Type::String.is_primitive());
-        assert!(Type::Void.is_primitive());
-
-        assert!(!Type::Class("User".to_string()).is_primitive());
-        assert!(!Type::Nullable(Box::new(Type::Int)).is_primitive());
-    }
-
-    #[test]
-    fn test_inner_type() {
-        let nullable_string = Type::Nullable(Box::new(Type::String));
-        assert_eq!(nullable_string.inner_type(), Some(&Type::String));
-
-        assert_eq!(Type::Int.inner_type(), None);
-        assert_eq!(Type::String.inner_type(), None);
-    }
-
-    #[test]
-    fn test_display_name() {
-        assert_eq!(Type::Int.display_name(), "int");
-        assert_eq!(Type::String.display_name(), "string");
-        assert_eq!(Type::Nullable(Box::new(Type::Int)).display_name(), "int?");
     }
 }

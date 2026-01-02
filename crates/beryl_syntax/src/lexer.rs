@@ -35,6 +35,10 @@ pub enum Token {
     Extern,
     #[token("print")]
     Print,
+    #[token("struct")]
+    Struct,
+    #[token("impl")]
+    Impl,
 
     // 字面量关键字
     #[token("null")]

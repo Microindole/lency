@@ -1,0 +1,34 @@
+int fibonacci(int n) {
+    var fib: [10]int = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+    
+    if n < 0 {
+        return -1
+    }
+    
+    if n >= fib.length {
+        return -1
+    }
+    
+    return fib[n]
+}
+
+int main() {
+    print(fibonacci(0))  // 1
+    print(fibonacci(1))  // 1
+    print(fibonacci(5))  // 8
+    print(fibonacci(9))  // 55
+    
+    // Test arrays in conditional logic
+    var numbers: [5]int = [10, 20, 30, 40, 50]
+    var sum = 0
+    
+    for var i = 0; i < numbers.length; i = i + 1 {
+        if numbers[i] > 25 {
+            sum = sum + numbers[i]
+        }
+    }
+    
+    print(sum)  // 30 + 40 + 50 = 120
+    
+    return 0
+}

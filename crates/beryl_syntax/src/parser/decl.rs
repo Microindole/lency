@@ -82,6 +82,30 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
                 return_type,
             });
 
-        class_decl.or(extern_decl).or(func)
+        // 结构体声明: struct Point { int x int y }
+        let struct_decl = just(Token::Struct)
+            .ignore_then(ident_parser())
+            .then(
+                field_parser()
+                    .repeated()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+            )
+            .map_with_span(|(name, fields), span| Decl::Struct { span, name, fields });
+
+        // impl 块: impl Point { ... }
+        let impl_decl = just(Token::Impl)
+            .ignore_then(ident_parser())
+            .then(
+                func.clone()
+                    .repeated()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+            )
+            .map_with_span(|(type_name, methods), span| Decl::Impl {
+                span,
+                type_name,
+                methods,
+            });
+
+        choice((struct_decl, impl_decl, class_decl, extern_decl, func))
     })
 }

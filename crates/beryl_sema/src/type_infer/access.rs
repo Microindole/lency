@@ -40,30 +40,59 @@ impl<'a> TypeInferer<'a> {
         field_name: &str,
         span: &std::ops::Range<usize>,
     ) -> Result<Type, SemanticError> {
-        let object_ty = self.infer(object)?;
+        // 推导对象类型
+        let obj_ty = self.infer(object)?;
 
-        match &object_ty {
+        match &obj_ty {
+            // 类成员访问
             Type::Class(class_name) => {
-                // 查找类定义（类始终在全局作用域）
-                match self.scopes.lookup_global(class_name) {
-                    Some(Symbol::Class(class)) => {
-                        // 查找字段
-                        if let Some(field) = class.get_field(field_name) {
-                            Ok(field.ty.clone())
-                        } else {
-                            Err(SemanticError::UndefinedField {
-                                class: class_name.clone(),
-                                field: field_name.to_string(),
-                                span: span.clone(),
-                            })
-                        }
+                // 查找类定义并获取字段
+                if let Some(crate::symbol::Symbol::Class(class_sym)) =
+                    self.scopes.lookup(class_name)
+                {
+                    // 查找字段
+                    if let Some(field_info) = class_sym.get_field(field_name) {
+                        return Ok(field_info.ty.clone());
+                    } else {
+                        return Err(SemanticError::UndefinedField {
+                            class: class_name.clone(),
+                            field: field_name.to_string(),
+                            span: span.clone(),
+                        });
                     }
-                    _ => Err(SemanticError::UndefinedType {
-                        name: class_name.clone(),
-                        span: span.clone(),
-                    }),
                 }
+
+                Err(SemanticError::NotAClass {
+                    ty: class_name.clone(),
+                    span: span.clone(),
+                })
             }
+
+            // 结构体成员访问
+            Type::Struct(struct_name) => {
+                // 查找结构体定义并获取字段
+                if let Some(crate::symbol::Symbol::Struct(struct_sym)) =
+                    self.scopes.lookup(struct_name)
+                {
+                    // 查找字段
+                    if let Some(field_info) = struct_sym.get_field(field_name) {
+                        return Ok(field_info.ty.clone());
+                    } else {
+                        return Err(SemanticError::UndefinedField {
+                            class: struct_name.clone(),
+                            field: field_name.to_string(),
+                            span: span.clone(),
+                        });
+                    }
+                }
+
+                Err(SemanticError::NotAClass {
+                    ty: struct_name.clone(),
+                    span: span.clone(),
+                })
+            }
+
+            // 数组的 .length 属性
             Type::Array { .. } => {
                 if field_name == "length" {
                     Ok(Type::Int)
@@ -75,15 +104,15 @@ impl<'a> TypeInferer<'a> {
                     })
                 }
             }
-            Type::Nullable(inner) => {
+            Type::Nullable(_inner) => {
                 // 可空类型需要先检查 null
                 Err(SemanticError::PossibleNullAccess {
-                    ty: format!("{}?", inner),
+                    ty: obj_ty.to_string(),
                     span: span.clone(),
                 })
             }
             _ => Err(SemanticError::NotAClass {
-                ty: object_ty.to_string(),
+                ty: obj_ty.to_string(),
                 span: span.clone(),
             }),
         }

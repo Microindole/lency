@@ -70,15 +70,30 @@
   ```
 - **特性**: 内存布局兼容 C ABI，零开销抽象。
 
-#### 4.2 方法 (Methods)
-- **语法**:类似于 Rust/Go 的实现块 (Implementation Block)。
+#### 4.2 方法 (Methods) - 采用 impl 块 + 隐式 this
+- **语法**: 使用 impl 块，但去除显式 self 参数
   ```beryl
   impl Point {
-      fn distance(self, other: Point) -> float { ... }
+      int getX() {
+          return x  // 直接访问字段，无需 self.x
+      }
+      
+      float distance(Point other) {
+          var dx = x - other.x
+          var dy = y - other.y
+          return sqrt(dx*dx + dy*dy)
+      }
   }
-  p.distance(p2)
+  
+  p1.distance(p2)
   ```
-- **实现**: 静态分发 (Static Dispatch)，本质上是语法糖 `Point_distance(self, other)`。
+- **特性**:
+  - 使用 impl 块组织方法（清晰的命名空间）
+  - 无需显式 self 参数（避免 Python 风格冗余）
+  - 裸标识符自动解析为 this.field
+  - `this` 作为保留字可选使用
+- **实现**: 静态分发，本质上是语法糖 `Point_distance(&p1, p2)`
+- **详细设计**: 参见 `assets/struct_design.md`
 
 ---
 

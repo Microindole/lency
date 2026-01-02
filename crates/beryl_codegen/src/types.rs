@@ -57,6 +57,16 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                 Ok(elem_type.array_type(*size as u32).as_basic_type_enum())
             }
 
+            // 结构体类型：用 opaque pointer 表示（简化实现）
+            Type::Struct(_name) => {
+                // 暂时用 i8* 表示结构体实例
+                // 完整实现需要struct布局定义
+                Ok(context
+                    .i8_type()
+                    .ptr_type(AddressSpace::default())
+                    .as_basic_type_enum())
+            }
+
             // 泛型类型（如 List<int>）暂不支持
             Type::Generic(name, _) => Err(CodegenError::UnsupportedType(format!(
                 "generic type {} not yet supported",

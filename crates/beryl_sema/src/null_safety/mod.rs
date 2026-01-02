@@ -110,6 +110,15 @@ impl<'a> NullSafetyChecker<'a> {
             Decl::ExternFunction { .. } => {
                 // Extern function does not have a body/scope
             }
+            Decl::Struct { .. } => {
+                // TODO: Check struct (Phase 2)
+            }
+            Decl::Impl { methods, .. } => {
+                // TODO: Check impl methods (Phase 2)
+                for method in methods {
+                    self.check_decl(method);
+                }
+            }
         }
     }
 

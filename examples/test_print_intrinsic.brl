@@ -1,9 +1,0 @@
-int main() {
-    print("Hello Intrinsic");
-    print(123);
-    var x = 3.14;
-    print(x);
-    // Bool support (0/1 for now)
-    print(true);
-    return 0;
-}

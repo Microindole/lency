@@ -72,5 +72,12 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &Expr) {
             resolver.resolve_expr(array);
             resolver.resolve_expr(index);
         }
+        ExprKind::StructLiteral { type_name, fields } => {
+            // TODO: Check struct type exists (Phase 2)
+            let _ = type_name;
+            for (_, value) in fields {
+                resolver.resolve_expr(value);
+            }
+        }
     }
 }

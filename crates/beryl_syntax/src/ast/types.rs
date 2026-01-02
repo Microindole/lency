@@ -27,6 +27,9 @@ pub enum Type {
         size: usize,
     },
 
+    // 结构体类型: Point
+    Struct(String),
+
     // 错误占位符 (当用户写错类型时，编译器用这个占位，防止崩溃)
     Error,
 }
@@ -53,6 +56,7 @@ impl Display for Type {
             }
             Type::Nullable(inner) => write!(f, "{}?", inner),
             Type::Array { element_type, size } => write!(f, "[{}]{}", size, element_type),
+            Type::Struct(name) => write!(f, "{}", name),
             Type::Error => write!(f, "<?>"),
         }
     }

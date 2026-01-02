@@ -129,11 +129,27 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                 span,
             });
 
+        // Struct literal: Point { x: 10, y: 20 }
+        let struct_literal = ident_parser()
+            .then(
+                ident_parser()
+                    .then_ignore(just(Token::Colon))
+                    .then(expr.clone())
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+            )
+            .map_with_span(|(type_name, fields), span| Expr {
+                kind: ExprKind::StructLiteral { type_name, fields },
+                span,
+            });
+
         // let atom = val.or(call).or(ident).or(paren);
         // Integrate match_expr. Should be high precedence.
         let atom = match_expr
             .or(print_expr)
             .or(array_literal)
+            .or(struct_literal)
             .or(val)
             .or(call)
             .or(ident)
