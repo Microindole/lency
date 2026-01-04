@@ -59,8 +59,8 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                 }
             }
 
-            // Vec 类型: Vec -> %BerylVec* (运行时指针)
-            Type::Vec => Ok(context
+            // Vec 类型: Vec<T> -> %BerylVec* (运行时指针)
+            Type::Vec(_) => Ok(context
                 .context
                 .i8_type()
                 .ptr_type(AddressSpace::default())

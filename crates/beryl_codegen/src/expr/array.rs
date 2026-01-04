@@ -98,10 +98,35 @@ pub fn gen_index_access<'ctx>(
     // 确保索引是整数
     let index_int = index_val.into_int_value();
 
+    if let Type::Vec(inner) = &array_wrapper.ty {
+        // Vec 索引访问
+        // call beryl_vec_get
+        let vec_ptr = array_val.into_pointer_value(); // %BerylVec*
+
+        let func = crate::expr::vec::get_or_declare_vec_get(ctx)?;
+        let call = ctx
+            .builder
+            .build_call(func, &[vec_ptr.into(), index_int.into()], "get_res")
+            .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+        let res_i64 = call.try_as_basic_value().left().unwrap();
+
+        let res_val = crate::expr::vec::cast_from_i64(ctx, res_i64.into_int_value(), inner)?;
+
+        return Ok(CodegenValue {
+            value: res_val,
+            ty: *inner.clone(),
+        });
+    }
+
+    // Array 逻辑
     // 获取数组类型
     let array_type = array_val.get_type();
-
     // 数组必须是 array type
+    if !array_type.is_array_type() {
+        return Err(CodegenError::UnsupportedType(
+            "Indexing non-array type".into(),
+        ));
+    }
     let arr_ty = array_type.into_array_type();
 
     let array_size = arr_ty.len() as u64;
@@ -113,16 +138,10 @@ pub fn gen_index_access<'ctx>(
             ..
         } => *inner,
         _ => {
-            return Err(CodegenError::UnsupportedType(
-                "Indexing non-array type".into(),
-            ))
+            return Err(CodegenError::TypeMismatch);
         }
     };
 
-    // === 边界检查 ===
-    // if (index < 0 || index >= size) { panic }
-
-    // 1. index >= 0 (对于 i64，检查符号位)
     // === 边界检查 ===
     if let Some(panic_func) = ctx.panic_func {
         let len_val = ctx.context.i64_type().const_int(array_size, false);

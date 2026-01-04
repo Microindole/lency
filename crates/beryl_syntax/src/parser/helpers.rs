@@ -35,7 +35,14 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
                 size,
             });
 
-        let base_type = array_type.or(basic);
+        // Vec<T>
+        let vec_type = just(Token::Vec)
+            .ignore_then(just(Token::Lt))
+            .ignore_then(ty.clone())
+            .then_ignore(just(Token::Gt))
+            .map(|inner| Type::Vec(Box::new(inner)));
+
+        let base_type = array_type.or(vec_type).or(basic);
 
         // 可空类型: T?
         base_type

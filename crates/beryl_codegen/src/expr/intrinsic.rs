@@ -23,7 +23,7 @@ pub fn gen_print<'ctx>(
         Type::String => "%s\n",
         Type::Array { .. } => "[Array]\n", // Placeholder
         Type::Struct(_) => "[Struct]\n",   // Placeholder
-        Type::Vec => "[Vec]\n",            // Placeholder
+        Type::Vec(_) => "[Vec]\n",         // Placeholder
 
         Type::Generic(_, _) => "[Generic]\n",
         Type::Void => "\n",

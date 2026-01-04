@@ -1,0 +1,31 @@
+// Flow Analysis (Smart Casts) Test
+
+struct User {
+    string name
+}
+
+void main() {
+    print("Testing Flow Analysis...");
+
+    var u: User? = User { name: "Safe" };
+
+    // Standard check
+    if (u != null) {
+        // Here u should be smart casted to User (non-nullable)
+        // Accessing .name without ?. should work
+        print("User name is: " + u.name);
+    } else {
+        print("User is null");
+    }
+
+    // Negative case (should fail if uncommented)
+    // print(u.name); // Error: PossibleNullAccess
+
+    // Check with explicit null
+    var n: User? = null;
+    if (n != null) {
+        print("Impossible");
+    } else {
+        print("Correctly handled null");
+    }
+}

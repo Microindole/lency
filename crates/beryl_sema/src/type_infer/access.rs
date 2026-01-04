@@ -10,6 +10,11 @@ impl<'a> TypeInferer<'a> {
         name: &str,
         span: &std::ops::Range<usize>,
     ) -> Result<Type, SemanticError> {
+        // 1. 优先检查 Flow Analysis Refinements (Smart Casts)
+        if let Some(refined_type) = self.scopes.lookup_refinement(name) {
+            return Ok(refined_type);
+        }
+
         match self.lookup(name) {
             Some(symbol) => {
                 match symbol.ty() {
@@ -26,10 +31,26 @@ impl<'a> TypeInferer<'a> {
                     }
                 }
             }
-            None => Err(SemanticError::UndefinedVariable {
-                name: name.to_string(),
-                span: span.clone(),
-            }),
+            None => {
+                // 尝试隐式 this 访问
+                if let Some(this_sym) = self.lookup("this") {
+                    if let Some(Type::Struct(struct_name)) = this_sym.ty() {
+                        // 查找结构体定义
+                        if let Some(crate::symbol::Symbol::Struct(struct_def)) =
+                            self.lookup(struct_name)
+                        {
+                            if let Some(field) = struct_def.get_field(name) {
+                                return Ok(field.ty.clone());
+                            }
+                        }
+                    }
+                }
+
+                Err(SemanticError::UndefinedVariable {
+                    name: name.to_string(),
+                    span: span.clone(),
+                })
+            }
         }
     }
 
@@ -87,6 +108,65 @@ impl<'a> TypeInferer<'a> {
                     ty: obj_ty.to_string(),
                     span: span.clone(),
                 })
+            }
+            _ => Err(SemanticError::NotAClass {
+                ty: obj_ty.to_string(),
+                span: span.clone(),
+            }),
+        }
+    }
+
+    /// 推导安全成员访问类型 (?. )
+    pub(crate) fn infer_safe_get(
+        &self,
+        object: &Expr,
+        field_name: &str,
+        span: &std::ops::Range<usize>,
+    ) -> Result<Type, SemanticError> {
+        let obj_ty = self.infer(object)?;
+
+        // 用于查找成员的实际类型 (unwrap nullable)
+        let inner_ty = match &obj_ty {
+            Type::Nullable(inner) => inner.as_ref(),
+            _ => &obj_ty, // 如果不是 nullable，也可以使用 ?. (只是冗余)
+        };
+
+        match inner_ty {
+            Type::Struct(struct_name) => {
+                if let Some(crate::symbol::Symbol::Struct(struct_sym)) =
+                    self.scopes.lookup_from(struct_name, self.current_scope)
+                {
+                    if let Some(field_info) = struct_sym.get_field(field_name) {
+                        // 结果必须是 nullable
+                        match &field_info.ty {
+                            Type::Nullable(_) => return Ok(field_info.ty.clone()),
+                            _ => return Ok(Type::Nullable(Box::new(field_info.ty.clone()))),
+                        }
+                    } else {
+                        return Err(SemanticError::UndefinedField {
+                            class: struct_name.clone(),
+                            field: field_name.to_string(),
+                            span: span.clone(),
+                        });
+                    }
+                }
+                Err(SemanticError::NotAClass {
+                    ty: struct_name.clone(),
+                    span: span.clone(),
+                })
+            }
+            // 数组的 .length 属性
+            Type::Array { .. } => {
+                if field_name == "length" {
+                    // length is Int, result is Int?
+                    Ok(Type::Nullable(Box::new(Type::Int)))
+                } else {
+                    Err(SemanticError::UndefinedField {
+                        class: "Array".to_string(),
+                        field: field_name.to_string(),
+                        span: span.clone(),
+                    })
+                }
             }
             _ => Err(SemanticError::NotAClass {
                 ty: obj_ty.to_string(),

@@ -15,8 +15,11 @@ pub mod arithmetic;
 pub mod comparison;
 pub mod logical;
 
+pub mod elvis;
+
 use arithmetic::{gen_add, gen_div, gen_mod, gen_mul, gen_sub};
 use comparison::{gen_eq, gen_geq, gen_gt, gen_leq, gen_lt, gen_neq};
+use elvis::gen_elvis;
 use logical::{gen_and, gen_or};
 
 /// 生成二元运算代码
@@ -27,6 +30,11 @@ pub(super) fn gen_binary<'ctx>(
     op: &BinaryOp,
     right: &Expr,
 ) -> CodegenResult<CodegenValue<'ctx>> {
+    // Short-circuiting operators
+    if matches!(op, BinaryOp::Elvis) {
+        return gen_elvis(ctx, locals, left, right);
+    }
+
     let lhs_wrapper = generate_expr(ctx, locals, left)?;
     let rhs_wrapper = generate_expr(ctx, locals, right)?;
 
@@ -47,6 +55,7 @@ pub(super) fn gen_binary<'ctx>(
         BinaryOp::Geq => gen_geq(ctx, lhs_val, rhs_val)?,
         BinaryOp::And => gen_and(ctx, lhs_val, rhs_val)?,
         BinaryOp::Or => gen_or(ctx, lhs_val, rhs_val)?,
+        BinaryOp::Elvis => unreachable!("Elvis operator handled by short-circuit logic"),
     };
 
     let result_ty = match op {

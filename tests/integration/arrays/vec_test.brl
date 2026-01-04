@@ -1,4 +1,23 @@
 void main() {
-    var v = vec![1, 2, 3, 4, 5];
-    print(42);
+    print("Testing Vectors...");
+
+    var v = vec![1, 2, 3];
+    print(v.len()); // 3
+
+    v.push(4);
+    print(v.len()); // 4
+    print(v[3]);    // 4
+
+    var p = v.pop();
+    print(p);       // 4
+    print(v.len()); // 3
+
+    print(v[0]); // 1
+    print(v[1]); // 2
+    print(v[2]); // 3
+
+    v.set(1, 20);
+    print(v[1]); // 20
+
+    print("Vector test passed");
 }

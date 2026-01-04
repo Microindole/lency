@@ -14,14 +14,13 @@ pub type ParserError = Simple<Token>;
 enum PostfixOp {
     Index(Expr),
     Member(String, Span),
+    SafeMember(String, Span),
     Call(Vec<Expr>, Span),
 }
 
 /// 解析表达式 (公共接口)
 pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
     recursive(|expr| {
-        // 字面量
-        // 字面量 (Literal Parser)
         // 字面量
         let val = literal::literal_parser();
 
@@ -140,8 +139,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
             .or(ident)
             .or(paren);
 
-        // 后缀操作符: 索引 arr[i]
-        // 后缀操作符: 索引 arr[i] 或 成员 obj.field
+        // 后缀操作符: 索引 arr[i] 或 成员 obj.field 或 安全访问 obj?.field
         let postfix = atom
             .clone()
             .then(
@@ -151,6 +149,9 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                     .or(just(Token::Dot)
                         .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
                         .map(|(n, s)| PostfixOp::Member(n, s)))
+                    .or(just(Token::QuestionDot)
+                        .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
+                        .map(|(n, s)| PostfixOp::SafeMember(n, s)))
                     .or(expr
                         .clone()
                         .separated_by(just(Token::Comma))
@@ -166,6 +167,16 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                         kind: ExprKind::Index {
                             array: Box::new(lhs),
                             index: Box::new(index),
+                        },
+                        span,
+                    }
+                }
+                PostfixOp::SafeMember(name, name_span) => {
+                    let span = lhs.span.start..name_span.end;
+                    Expr {
+                        kind: ExprKind::SafeGet {
+                            object: Box::new(lhs),
+                            name,
                         },
                         span,
                     }
@@ -244,7 +255,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                 }
             });
 
-        // 比较运算符 (<, >, <=, >=, ==, !=)
+        // 比较运算符
         let comparison = sum
             .clone()
             .then(
@@ -284,12 +295,29 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
             });
 
         // 逻辑或 (||)
-        logical_and
+        let logical_or = logical_and
             .clone()
             .then(
                 just(Token::Or)
                     .to(BinaryOp::Or)
                     .then(logical_and)
+                    .repeated(),
+            )
+            .foldl(|lhs, (op, rhs)| {
+                let span = lhs.span.start..rhs.span.end;
+                Expr {
+                    kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
+                    span,
+                }
+            });
+
+        // Elvis 操作符 (??) - 优先级低于 ||
+        logical_or
+            .clone()
+            .then(
+                just(Token::QuestionQuestion)
+                    .to(BinaryOp::Elvis)
+                    .then(logical_or)
                     .repeated(),
             )
             .foldl(|lhs, (op, rhs)| {

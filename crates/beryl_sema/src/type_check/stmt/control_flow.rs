@@ -24,37 +24,39 @@ pub fn check_if(
         _ => {}
     }
 
-    // --- Smart Casting ---
+    // --- Smart Casting (Flow Analysis) ---
+    // Extract variable name from condition
     let narrowed_var = extract_smart_cast_var(condition);
-    let mut original_ty: Option<Type> = None;
-    let mut symbol_id_restore: Option<usize> = None;
 
     if let Some(name) = narrowed_var {
-        if let Some(id) = checker.scopes.lookup_id(&name) {
-            // Need mutable access to symbol
-            if let Some(Symbol::Variable(var_sym)) = checker.scopes.get_symbol_mut(id) {
-                if let Type::Nullable(inner) = &var_sym.ty {
-                    // Save original
-                    original_ty = Some(var_sym.ty.clone());
-                    // Narrow
-                    var_sym.ty = *inner.clone();
-                    symbol_id_restore = Some(id);
+        // Find variable type (Extract data to avoid holding borrow)
+        let refinement_data = if let Some(symbol) = checker.scopes.lookup(&name) {
+            if let Some(Type::Nullable(inner)) = symbol.ty() {
+                Some(*inner.clone())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        if let Some(inner_ty) = refinement_data {
+            // We want to add refinement to the THEN block scope.
+            let parent_scope = checker.scopes.current_scope();
+            let children = checker.scopes.get_child_scopes(parent_scope);
+
+            if let Some(&child_id) = children.get(checker.next_child_index) {
+                if let Some(child_scope) = checker.scopes.get_scope_mut(child_id) {
+                    child_scope.add_refinement(name, inner_ty);
                 }
             }
         }
     }
 
-    // 检查 then 分支 (带作用域)
+    // 检查 then 分支 (带作用域 - refinements already injected)
     check_block_with_scope(checker, then_block);
 
-    // --- Restore Smart Cast ---
-    if let Some(id) = symbol_id_restore {
-        if let Some(orig) = original_ty {
-            if let Some(Symbol::Variable(var_sym)) = checker.scopes.get_symbol_mut(id) {
-                var_sym.ty = orig;
-            }
-        }
-    }
+    // No need to restore anything, scope exit handles it.
 
     // 检查 else 分支 (带作用域)
     if let Some(else_stmts) = else_block {

@@ -158,6 +158,28 @@ impl ScopeStack {
         self.symbols.get_mut(id)
     }
 
+    /// 添加类型细化
+    pub fn add_refinement(&mut self, name: String, ty: beryl_syntax::ast::Type) {
+        self.scopes[self.current].add_refinement(name, ty);
+    }
+
+    /// 查找类型细化（Flow Sensitive）
+    pub fn lookup_refinement(&self, name: &str) -> Option<beryl_syntax::ast::Type> {
+        let mut current_id = self.current;
+        loop {
+            if let Some(ty) = self.scopes[current_id].refinements.get(name) {
+                return Some(ty.clone());
+            }
+
+            if let Some(parent) = self.scopes[current_id].parent {
+                current_id = parent;
+            } else {
+                break;
+            }
+        }
+        None
+    }
+
     /// 检查是否在函数作用域内
     pub fn is_in_function(&self) -> bool {
         let mut current_id = self.current;
@@ -198,6 +220,11 @@ impl ScopeStack {
     /// 获取所有符号（用于调试）
     pub fn all_symbols(&self) -> &[Symbol] {
         &self.symbols
+    }
+
+    /// 获取特定作用域的可变引用 (用于 Flow Analysis 注入 refinement)
+    pub fn get_scope_mut(&mut self, id: ScopeId) -> Option<&mut Scope> {
+        self.scopes.get_mut(id)
     }
 }
 

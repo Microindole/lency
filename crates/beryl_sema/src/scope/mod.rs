@@ -19,6 +19,7 @@ pub struct Scope {
     pub parent: Option<ScopeId>,
     pub kind: ScopeKind,
     symbols: HashMap<String, SymbolId>,
+    pub refinements: HashMap<String, beryl_syntax::ast::Type>,
 }
 
 /// 作用域类型
@@ -41,7 +42,13 @@ impl Scope {
             parent,
             kind,
             symbols: HashMap::new(),
+            refinements: HashMap::new(),
         }
+    }
+
+    /// 添加类型细化 (Flow Analysis)
+    pub fn add_refinement(&mut self, name: String, ty: beryl_syntax::ast::Type) {
+        self.refinements.insert(name, ty);
     }
 
     /// 在当前作用域定义符号

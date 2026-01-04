@@ -85,24 +85,131 @@ impl<'a> TypeChecker<'a> {
             ExprKind::Get { object, name } => {
                 // 方法调用处理
                 let obj_type = self.infer_type(object)?;
-                if let Type::Struct(struct_name) = obj_type {
-                    // 构建 mangled name: StructName_methodName
-                    let mangled_name = format!("{}_{}", struct_name, name);
-                    match self.scopes.lookup(&mangled_name) {
-                        Some(Symbol::Function(f)) => (f.clone(), true),
-                        _ => {
-                            return Err(SemanticError::UndefinedMethod {
-                                class: struct_name,
-                                method: name.clone(),
-                                span: span.clone(),
-                            });
+                match obj_type {
+                    Type::Struct(struct_name) => {
+                        // 构建 mangled name: StructName_methodName
+                        let mangled_name = format!("{}_{}", struct_name, name);
+                        match self.scopes.lookup(&mangled_name) {
+                            Some(Symbol::Function(f)) => (f.clone(), true),
+                            _ => {
+                                return Err(SemanticError::UndefinedMethod {
+                                    class: struct_name,
+                                    method: name.clone(),
+                                    span: span.clone(),
+                                });
+                            }
                         }
                     }
-                } else {
-                    return Err(SemanticError::NotAStruct {
-                        name: obj_type.to_string(),
-                        span: object.span.clone(),
-                    });
+                    Type::Vec(inner_type) => {
+                        // Vec 内置方法处理
+                        match name.as_str() {
+                            "push" => {
+                                // push(val)
+                                if args.len() != 1 {
+                                    return Err(SemanticError::ArgumentCountMismatch {
+                                        name: "push".to_string(),
+                                        expected: 1,
+                                        found: args.len(),
+                                        span: span.clone(),
+                                    });
+                                }
+                                let arg_ty = self.infer_type(&args[0])?;
+                                if !is_compatible(&inner_type, &arg_ty) {
+                                    return Err(SemanticError::TypeMismatch {
+                                        expected: inner_type.to_string(),
+                                        found: arg_ty.to_string(),
+                                        span: args[0].span.clone(),
+                                    });
+                                }
+                                return Ok(Type::Void);
+                            }
+                            "pop" => {
+                                // pop() -> T
+                                if !args.is_empty() {
+                                    return Err(SemanticError::ArgumentCountMismatch {
+                                        name: "pop".to_string(),
+                                        expected: 0,
+                                        found: args.len(),
+                                        span: span.clone(),
+                                    });
+                                }
+                                return Ok(*inner_type);
+                            }
+                            "len" => {
+                                // len() -> int
+                                if !args.is_empty() {
+                                    return Err(SemanticError::ArgumentCountMismatch {
+                                        name: "len".to_string(),
+                                        expected: 0,
+                                        found: args.len(),
+                                        span: span.clone(),
+                                    });
+                                }
+                                return Ok(Type::Int);
+                            }
+                            "get" => {
+                                // get(index) -> T
+                                if args.len() != 1 {
+                                    return Err(SemanticError::ArgumentCountMismatch {
+                                        name: "get".to_string(),
+                                        expected: 1,
+                                        found: args.len(),
+                                        span: span.clone(),
+                                    });
+                                }
+                                let arg_ty = self.infer_type(&args[0])?;
+                                if !is_compatible(&Type::Int, &arg_ty) {
+                                    return Err(SemanticError::TypeMismatch {
+                                        expected: "int".to_string(),
+                                        found: arg_ty.to_string(),
+                                        span: args[0].span.clone(),
+                                    });
+                                }
+                                return Ok(*inner_type);
+                            }
+                            "set" => {
+                                // set(index, val) -> void
+                                if args.len() != 2 {
+                                    return Err(SemanticError::ArgumentCountMismatch {
+                                        name: "set".to_string(),
+                                        expected: 2,
+                                        found: args.len(),
+                                        span: span.clone(),
+                                    });
+                                }
+                                let index_ty = self.infer_type(&args[0])?;
+                                if !is_compatible(&Type::Int, &index_ty) {
+                                    return Err(SemanticError::TypeMismatch {
+                                        expected: "int".to_string(),
+                                        found: index_ty.to_string(),
+                                        span: args[0].span.clone(),
+                                    });
+                                }
+                                let val_ty = self.infer_type(&args[1])?;
+                                if !is_compatible(&inner_type, &val_ty) {
+                                    return Err(SemanticError::TypeMismatch {
+                                        expected: inner_type.to_string(),
+                                        found: val_ty.to_string(),
+                                        span: args[1].span.clone(),
+                                    });
+                                }
+                                return Ok(Type::Void);
+                            }
+                            _ => {
+                                return Err(SemanticError::UndefinedMethod {
+                                    class: format!("Vec<{}>", inner_type),
+                                    method: name.clone(),
+                                    span: span.clone(),
+                                });
+                            }
+                        }
+                    }
+                    _ => {
+                        return Err(SemanticError::NotAStruct {
+                            name: obj_type.to_string(),
+                            span: object.span.clone(),
+                        });
+                    }
                 }
             }
             _ => {

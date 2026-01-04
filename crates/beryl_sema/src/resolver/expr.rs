@@ -30,6 +30,9 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &Expr) {
             resolver.resolve_expr(object);
             // 字段名的解析在类型检查阶段完成
         }
+        ExprKind::SafeGet { object, .. } => {
+            resolver.resolve_expr(object);
+        }
 
         ExprKind::Array(elements) => {
             for elem in elements {

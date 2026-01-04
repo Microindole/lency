@@ -115,6 +115,10 @@ pub enum Token {
     Semicolon,
     #[token("?")]
     Question,
+    #[token("?.")]
+    QuestionDot,
+    #[token("??")]
+    QuestionQuestion,
     #[token("=>")]
     Arrow,
     #[regex("_", priority = 3)]

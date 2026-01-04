@@ -79,6 +79,8 @@ impl<'a> TypeInferer<'a> {
 
             ExprKind::Get { object, name } => self.infer_get(object, name, &expr.span),
 
+            ExprKind::SafeGet { object, name } => self.infer_safe_get(object, name, &expr.span),
+
             ExprKind::Array(elements) => self.infer_array(elements, &expr.span),
 
             ExprKind::Index { array, index } => self.infer_index(array, index, &expr.span),
@@ -119,18 +121,37 @@ impl<'a> TypeInferer<'a> {
                 }
             }
             ExprKind::VecLiteral(elements) => {
-                // Vec 字面量：所有元素必须是 int 类型（暂时只支持 Vec<int>）
-                for elem in elements {
+                if elements.is_empty() {
+                    // 空向量暂定为 Vec<void>，在兼容性检查时特殊处理？
+                    // 或者暂不支持空向量字面量（因为无法推导类型）
+                    // 更好的方式是让 is_compatible 允许 Vec<void> 赋值给 Vec<T> (如果 T != void)
+                    // 但目前简单起见，返回 Vec<void>
+                    return Ok(Type::Vec(Box::new(Type::Void)));
+                }
+
+                let mut common_type = self.infer(&elements[0])?;
+
+                for elem in elements.iter().skip(1) {
                     let elem_ty = self.infer(elem)?;
-                    if elem_ty != Type::Int {
+
+                    if common_type == elem_ty {
+                        continue;
+                    }
+
+                    // 类型提升规则
+                    if common_type == Type::Int && elem_ty == Type::Float {
+                        common_type = Type::Float;
+                    } else if common_type == Type::Float && elem_ty == Type::Int {
+                        // Keep Float
+                    } else {
                         return Err(SemanticError::TypeMismatch {
-                            expected: "int".to_string(),
+                            expected: common_type.to_string(),
                             found: elem_ty.to_string(),
                             span: elem.span.clone(),
                         });
                     }
                 }
-                Ok(Type::Vec)
+                Ok(Type::Vec(Box::new(common_type)))
             }
         }
     }
@@ -150,6 +171,18 @@ pub fn is_compatible(expected: &Type, actual: &Type) -> bool {
 
         // 可空类型可以接受非空类型
         (Type::Nullable(inner), actual) => is_compatible(inner, actual),
+
+        // Vec 兼容性: Invariant (T must match T)
+        // 特例：允许 Vec<void> (空字面量) 赋值给任意 Vec<T> ? 不，空字面量推导为 Vec<void> 比较危险。
+        // 目前坚持 Invariant。如果需要支持空向量，可能需要更复杂的流式类型推导。
+        // 简单处理：如果 T == Void (empty literal)，视为兼容。
+        (Type::Vec(t1), Type::Vec(t2)) => {
+            if matches!(**t2, Type::Void) {
+                true
+            } else {
+                t1 == t2
+            }
+        }
 
         // Error 类型用于错误恢复，总是兼容
         (Type::Error, _) | (_, Type::Error) => true,

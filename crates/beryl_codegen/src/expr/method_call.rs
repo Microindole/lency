@@ -22,6 +22,20 @@ pub fn gen_method_call<'ctx>(
     let object_val = generate_expr(ctx, locals, object)?;
 
     // 2. 获取 Struct 类型名称
+    // 2. 特殊处理 Vec 方法调用
+    if let Type::Vec(inner) = &object_val.ty {
+        let inner_ty = inner.as_ref().clone();
+        return crate::expr::vec::gen_vec_method_call(
+            ctx,
+            locals,
+            object_val,
+            method_name,
+            args,
+            &inner_ty,
+        );
+    }
+
+    // 2. 获取 Struct 类型名称
     let struct_name = match &object_val.ty {
         Type::Struct(name) => name,
         _ => return Err(CodegenError::TypeMismatch),

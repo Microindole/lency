@@ -29,8 +29,8 @@ pub enum Type {
     // 结构体类型: Point
     Struct(String),
 
-    // 动态数组类型: Vec (暂时只支持 Vec<int>)
-    Vec,
+    // 动态数组类型: Vec<T>
+    Vec(Box<Type>),
 
     // 错误占位符 (当用户写错类型时，编译器用这个占位，防止崩溃)
     Error,
@@ -59,7 +59,7 @@ impl Display for Type {
             Type::Nullable(inner) => write!(f, "{}?", inner),
             Type::Array { element_type, size } => write!(f, "[{}]{}", size, element_type),
             Type::Struct(name) => write!(f, "{}", name),
-            Type::Vec => write!(f, "Vec<int>"),
+            Type::Vec(inner) => write!(f, "Vec<{}>", inner),
             Type::Error => write!(f, "<?>"),
         }
     }

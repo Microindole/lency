@@ -1,162 +1,98 @@
-# Beryl 语言实现路线图 v2.2
+# Beryl 语言实现路线图 v2.3
 
-> **当前状态**: v0.4 (控制流与基础架构完成)
+> **当前状态**: v0.6 (空安全系统完成)
 > **设计哲学**: 简洁 (Concise) · 规范 (Standard) · 清晰 (Clear)
 
 ---
 
-## 🏛️ v0.x 基石 (已完成)
+## 🏛️ 已完成里程碑 (Completed)
 
-语言的核心基础设施已搭建完毕，具备了图灵完备性。
+### 阶段 1-4: 语言基石
+- ✅ **基础架构**: Lexer, Parser, AST, Codegen (LLVM)。
+- ✅ **核心类型**: `int`, `float`, `bool`, `string`。
+- ✅ **控制流**: `if`, `while`, `for` (Classic & For-in), `match` (Int)。
+- ✅ **集合**: 数组 (`[T; N]`) 与 动态数组 (`vec![...]`)。
 
-### 核心特性 (Core Features)
-- ✅ **编译器管道**: 完整的 Lexer → Parser → Sema → Codegen (LLVM) 流程。
-- ✅ **类型系统**:
-    - 基础类型: `int`, `float`, `bool`, `string`。
-    - **自动类型提升**: `int` + `float` -> `float`，减少繁琐的转换代码。
-- ✅ **控制流**:
-    - `if`/`else` 语句。
-    - `while` 循环。
-    - `for` 循环 (C 风格: `for var i=0; i<10; i=i+1`)。
-    - `break` / `continue` 跳转控制。
-    - `return` 返回值。
-- ✅ **模式匹配**:
-    - `match` 表达式 (Phase 1: 整数匹配)，编译为高效的 LLVM `switch` 指令。
-- ✅ **函数与变量**:
-    - `fn` 函数定义，支持递归。
-    - `var` 变量声明，支持类型推导。
-    - 完整的作用域管理 (块级作用域)。
-- ✅ **内建功能**:
-    - `print(x)`: 多态打印函数，自动处理所有基础类型。
+### 阶段 5: 结构体与方法 (Structs & Methods)
+- ✅ **结构体**: C 风格结构体定义与初始化。
+- ✅ **方法**: `impl` 块，支持方法定义。
+- ✅ **隐式 This**: 方法内字段的简写访问。
+
+### 阶段 6: 空安全系统 (Null Safety)
+- ✅ **显式空类型**: `T?` 表示可空，`T` 默认非空。
+- ✅ **安全操作符**: `?.` (安全调用) 与 `??` (Elvis)。
+- ✅ **流敏感分析**: `if x != null` 智能转换 (Smart Casts)。
 
 ---
 
-## 🛣️ 通往 v1.0 之路
+## 🛣️ 下一步计划 (Next Steps)
 
-### **阶段 3: 集合类型 (数组)** 🚧 *Next Sprint*
-*目标: 简单、安全、高效的数据聚合。*
+### **阶段 7: 泛型 (Generics)** 🚧 *Next Sprint*
+*目标: 代码复用，无需运行时开销，支持更强大的标准库。*
 
-#### 3.1 固定大小数组 (Fixed-size Arrays)
+#### 7.1 泛型结构体
 - **语法**:
   ```beryl
-  var arr: [int; 5] = [1, 2, 3, 4, 5]
-  print(arr[0])
+  struct Box<T> {
+      T value
+  }
+  var b = Box<int> { value: 10 }
   ```
-- **特性**: 栈上分配 (Value Semantics)，编译期长度检查，运行时边界检查 (Bounds Check)。
-- **实现**: 映射为 LLVM Array Type `[N x T]`。
+- **实现**: 
+  - 符号表支持类型参数 (`T`).
+  - AST 解析泛型参数。
+  - 单态化 (Monomorphization): 为 `Box<int>` 和 `Box<string>` 生成不同的 LLVM Struct 类型。
 
-#### 3.2 动态数组 (Vectors)
+#### 7.2 泛型函数
 - **语法**:
   ```beryl
-  var v = vec![1, 2, 3]
-  v.push(4)
-  print(v.len())
-  ```
-- **特性**: 堆上分配，自动扩容。需引入基础运行时 (Runtime) 支持 `malloc`/`realloc`。
-
----
-
-### **阶段 4: 结构体与方法**
-*目标:清晰的数据建模与封装。*
-
-#### 4.1 C 风格结构体
-- **语法**:
-  ```beryl
-  struct Point {
-      int x
-      int y
-  }
-  var p = Point { x: 10, y: 20 }
-  ```
-- **特性**: 内存布局兼容 C ABI，零开销抽象。
-
-#### 4.2 方法 (Methods) - 采用 impl 块 + 隐式 this
-- **语法**: 使用 impl 块，但去除显式 self 参数
-  ```beryl
-  impl Point {
-      int getX() {
-          return x  // 直接访问字段，无需 self.x
-      }
-      
-      float distance(Point other) {
-          var dx = x - other.x
-          var dy = y - other.y
-          return sqrt(dx*dx + dy*dy)
-      }
-  }
-  
-  p1.distance(p2)
-  ```
-- **特性**:
-  - 使用 impl 块组织方法（清晰的命名空间）
-  - 无需显式 self 参数（避免 Python 风格冗余）
-  - 裸标识符自动解析为 this.field
-  - `this` 作为保留字可选使用
-- **实现**: 静态分发，本质上是语法糖 `Point_distance(&p1, p2)`
-- **详细设计**: 参见 `assets/struct_design.md`
-
----
-
-### **阶段 5: 空安全系统 (Null Safety)** 🌟 *核心卖点*
-*目标: 彻底消除空指针异常 (The Billion Dollar Mistake)。*
-
-#### 5.1 可空类型
-- **概念**: 默认情况下类型不可为 null。只有标记为 `?` 的类型才能持有 null。
-- **语法**: `string?`, `int?`。
-
-#### 5.2 流敏感分析 (Flow Analysis)
-- **智能转换 (Smart Casts)**:
-  ```beryl
-  fn process(s: string?) {
-      if s != null {
-          print(s.length()) // 编译器知道此处 s 是 string (非空)
-      }
+  fn identity<T>(x: T) -> T {
+      return x
   }
   ```
-- **安全操作符**: `?.` (安全调用), `??` (Elvis 操作符)。
+- **实现**:
+  - 函数签名支持类型参数。
+  - 调用时根据实参类型推导 `T`，或显式指定 `id<int>(1)`.
+  - 代码生成时为每个特定类型生成函数实例。
+
+#### 7.3 升级 Vec
+- **目标**: 将硬编码的 `Vec` (目前通过 `void*` hack 或 `i64` 模拟) 升级为真正的泛型 `Vec<T>`。
 
 ---
 
-### **阶段 6: 模块化与可见性**
-*目标: 支持大型项目开发，遵循开闭原则。*
+### **阶段 8: 代数数据类型 (ADTs) 与 模式匹配**
+*目标: 强大的状态建模工具。*
 
-- **文件即模块**: 每个 `.brl` 文件是一个模块。
-- **可见性**: 默认私有。使用 `pub` 关键字导出及其符号。
-- **导入**: `import std.io` 或 `from std.math import min`。
-
----
-
-### **阶段 7: 泛型 (Generics)**
-*目标: 代码复用，无需运行时开销。*
-
-- **语法**: `struct Box<T> { T value }`，`fn map<T, U>(arr: [T], f: fn(T)->U) -> [U]`。
-- **实现**: 单态化 (Monomorphization)。编译期为每个具体类型生成代码，运行效率等同于手写。
+- **枚举 (Enums)**: 支持关联数据的枚举 (`enum Option<T> { Some(T), None }`).
+- **模式匹配**: 升级 `match` 表达式，支持解构 Struct 和 Enum。
+- **穷尽性检查**: 编译器确保处理了所有 Enum 分支。
 
 ---
 
-## 🔮 未来展望 (Post-v1.0)
+### **阶段 9: 闭包与函数式编程**
+*目标: 提升语言表达力。*
 
-- **内存管理**: 引入 RAII (资源获取即初始化) 或轻量级 GC。目前依靠严格的作用域和值语义管理内存。
-- **工具链**:
-    - `bfmt`: 官方代码格式化工具 (Opinionated Formatter)。
-    - `bpm`: 包管理器。
-- **FFI**: 完善的 C 语言互操作接口。
+- **函数类型**: `fn(int) -> bool` 作为一等公民。
+- **匿名函数 (Lambdas)**: `|x| => x + 1`。
+- **闭包 (Closures)**: 捕获环境变。
 
 ---
 
-## 📅 开发时间表 (预估)
+### **阶段 10: 标准库与 I/O**
+*目标: 构建实用的应用程序。*
 
-| 冲刺 (Sprint) | 核心任务 | 预估工时 |
+- **文件系统**: `File.read`, `File.write`。
+- **字符串处理**: `split`, `trim`, `regex`。
+- **系统接口**: 环境变量, 命令行参数, 时间。
+
+---
+
+## 📅 开发时间表 (更新)
+
+| 冲刺 (Sprint) | 核心任务 | 状态 |
 |--------|-------|-----------|
-| **Sprint 3 (进行中)** | **数组 (固定 & 动态)** | 1 周 |
-| **Sprint 4** | 结构体 (Structs) | 2 周 |
-| **Sprint 5** | 方法与 UFCS | 1 周 |
-| **Sprint 6** | **空安全系统 (Null Safety)** | 3 周 |
-| **Sprint 7** | 模块系统 | 1.5 周 |
-| **Sprint 8** | 基础泛型 | 3 周 |
-
-## 🏗️ 技术债务与基础设施
-
-- [ ] **内存泄漏**: 目前字符串操作存在内存泄漏，需要引入 `Drop` 机制或简单的 GC。
-- [ ] **错误报告**: 集成 `ariadne` 库，提供美观、带上下文的报错信息。
-- [ ] **性能优化**: 引入 LLVM 优化 Pass (`-O2`, `-O3`)。
+| **Sprint 1-4** | 基础架构 | ✅ 完成 |
+| **Sprint 5** | 结构体与方法 | ✅ 完成 |
+| **Sprint 6** | 空安全系统 | ✅ 完成 |
+| **Sprint 7** | **泛型 (Generics)** | 🏁 即将开始 |
+| **Sprint 8** | ADTs & 模式匹配 | 待定 |

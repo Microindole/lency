@@ -33,6 +33,12 @@ pub enum ExprKind {
         name: String,
     },
 
+    // Safe navigation: user?.name
+    SafeGet {
+        object: Box<Expr>,
+        name: String,
+    },
+
     // 数组/列表字面量: [1, 2, 3]
     Array(Vec<Expr>),
 
@@ -97,7 +103,8 @@ pub enum BinaryOp {
     Leq,
     Geq, // <, >, <=, >=
     And,
-    Or, // &&, ||
+    Or,    // &&, ||
+    Elvis, // ??
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

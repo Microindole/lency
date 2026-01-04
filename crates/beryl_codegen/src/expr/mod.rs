@@ -96,6 +96,10 @@ fn generate_expr<'ctx>(
             let line = ctx.get_line(expr.span.start);
             struct_access::gen_member_access(ctx, locals, object, name, line)
         }
+        ExprKind::SafeGet { object, name } => {
+            let line = ctx.get_line(expr.span.start);
+            struct_access::gen_safe_member_access(ctx, locals, object, name, line)
+        }
         ExprKind::StructLiteral { type_name, fields } => {
             struct_init::gen_struct_literal(ctx, locals, type_name, fields)
         }

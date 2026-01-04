@@ -1,0 +1,35 @@
+struct Rect {
+    int w
+    int h
+}
+
+impl Rect {
+    // Implicit access test
+    int area() {
+        return w * h 
+    }
+    
+    // Shadowing test (explicit access required)
+    pub setW(int w) {
+        this.w = w 
+    }
+
+    // Explicit access test
+    int getH() {
+        return this.h
+    }
+}
+
+pub main() {
+    print("Testing Methods...");
+    var r = Rect { w: 10, h: 20 }
+    
+    print(r.area()); // 200
+    
+    r.setW(5);
+    print(r.area()); // 100
+    
+    print(r.getH()); // 20
+
+    print("Methods test passed");
+}

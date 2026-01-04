@@ -1,0 +1,29 @@
+void main() {
+    print("Testing Generic Vectors...");
+
+    // Test Float Vector
+    var vf = vec![1.1, 2.2];
+    print(vf[0]); // 1.100000
+    print(vf.len()); // 2
+
+    // Test Promotion (Int -> Float)
+    var v_mixed = vec![1, 2.5];
+    print(v_mixed[0]); // 1.000000
+    print(v_mixed[1]); // 2.500000
+
+    // Test Empty Vector Assignment
+    // Assuming type annotation syntax is available for var?
+    // Beryl syntax: var x: type = val;
+    var v_empty: Vec<int> = vec![];
+    print(v_empty.len()); // 0
+    v_empty.push(10);
+    print(v_empty[0]); // 10
+
+    // Test Nested Vector (Vec<Vec<int>>)
+    // Note: Codegen for nested vectors relies on ptr casting, which should work.
+    var v_nested = vec![vec![1, 2], vec![3, 4]];
+    var first = v_nested[0];
+    print(first[0]); // 1
+    
+    print("Generic Vector test passed");
+}
