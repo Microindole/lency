@@ -24,7 +24,12 @@ pub struct CodegenContext<'ctx> {
     /// Function Return Types - used for type propagation
     pub function_signatures: std::collections::HashMap<String, beryl_syntax::ast::Type>,
     /// Struct Field Types (ordered) - used to recover Beryl Type from field access
+    /// Struct Field Types (ordered) - used to recover Beryl Type from field access
     pub struct_field_types: std::collections::HashMap<String, Vec<beryl_syntax::ast::Type>>,
+    /// Runtime Panic Function
+    pub panic_func: Option<inkwell::values::FunctionValue<'ctx>>,
+    /// Line starts for source mapping
+    line_starts: Vec<usize>,
 }
 
 impl<'ctx> CodegenContext<'ctx> {
@@ -33,7 +38,16 @@ impl<'ctx> CodegenContext<'ctx> {
     /// # Arguments
     /// * `context` - LLVM Context 引用
     /// * `module_name` - 模块名称
-    pub fn new(context: &'ctx Context, module_name: &str) -> Self {
+    /// * `source` - 源代码 (可选, 用于调试信息)
+    pub fn new(context: &'ctx Context, module_name: &str, source: Option<&str>) -> Self {
+        let line_starts = if let Some(src) = source {
+            std::iter::once(0)
+                .chain(src.match_indices('\n').map(|(i, _)| i + 1))
+                .collect()
+        } else {
+            Vec::new()
+        };
+
         Self {
             context,
             module: context.create_module(module_name),
@@ -42,6 +56,19 @@ impl<'ctx> CodegenContext<'ctx> {
             struct_fields: std::collections::HashMap::new(),
             function_signatures: std::collections::HashMap::new(),
             struct_field_types: std::collections::HashMap::new(),
+            panic_func: None,
+            line_starts,
+        }
+    }
+
+    /// 获取字节偏移对应的行号 (1-based)
+    pub fn get_line(&self, byte_offset: usize) -> u32 {
+        if self.line_starts.is_empty() {
+            return 0;
+        }
+        match self.line_starts.binary_search(&byte_offset) {
+            Ok(line) => (line + 1) as u32,
+            Err(next_line_idx) => next_line_idx as u32,
         }
     }
 

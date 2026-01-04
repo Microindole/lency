@@ -18,6 +18,7 @@ pub mod error;
 pub mod expr;
 pub mod function;
 pub mod module;
+pub mod runtime;
 pub mod stmt;
 pub mod types;
 
@@ -36,12 +37,18 @@ use module::ModuleGenerator;
 /// * `program` - Beryl AST 程序
 /// * `module_name` - 模块名称
 ///
+/// * `source` - 源代码 (可选)
+///
 /// # Returns
 /// * `Ok(String)` - LLVM IR 字符串
 /// * `Err(CodegenError)` - 代码生成错误
-pub fn compile_to_ir(program: &Program, module_name: &str) -> CodegenResult<String> {
+pub fn compile_to_ir(
+    program: &Program,
+    module_name: &str,
+    source: Option<&str>,
+) -> CodegenResult<String> {
     let context = Context::create();
-    let mut ctx = CodegenContext::new(&context, module_name);
+    let mut ctx = CodegenContext::new(&context, module_name, source);
 
     // 生成代码
     let mut module_gen = ModuleGenerator::new(&mut ctx);
@@ -60,6 +67,7 @@ pub fn compile_to_ir(program: &Program, module_name: &str) -> CodegenResult<Stri
 /// * `program` - Beryl AST 程序
 /// * `context` - LLVM Context
 /// * `module_name` - 模块名称
+/// * `source` - 源代码 (可选)
 ///
 /// # Returns
 /// * `Ok(Module)` - LLVM Module
@@ -68,8 +76,9 @@ pub fn compile_to_module<'ctx>(
     program: &Program,
     context: &'ctx Context,
     module_name: &str,
+    source: Option<&str>,
 ) -> CodegenResult<Module<'ctx>> {
-    let mut ctx = CodegenContext::new(context, module_name);
+    let mut ctx = CodegenContext::new(context, module_name, source);
 
     // 生成代码
     let mut module_gen = ModuleGenerator::new(&mut ctx);
@@ -108,7 +117,7 @@ mod tests {
     #[test]
     fn test_compile_simple_program() {
         let program = make_simple_program();
-        let result = compile_to_ir(&program, "test_module");
+        let result = compile_to_ir(&program, "test_module", None);
 
         assert!(result.is_ok(), "Compilation failed: {:?}", result.err());
 
@@ -161,7 +170,7 @@ mod tests {
             }],
         };
 
-        let result = compile_to_ir(&program, "test_add");
+        let result = compile_to_ir(&program, "test_add", None);
         assert!(result.is_ok(), "Compilation failed: {:?}", result.err());
 
         let ir = result.unwrap();
@@ -201,7 +210,7 @@ mod tests {
             }],
         };
 
-        let result = compile_to_ir(&program, "test_var");
+        let result = compile_to_ir(&program, "test_var", None);
         assert!(result.is_ok(), "Compilation failed: {:?}", result.err());
 
         let ir = result.unwrap();

@@ -16,6 +16,7 @@ pub fn gen_method_call<'ctx>(
     object: &Expr,
     method_name: &str,
     args: &[Expr],
+    line: u32,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     // 1. 生成对象表达式
     let object_val = generate_expr(ctx, locals, object)?;
@@ -44,6 +45,11 @@ pub fn gen_method_call<'ctx>(
             .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
         alloca
     };
+
+    // 运行时 Null 检查
+    if let Some(panic_func) = ctx.panic_func {
+        crate::runtime::gen_null_check(ctx.context, &ctx.builder, panic_func, this_ptr, line);
+    }
 
     // 4. 构建 mangled name
     let mangled_name = format!("{}_{}", struct_name, method_name);

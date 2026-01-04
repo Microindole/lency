@@ -63,7 +63,7 @@ pub fn compile(source: &str) -> CompileResult<CompilationOutput> {
     let _analysis_result = analyze(&ast).map_err(CompileError::SemanticErrors)?;
 
     // 3. 代码生成
-    let ir = compile_to_ir(&ast, "main")?;
+    let ir = compile_to_ir(&ast, "main", Some(source))?;
 
     Ok(CompilationOutput {
         ir,

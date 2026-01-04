@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn test_to_llvm_type() {
         let context = Context::create();
-        let codegen_ctx = CodegenContext::new(&context, "test");
+        let codegen_ctx = CodegenContext::new(&context, "test", None);
 
         // 测试基础类型
         assert!(Type::Int.to_llvm_type(&codegen_ctx).is_ok());

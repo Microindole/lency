@@ -23,6 +23,11 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
     pub fn generate(&mut self, program: &Program) -> CodegenResult<()> {
         use crate::types::ToLLVMType;
 
+        // 注入运行时函数 (__beryl_panic, printf, exit)
+        let panic_func =
+            crate::runtime::inject_runtime_functions(self.ctx.context, &self.ctx.module);
+        self.ctx.panic_func = Some(panic_func);
+
         // 预定义 malloc: declare i8* @malloc(i64)
         let malloc_type = self
             .ctx

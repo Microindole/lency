@@ -1,0 +1,15 @@
+int main() {
+    var arr = [10, 20, 30];
+    print("Array created");
+    
+    // Check valid access
+    var x = arr[1];
+    print(x); // Should be 20
+
+    // Check out of bounds (Runtime check)
+    print("Accessing out of bounds...");
+    var idx = 5;
+    var y = arr[idx]; // Panic here
+    print("Should not reach here");
+    return 0;
+}

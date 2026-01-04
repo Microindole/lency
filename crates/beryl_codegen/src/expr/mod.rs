@@ -75,7 +75,8 @@ fn generate_expr<'ctx>(
             if let ExprKind::Get { object, name } = &callee.kind {
                 // 尝试作为方法调用处理
                 // gen_method_call 内部会验证 object 是否为 Struct
-                method_call::gen_method_call(ctx, locals, object, name, args)
+                let line = ctx.get_line(callee.span.start);
+                method_call::gen_method_call(ctx, locals, object, name, args, line)
             } else {
                 call::gen_call(ctx, locals, callee, args)
             }
@@ -87,9 +88,13 @@ fn generate_expr<'ctx>(
         } => match_expr::gen_match(ctx, locals, value, cases, default.as_deref()),
         ExprKind::Print(arg) => intrinsic::gen_print(ctx, locals, arg),
         ExprKind::Array(elements) => array::gen_array_literal(ctx, locals, elements),
-        ExprKind::Index { array, index } => array::gen_index_access(ctx, locals, array, index),
+        ExprKind::Index { array, index } => {
+            let line = ctx.get_line(expr.span.start);
+            array::gen_index_access(ctx, locals, array, index, line)
+        }
         ExprKind::Get { object, name } => {
-            struct_access::gen_member_access(ctx, locals, object, name)
+            let line = ctx.get_line(expr.span.start);
+            struct_access::gen_member_access(ctx, locals, object, name, line)
         }
         ExprKind::StructLiteral { type_name, fields } => {
             struct_init::gen_struct_literal(ctx, locals, type_name, fields)
@@ -112,7 +117,8 @@ fn generate_lvalue_addr<'ctx>(
             Ok((*ptr, ty.clone()))
         }
         ExprKind::Get { object, name } => {
-            let ptr = struct_access::gen_struct_member_ptr(ctx, locals, object, name)?;
+            let line = ctx.get_line(expr.span.start);
+            let ptr = struct_access::gen_struct_member_ptr(ctx, locals, object, name, line)?;
             // Need to return type of field for verification?
             // Currently generate_lvalue_addr returns (ptr, type).
             // We need to look up field type.

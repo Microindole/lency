@@ -16,6 +16,7 @@ pub fn gen_struct_member_ptr<'ctx>(
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     object_expr: &Expr,
     field_name: &str,
+    line: u32,
 ) -> CodegenResult<PointerValue<'ctx>> {
     // 1. 计算对象表达式
     let object_val = generate_expr(ctx, locals, object_expr)?;
@@ -27,6 +28,11 @@ pub fn gen_struct_member_ptr<'ctx>(
         ));
     }
     let ptr_val = object_val.value.into_pointer_value();
+
+    // 运行时 Null 检查
+    if let Some(panic_func) = ctx.panic_func {
+        crate::runtime::gen_null_check(ctx.context, &ctx.builder, panic_func, ptr_val, line);
+    }
 
     // 3. 获取结构体名称和 LLVM 类型
     let struct_name = match &object_val.ty {
@@ -79,6 +85,7 @@ pub fn gen_member_access<'ctx>(
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     object_expr: &Expr,
     field_name: &str,
+    line: u32,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     let object_val = generate_expr(ctx, locals, object_expr)?;
 
@@ -98,7 +105,7 @@ pub fn gen_member_access<'ctx>(
     // TODO: array might be passed as generic ptr if we change array repr. For now array literals are alloca'd array types.
 
     // 正常结构体字段访问
-    let field_ptr = gen_struct_member_ptr(ctx, locals, object_expr, field_name)?;
+    let field_ptr = gen_struct_member_ptr(ctx, locals, object_expr, field_name, line)?;
 
     // Load
     // We need element type for build_load.

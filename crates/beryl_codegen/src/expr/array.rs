@@ -86,6 +86,7 @@ pub fn gen_index_access<'ctx>(
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, beryl_syntax::ast::Type)>,
     array_expr: &Expr,
     index_expr: &Expr,
+    line: u32,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     // 生成数组和索引
     let array_wrapper = generate_expr(ctx, locals, array_expr)?;
@@ -122,101 +123,18 @@ pub fn gen_index_access<'ctx>(
     // if (index < 0 || index >= size) { panic }
 
     // 1. index >= 0 (对于 i64，检查符号位)
-    let zero = ctx.context.i64_type().const_int(0, false);
-    let is_negative = ctx
-        .builder
-        .build_int_compare(inkwell::IntPredicate::SLT, index_int, zero, "is_negative")
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    // 2. index < size
-    let size_const = ctx.context.i64_type().const_int(array_size, false);
-    let is_out_of_bounds = ctx
-        .builder
-        .build_int_compare(
-            inkwell::IntPredicate::SGE,
+    // === 边界检查 ===
+    if let Some(panic_func) = ctx.panic_func {
+        let len_val = ctx.context.i64_type().const_int(array_size, false);
+        crate::runtime::gen_bounds_check(
+            ctx.context,
+            &ctx.builder,
+            panic_func,
             index_int,
-            size_const,
-            "is_out_of_bounds",
-        )
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    // 3. is_error = is_negative || is_out_of_bounds
-    let is_error = ctx
-        .builder
-        .build_or(is_negative, is_out_of_bounds, "is_error")
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    // 4. 分支
-    let function = ctx
-        .builder
-        .get_insert_block()
-        .and_then(|bb| bb.get_parent())
-        .ok_or_else(|| CodegenError::LLVMBuildError("not in a function".to_string()))?;
-
-    let safe_bb = ctx.context.append_basic_block(function, "index_safe");
-    let panic_bb = ctx.context.append_basic_block(function, "index_panic");
-
-    ctx.builder
-        .build_conditional_branch(is_error, panic_bb, safe_bb)
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    // === Panic Block ===
-    ctx.builder.position_at_end(panic_bb);
-
-    // 使用 printf + exit 内联 panic (避免链接问题)
-    let i8_ptr_type = ctx
-        .context
-        .i8_type()
-        .ptr_type(inkwell::AddressSpace::default());
-    let i32_type = ctx.context.i32_type();
-
-    // 声明/获取 printf
-    let printf_fn = if let Some(func) = ctx.module.get_function("printf") {
-        func
-    } else {
-        let printf_type = i32_type.fn_type(&[i8_ptr_type.into()], true);
-        ctx.module.add_function("printf", printf_type, None)
-    };
-
-    // 声明/获取 exit
-    let exit_fn = if let Some(func) = ctx.module.get_function("exit") {
-        func
-    } else {
-        let void_type = ctx.context.void_type();
-        let exit_type = void_type.fn_type(&[i32_type.into()], false);
-        ctx.module.add_function("exit", exit_type, None)
-    };
-
-    // 打印错误信息
-    let error_msg = "Runtime Error: Array index out of bounds.\n  Index: %ld\n  Array size: %ld\n";
-    let error_str = ctx
-        .builder
-        .build_global_string_ptr(error_msg, "panic_msg")
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    ctx.builder
-        .build_call(
-            printf_fn,
-            &[
-                error_str.as_pointer_value().into(),
-                index_int.into(),
-                size_const.into(),
-            ],
-            "printf_panic",
-        )
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    // 调用 exit(1)
-    ctx.builder
-        .build_call(exit_fn, &[i32_type.const_int(1, false).into()], "exit_call")
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    ctx.builder
-        .build_unreachable()
-        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-    // === Safe Block ===
-    ctx.builder.position_at_end(safe_bb);
+            len_val,
+            line,
+        );
+    }
 
     // 需要先将数组存到栈上（因为 array_val 是值）
     let array_alloca = ctx

@@ -3,6 +3,7 @@
 //! 表达式解析：字面量、变量、运算符、函数调用等
 
 use super::helpers::ident_parser;
+pub mod literal;
 use crate::ast::*;
 use crate::lexer::Token;
 use chumsky::prelude::*;
@@ -21,20 +22,8 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
     recursive(|expr| {
         // 字面量
         // 字面量 (Literal Parser)
-        let literal = select! {
-            Token::Int(x) => Literal::Int(x),
-            Token::Float(s) => Literal::Float(s.parse().unwrap_or(0.0)),
-            Token::String(s) => Literal::String(s),
-            Token::True => Literal::Bool(true),
-            Token::False => Literal::Bool(false),
-            Token::Null => Literal::Null,
-        };
-
         // 字面量
-        let val = literal.map_with_span(|lit, span| Expr {
-            kind: ExprKind::Literal(lit),
-            span,
-        });
+        let val = literal::literal_parser();
 
         // 基本原子表达式
         let ident = ident_parser().map_with_span(|name, span| Expr {
@@ -57,7 +46,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                     .ignore_then(just(Token::LBrace)) // Hack: ident_parser check is weird here? No, just brace.
                     .ignore_then(
                         // Cases: value => expr
-                        literal
+                        literal::literal_value_parser()
                             .then_ignore(just(Token::Arrow))
                             .then(expr.clone())
                             .map_with_span(|(pattern, body), span| MatchCase {
