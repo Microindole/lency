@@ -1,0 +1,47 @@
+// tests/integration/generics/semantic_check.brl
+
+struct Box<T> {
+    T value;
+}
+
+struct Point {
+    int x;
+    int y;
+}
+
+// Pass cases
+void correct_usage() {
+    var b: Box<int>? = null;
+    var p: Point? = null;
+}
+
+// Error: Generic Arity Mismatch (expected 1, found 2)
+void arity_mismatch_1() {
+    var b: Box<int, int>? = null; 
+}
+
+// Error: Generic Arity Mismatch (expected 1, found 0)
+void arity_mismatch_2() {
+    var b: Box? = null; 
+}
+
+// Error: Not A Generic Type (Point is not generic)
+void not_generic() {
+    var p: Point<int>? = null;
+}
+
+// Error: Undefined Type
+void undefined_generic() {
+    var x: Unknown<int>? = null;
+}
+
+// Error: Undefined Type Parameter
+// U is not defined here
+void undefined_param() {
+    var b: Box<U>? = null;
+}
+
+// Error: Undefined Type (T is not defined in this scope)
+void undefined_param_basic() {
+    var t: T? = null;
+}

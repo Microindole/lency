@@ -5,6 +5,7 @@ use chumsky::prelude::*;
 pub type ParserError = Simple<Token>;
 
 /// 解析字面量值 (Primitive)
+#[allow(clippy::result_large_err)]
 pub fn literal_value_parser() -> impl Parser<Token, Literal, Error = ParserError> + Clone {
     select! {
         Token::Int(x) => Literal::Int(x),

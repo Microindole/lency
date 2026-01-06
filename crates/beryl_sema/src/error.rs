@@ -138,6 +138,24 @@ pub enum SemanticError {
         "array index out of bounds: index {index} is out of bounds for array of length {size}"
     )]
     ArrayIndexOutOfBounds { index: i64, size: usize, span: Span },
+
+    // ============ 泛型相关错误 ============
+    /// 泛型参数数量不匹配
+    #[error("generic type '{name}' expects {expected} type arguments, but got {found}")]
+    GenericArityMismatch {
+        name: String,
+        expected: usize,
+        found: usize,
+        span: Span,
+    },
+
+    /// 不是泛型类型
+    #[error("type '{name}' is not generic, but type arguments were provided")]
+    NotAGenericType { name: String, span: Span },
+
+    /// 泛型参数必须是具体的
+    #[error("generic argument must be a valid type")]
+    InvalidGenericArg { span: Span },
 }
 
 impl SemanticError {
@@ -165,6 +183,9 @@ impl SemanticError {
             Self::BreakOutsideLoop { span } => span,
             Self::ContinueOutsideLoop { span } => span,
             Self::ArrayIndexOutOfBounds { span, .. } => span,
+            Self::GenericArityMismatch { span, .. } => span,
+            Self::NotAGenericType { span, .. } => span,
+            Self::InvalidGenericArg { span, .. } => span,
         }
     }
 }

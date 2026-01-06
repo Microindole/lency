@@ -125,18 +125,37 @@ int main() {
 
 ---
 
-### ⏭️ 阶段2: 语义分析（规划完成）
+### ⏭️ 阶段2: 语义分析（部分完成）
 
-**状态**: 📋 规划完成，待实现  
-**预计工期**: 3-5天
+**状态**: 🔄 进行中  
+**更新时间**: 2026-01-06
 
-#### 目标
+#### 已完成的工作
 
-实现泛型系统的语义分析，验证泛型使用的正确性（**不实现单态化**）：
+1. **符号表扩展** (`symbol.rs`)
+   - ✅ 新增 `GenericParamSymbol` 结构体
+   - ✅ 为 `StructSymbol` 添加 `generic_params: Vec<GenericParamSymbol>` 字段
+   - ✅ 为 `FunctionSymbol` 添加 `generic_params: Vec<GenericParamSymbol>` 字段
+   - ✅ 新增 `Symbol::GenericParam` 变体
+   - ✅ 新增构造函数 `new_generic()` 和 `is_generic()` 方法
 
-1. 泛型参数作用域管理
-2. 类型引用验证
-3. 泛型实例化正确性检查
+2. **Resolver修改** (`resolver/decl.rs`)
+   - ✅ `collect_decl`: 收集泛型参数到 `StructSymbol` 和 `FunctionSymbol`
+   - ✅ `resolve_decl`: 在解析函数时将泛型参数注册到作用域
+   - ✅ `resolve_decl`: 在解析结构体时创建临时作用域注册泛型参数
+   - ✅ `resolve_decl`: 在解析impl块时注册泛型参数到方法作用域
+   - ✅ 字段类型验证现在可以识别泛型参数（如 `T`）
+
+3. **导出更新** (`lib.rs`)
+   - ✅ 导出 `GenericParamSymbol`
+
+#### 待完成的工作
+
+- [ ] **TypeChecker修改**: 验证泛型实例化（如 `Box<int>`）的正确性
+- [ ] **错误处理**: 添加 `GenericArityMismatch` 等错误类型
+- [ ] **测试**: 编写专门的泛型语义分析测试
+
+---
 
 #### 计划的修改
 

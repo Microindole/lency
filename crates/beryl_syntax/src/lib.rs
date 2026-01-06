@@ -4,9 +4,9 @@ pub mod parser; // Now points to parser/mod.rs
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
     use crate::lexer::Token;
-    use chumsky::Parser;
+    // use chumsky::Parser;
     use logos::Logos; // 修复: 引入 Parser trait
 
     #[test]

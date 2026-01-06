@@ -5,7 +5,8 @@
 
 use crate::error::SemanticError;
 use crate::scope::ScopeStack;
-use beryl_syntax::ast::{Decl, Expr, Program, Stmt};
+use crate::symbol::Symbol;
+use beryl_syntax::ast::{Decl, Expr, Program, Span, Stmt, Type};
 
 pub mod decl;
 pub mod expr;
@@ -64,6 +65,86 @@ impl Resolver {
 
     pub(crate) fn resolve_expr(&mut self, expr: &Expr) {
         expr::resolve_expr(self, expr);
+    }
+
+    /// 验证类型引用（包括泛型参数检查）
+    pub fn resolve_type(&mut self, ty: &Type, span: &Span) {
+        match ty {
+            Type::Generic(name, args) => {
+                // 1. 验证泛型类型本身
+                let sym = self.scopes.lookup(name);
+                match sym {
+                    Some(Symbol::Struct(s)) => {
+                        // 2. 检查参数数量
+                        if s.generic_params.len() != args.len() {
+                            self.errors.push(SemanticError::GenericArityMismatch {
+                                name: name.clone(),
+                                expected: s.generic_params.len(),
+                                found: args.len(),
+                                span: span.clone(),
+                            });
+                        }
+                    }
+                    Some(_) => {
+                        self.errors.push(SemanticError::NotAGenericType {
+                            name: name.clone(),
+                            span: span.clone(),
+                        });
+                    }
+                    None => {
+                        self.errors.push(SemanticError::UndefinedType {
+                            name: name.clone(),
+                            span: span.clone(),
+                        });
+                    }
+                }
+                // 3. 递归验证参数
+                for arg in args {
+                    self.resolve_type(arg, span);
+                }
+            }
+            Type::Struct(name) => {
+                // 可能是普通结构体，也可能是泛型结构体但未带参数
+                match self.scopes.lookup(name) {
+                    Some(Symbol::Struct(s)) => {
+                        if !s.generic_params.is_empty() {
+                            // 引用了泛型结构体但没带参数 -> Arity Mismatch
+                            self.errors.push(SemanticError::GenericArityMismatch {
+                                name: name.clone(),
+                                expected: s.generic_params.len(),
+                                found: 0,
+                                span: span.clone(),
+                            });
+                        }
+                    }
+                    Some(Symbol::GenericParam(_)) => {
+                        // 引用泛型参数 (如 T)，合法
+                    }
+                    Some(_) => {
+                        self.errors.push(SemanticError::UndefinedType {
+                            name: name.clone(),
+                            span: span.clone(),
+                        });
+                    }
+                    None => {
+                        self.errors.push(SemanticError::UndefinedType {
+                            name: name.clone(),
+                            span: span.clone(),
+                        });
+                    }
+                }
+            }
+            Type::Vec(inner)
+            | Type::Array {
+                element_type: inner,
+                ..
+            }
+            | Type::Nullable(inner) => {
+                self.resolve_type(inner, span);
+            }
+            // 基础类型无需验证
+            _ => {}
+        }
     }
 
     // --- Accessors ---

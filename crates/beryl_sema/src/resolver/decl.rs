@@ -1,6 +1,6 @@
 use crate::resolver::Resolver;
 use crate::scope::ScopeKind;
-use crate::symbol::{FunctionSymbol, ParameterSymbol};
+use crate::symbol::{FunctionSymbol, GenericParamSymbol, ParameterSymbol, StructSymbol};
 use crate::{SemanticError, Symbol};
 use beryl_syntax::ast::{Decl, Type};
 
@@ -9,13 +9,21 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
     match decl {
         Decl::Function {
             name,
+            generic_params,
             params,
             return_type,
             span,
             ..
         } => {
-            let func_symbol = FunctionSymbol::new(
+            // 创建泛型参数符号
+            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
+                .iter()
+                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
+                .collect();
+
+            let func_symbol = FunctionSymbol::new_generic(
                 name.clone(),
+                generic_param_symbols,
                 params
                     .iter()
                     .map(|p| (p.name.clone(), p.ty.clone()))
@@ -31,13 +39,21 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
 
         Decl::ExternFunction {
             name,
+            generic_params,
             params,
             return_type,
             span,
             ..
         } => {
-            let func_symbol = FunctionSymbol::new(
+            // 创建泛型参数符号
+            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
+                .iter()
+                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
+                .collect();
+
+            let func_symbol = FunctionSymbol::new_generic(
                 name.clone(),
+                generic_param_symbols,
                 params
                     .iter()
                     .map(|p| (p.name.clone(), p.ty.clone()))
@@ -51,9 +67,20 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
             }
         }
         Decl::Struct {
-            name, fields, span, ..
+            name,
+            generic_params,
+            fields,
+            span,
+            ..
         } => {
-            let mut struct_symbol = crate::symbol::StructSymbol::new(name.clone(), span.clone());
+            // 创建泛型参数符号
+            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
+                .iter()
+                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
+                .collect();
+
+            let mut struct_symbol =
+                StructSymbol::new_generic(name.clone(), generic_param_symbols, span.clone());
 
             // 收集字段
             for field in fields {
@@ -120,7 +147,9 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
     match decl {
         Decl::Function {
             name: _,
+            generic_params,
             params,
+            return_type,
             body,
             span,
             ..
@@ -128,14 +157,29 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
             // 进入函数作用域
             resolver.scopes.enter_scope(ScopeKind::Function);
 
-            // 注册参数
+            // 注册泛型参数到作用域
+            // 这样在函数体中可以识别 T, U 等类型参数
+            for gp in generic_params {
+                let gp_symbol = GenericParamSymbol::new(gp.clone(), span.clone());
+                if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
+                    resolver.errors.push(e);
+                }
+            }
+
+            // 注册并验证参数
             for (i, param) in params.iter().enumerate() {
+                // 验证参数类型
+                resolver.resolve_type(&param.ty, span);
+
                 let param_symbol =
                     ParameterSymbol::new(param.name.clone(), param.ty.clone(), span.clone(), i);
                 if let Err(e) = resolver.scopes.define(Symbol::Parameter(param_symbol)) {
                     resolver.errors.push(e);
                 }
             }
+
+            // 验证返回类型
+            resolver.resolve_type(return_type, span);
 
             // 解析函数体
             for stmt in body {
@@ -151,26 +195,36 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
         }
         Decl::Struct {
             name: _,
+            generic_params,
             fields,
             span,
             ..
         } => {
-            // 验证字段类型是否存在（特别是自定义 Struct 类型）
-            for field in fields {
-                if let Type::Struct(type_name) = &field.ty {
-                    // 检查引用的 Struct 类型是否已定义
-                    if resolver.scopes.lookup(type_name).is_none() {
-                        resolver.errors.push(SemanticError::UndefinedType {
-                            name: type_name.clone(),
-                            span: span.clone(),
-                        });
+            // 如果是泛型结构体，创建临时作用域来注册泛型参数
+            let has_generics = !generic_params.is_empty();
+            if has_generics {
+                resolver.scopes.enter_scope(ScopeKind::Block);
+                // 注册泛型参数到作用域
+                for gp in generic_params {
+                    let gp_symbol = GenericParamSymbol::new(gp.clone(), span.clone());
+                    if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
+                        resolver.errors.push(e);
                     }
                 }
-                // 其他基本类型（int, string 等）不需要验证
+            }
+
+            // 验证字段类型
+            for field in fields {
+                resolver.resolve_type(&field.ty, span);
+            }
+
+            if has_generics {
+                resolver.scopes.exit_scope();
             }
         }
         Decl::Impl {
             type_name,
+            generic_params,
             methods,
             span,
             ..
@@ -197,7 +251,7 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
                 return;
             }
 
-            // 解析每个方法（添加隐式 this 参数）
+            // 解析每个方法（添加隐式 this 参数和泛型参数）
             for method in methods {
                 if let Decl::Function {
                     params, body, span, ..
@@ -205,6 +259,15 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
                 {
                     // 进入方法作用域
                     resolver.scopes.enter_scope(ScopeKind::Function);
+
+                    // 注册impl块的泛型参数到作用域
+                    // 这样方法可以使用 impl<T> 声明的类型参数
+                    for gp in generic_params {
+                        let gp_symbol = GenericParamSymbol::new(gp.clone(), span.clone());
+                        if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
+                            resolver.errors.push(e);
+                        }
+                    }
 
                     // 注册隐式 this 参数
                     let this_type = Type::Struct(type_name.clone());
@@ -220,6 +283,9 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &Decl) {
 
                     // 注册其他参数（索引从 1 开始）
                     for (i, param) in params.iter().enumerate() {
+                        // 验证参数类型（在 Impl 块中，参数类型可能引用了 impl 的泛型参数）
+                        resolver.resolve_type(&param.ty, span);
+
                         let param_symbol = ParameterSymbol::new(
                             param.name.clone(),
                             param.ty.clone(),

@@ -2,7 +2,7 @@ use crate::context::CodegenContext;
 use crate::error::CodegenResult;
 use crate::expr::{generate_expr, CodegenValue};
 use beryl_syntax::ast::{Expr, Type};
-use inkwell::values::{BasicValue, BasicValueEnum, PointerValue};
+use inkwell::values::{BasicValueEnum, PointerValue};
 use std::collections::HashMap;
 
 pub fn gen_elvis<'ctx>(

@@ -18,6 +18,7 @@ echo ""
 
 # 3. Tests
 echo "🧪 Running tests..."
+export RUST_MIN_STACK=8388608
 cargo test
 echo "✅ Tests passed"
 echo ""

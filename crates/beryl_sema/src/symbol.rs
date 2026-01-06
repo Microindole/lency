@@ -9,6 +9,23 @@ use std::collections::HashMap;
 /// 符号 ID，用于在符号表中唯一标识
 pub type SymbolId = usize;
 
+/// 泛型参数符号
+///
+/// 表示泛型定义中的类型参数，如 `struct Box<T>` 中的 `T`
+/// 或 `T identity<T>(T x)` 中的 `T`
+#[derive(Debug, Clone)]
+pub struct GenericParamSymbol {
+    pub name: String,
+    pub span: Span,
+    // 未来可扩展：pub bounds: Vec<String>,  // trait bounds
+}
+
+impl GenericParamSymbol {
+    pub fn new(name: String, span: Span) -> Self {
+        Self { name, span }
+    }
+}
+
 /// 符号 - 程序中所有命名实体的统一表示
 ///
 /// 设计原则：
@@ -18,9 +35,9 @@ pub type SymbolId = usize;
 pub enum Symbol {
     Variable(VariableSymbol),
     Function(FunctionSymbol),
-
     Parameter(ParameterSymbol),
-    Struct(StructSymbol), // 新增：结构体符号
+    Struct(StructSymbol),
+    GenericParam(GenericParamSymbol), // 泛型参数符号
 }
 
 impl Symbol {
@@ -29,9 +46,9 @@ impl Symbol {
         match self {
             Symbol::Variable(v) => &v.name,
             Symbol::Function(f) => &f.name,
-
             Symbol::Parameter(p) => &p.name,
             Symbol::Struct(s) => &s.name,
+            Symbol::GenericParam(g) => &g.name,
         }
     }
 
@@ -40,9 +57,9 @@ impl Symbol {
         match self {
             Symbol::Variable(v) => &v.span,
             Symbol::Function(f) => &f.span,
-
             Symbol::Parameter(p) => &p.span,
             Symbol::Struct(s) => &s.span,
+            Symbol::GenericParam(g) => &g.span,
         }
     }
 
@@ -50,10 +67,10 @@ impl Symbol {
     pub fn ty(&self) -> Option<&Type> {
         match self {
             Symbol::Variable(v) => Some(&v.ty),
-            Symbol::Function(_) => None, // 函数本身不是值类型
-
+            Symbol::Function(_) => None,
             Symbol::Parameter(p) => Some(&p.ty),
-            Symbol::Struct(_) => None, // 结构体本身不是值类型
+            Symbol::Struct(_) => None,
+            Symbol::GenericParam(_) => None, // 泛型参数本身不是值类型
         }
     }
 }
@@ -86,9 +103,11 @@ impl VariableSymbol {
 /// 函数符号
 ///
 /// 对应 `int add(int a, int b) { ... }`
+/// 泛型函数: `T identity<T>(T x) { ... }`
 #[derive(Debug, Clone)]
 pub struct FunctionSymbol {
     pub name: String,
+    pub generic_params: Vec<GenericParamSymbol>, // 泛型参数列表
     pub params: Vec<(String, Type)>,
     pub return_type: Type,
     pub span: Span,
@@ -100,11 +119,35 @@ impl FunctionSymbol {
     pub fn new(name: String, params: Vec<(String, Type)>, return_type: Type, span: Span) -> Self {
         Self {
             name,
+            generic_params: Vec::new(),
             params,
             return_type,
             span,
             is_public: false,
         }
+    }
+
+    /// 创建泛型函数符号
+    pub fn new_generic(
+        name: String,
+        generic_params: Vec<GenericParamSymbol>,
+        params: Vec<(String, Type)>,
+        return_type: Type,
+        span: Span,
+    ) -> Self {
+        Self {
+            name,
+            generic_params,
+            params,
+            return_type,
+            span,
+            is_public: false,
+        }
+    }
+
+    /// 是否是泛型函数
+    pub fn is_generic(&self) -> bool {
+        !self.generic_params.is_empty()
     }
 
     /// 获取参数数量
@@ -146,11 +189,13 @@ impl ParameterSymbol {
 /// 结构体符号
 ///
 /// 对应 `struct Point { int x int y }`
+/// 泛型结构体: `struct Box<T> { T value }`
 #[derive(Debug, Clone)]
 pub struct StructSymbol {
     pub name: String,
+    pub generic_params: Vec<GenericParamSymbol>, // 泛型参数列表
     pub fields: HashMap<String, FieldInfo>,
-    pub methods: HashMap<String, FunctionSymbol>, // 方法列表
+    pub methods: HashMap<String, FunctionSymbol>,
     pub span: Span,
 }
 
@@ -158,10 +203,27 @@ impl StructSymbol {
     pub fn new(name: String, span: Span) -> Self {
         Self {
             name,
+            generic_params: Vec::new(),
             fields: HashMap::new(),
             methods: HashMap::new(),
             span,
         }
+    }
+
+    /// 创建泛型结构体符号
+    pub fn new_generic(name: String, generic_params: Vec<GenericParamSymbol>, span: Span) -> Self {
+        Self {
+            name,
+            generic_params,
+            fields: HashMap::new(),
+            methods: HashMap::new(),
+            span,
+        }
+    }
+
+    /// 是否是泛型结构体
+    pub fn is_generic(&self) -> bool {
+        !self.generic_params.is_empty()
     }
 
     /// 添加字段

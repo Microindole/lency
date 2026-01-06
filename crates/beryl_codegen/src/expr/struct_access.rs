@@ -83,9 +83,9 @@ pub fn gen_struct_member_ptr<'ctx>(
 pub fn gen_struct_member_ptr_val<'ctx>(
     ctx: &CodegenContext<'ctx>,
     object_val: &CodegenValue<'ctx>,
-    object_span_start: usize, // Needed for line info
+    _object_span_start: usize, // Needed for line info
     field_name: &str,
-    line: u32,
+    _line: u32,
 ) -> CodegenResult<PointerValue<'ctx>> {
     // 2. 必须是指针类型（结构体是通过指针传递的）
     if !object_val.value.is_pointer_value() {

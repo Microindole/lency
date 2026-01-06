@@ -16,7 +16,11 @@ target/
 tmp/
 *.log
 
-# LLVM
+# 5. LLVM
 *.ll
 
-# test
+# 6. test
+
+
+# 7. Python
+__pycache__/

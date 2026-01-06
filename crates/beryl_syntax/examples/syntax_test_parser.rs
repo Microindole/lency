@@ -1,4 +1,3 @@
-use beryl_syntax::ast::*;
 use beryl_syntax::lexer::Token;
 use beryl_syntax::parser;
 use chumsky::Parser;
@@ -71,7 +70,7 @@ fn main() {
 
     let parser4 = parser::program_parser();
     match parser4.parse(tokens4) {
-        Ok(prog) => println!("✓ Test 4 passed!"),
+        Ok(_prog) => println!("✓ Test 4 passed!"),
         Err(e) => println!("✗ Test 4 failed: {:?}", e),
     }
 

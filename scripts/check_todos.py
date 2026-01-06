@@ -28,9 +28,14 @@ def find_files(root_dir: Path) -> List[Path]:
     
     return found_files
 
+import re
+
 def check_todos(root_dir: Path) -> Dict[str, List[Tuple[Path, int, str]]]:
     """检查 TODOs，返回 {tag: [(file, line_num, content)]}"""
     results = {tag: [] for tag in TAGS}
+    
+    # 构建正则匹配模式，确保匹配单词边界
+    patterns = {tag: re.compile(rf'\b{tag}\b') for tag in TAGS}
     
     files = find_files(root_dir)
     
@@ -38,9 +43,8 @@ def check_todos(root_dir: Path) -> Dict[str, List[Tuple[Path, int, str]]]:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 for i, line in enumerate(f, 1):
-                    for tag in TAGS:
-                        if tag in line:
-                            # 简单的包含检查，忽略大小写敏感性等复杂情况
+                    for tag, pattern in patterns.items():
+                        if pattern.search(line):
                             # 计算相对路径
                             rel_path = file_path.relative_to(root_dir)
                             results[tag].append((rel_path, i, line.strip()))

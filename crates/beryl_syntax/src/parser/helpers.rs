@@ -9,94 +9,72 @@ use chumsky::prelude::*;
 pub type ParserError = Simple<Token>;
 
 /// 解析标识符
+#[allow(clippy::result_large_err)]
 pub fn ident_parser() -> impl Parser<Token, String, Error = ParserError> + Clone {
     select! { Token::Ident(ident) => ident }
 }
 
 /// 解析类型
+#[allow(clippy::result_large_err)]
 pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
-    // 完全避免递归和clone问题的版本
+    recursive(|ty| {
+        // 基础类型
+        let basic = select! {
+            Token::TypeInt => Type::Int,
+            Token::TypeFloat => Type::Float,
+            Token::TypeString => Type::String,
+            Token::TypeBool => Type::Bool,
+            Token::TypeVoid => Type::Void,
+        };
 
-    // 基础类型
-    let basic = select! {
-        Token::TypeInt => Type::Int,
-        Token::TypeFloat => Type::Float,
-        Token::TypeString => Type::String,
-        Token::TypeBool => Type::Bool,
-        Token::TypeVoid => Type::Void,
-    };
+        // 泛型/结构体: Ident 或 Ident<Type, ...>
+        let ident_or_generic = ident_parser()
+            .then(
+                ty.clone()
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::Lt), just(Token::Gt))
+                    .or_not(),
+            )
+            .map(|(name, args)| {
+                if let Some(params) = args {
+                    Type::Generic(name, params)
+                } else {
+                    Type::Struct(name)
+                }
+            });
 
-    // 标识符（可能带泛型参数）
-    let ident_with_generics = ident_parser()
-        .then(
-            ident_parser()
-                .separated_by(just(Token::Comma))
-                .allow_trailing()
-                .delimited_by(just(Token::Lt), just(Token::Gt))
-                .or_not(),
-        )
-        .map(|(name, args)| {
-            if let Some(params) = args {
-                Type::Generic(name, params.into_iter().map(Type::Struct).collect())
-            } else {
-                Type::Struct(name)
-            }
-        });
+        // Vec<Type>
+        let vec_type = just(Token::Vec)
+            .ignore_then(just(Token::Lt))
+            .ignore_then(ty.clone())
+            .then_ignore(just(Token::Gt))
+            .map(|inner| Type::Vec(Box::new(inner)));
 
-    // Vec<ident>
-    let vec_simple = just(Token::Vec)
-        .ignore_then(just(Token::Lt))
-        .ignore_then(ident_parser())
-        .then_ignore(just(Token::Gt))
-        .map(|name| Type::Vec(Box::new(Type::Struct(name))));
+        // [N]Type
+        let array_type = just(Token::LBracket)
+            .ignore_then(select! { Token::Int(n) => n as usize })
+            .then_ignore(just(Token::RBracket))
+            .then(ty.clone())
+            .map(|(size, element_type)| Type::Array {
+                element_type: Box::new(element_type),
+                size,
+            });
 
-    // Vec<基础类型>
-    let vec_basic = just(Token::Vec)
-        .ignore_then(just(Token::Lt))
-        .ignore_then(basic.clone())
-        .then_ignore(just(Token::Gt))
-        .map(|ty| Type::Vec(Box::new(ty)));
+        // 组合
+        let type_without_nullable = choice((vec_type, array_type, basic, ident_or_generic));
 
-    // [N]ident
-    let array_ident = just(Token::LBracket)
-        .ignore_then(select! { Token::Int(n) => n as usize })
-        .then_ignore(just(Token::RBracket))
-        .then(ident_parser())
-        .map(|(size, name)| Type::Array {
-            element_type: Box::new(Type::Struct(name)),
-            size,
-        });
-
-    // [N]基础类型
-    let array_basic = just(Token::LBracket)
-        .ignore_then(select! { Token::Int(n) => n as usize })
-        .then_ignore(just(Token::RBracket))
-        .then(basic.clone())
-        .map(|(size, ty)| Type::Array {
-            element_type: Box::new(ty),
-            size,
-        });
-
-    // 使用choice来避免or chain
-    let type_without_nullable = choice((
-        vec_basic,
-        vec_simple,
-        array_basic,
-        array_ident,
-        ident_with_generics,
-        basic,
-    ));
-
-    // 可空类型
-    type_without_nullable
-        .then(just(Token::Question).or_not())
-        .map(|(ty, q)| {
-            if q.is_some() {
-                Type::Nullable(Box::new(ty))
-            } else {
-                ty
-            }
-        })
+        // 可空类型 Type?
+        type_without_nullable
+            .then(just(Token::Question).or_not())
+            .map(|(t, q)| {
+                if q.is_some() {
+                    Type::Nullable(Box::new(t))
+                } else {
+                    t
+                }
+            })
+    })
 }
 
 /// 解析字段
