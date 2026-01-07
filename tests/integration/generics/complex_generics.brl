@@ -1,0 +1,22 @@
+struct Pair<K, V> {
+    K key
+    V value
+}
+
+struct Container<T> {
+    T id
+    Pair<T, T> pair
+}
+
+int main() {
+    var p = Pair<int, bool> { key: 1, value: true }
+    var c = Container<int> {
+        id: 100,
+        pair: Pair<int, int> { key: 10, value: 20 }
+    }
+    
+    if p.value {
+        return c.pair.value
+    }
+    return 0
+}

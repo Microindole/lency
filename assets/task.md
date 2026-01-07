@@ -1,16 +1,38 @@
-# 当前任务清单: Sprint 7 泛型
+# 当前任务清单: Sprint 8 特性 (Traits)
+> 目标: 引入接口机制，实现泛型约束，为标准库和错误处理打下基础。遵循 "Safety by Default" 哲学。
 
-### [x] 1. 语法 & AST
-- [x] **Parser**: 支持 `struct Name<T>` 和 `fn name<T>`。
-- [x] **Type Parsing**: 支持 `Type<Param>` 语法。
+### [ ] 1. 语法 & AST
+- [ ] **Parser**: 支持 `trait Name { ... }` 接口定义。
+- [ ] **Parser**: 支持 `impl Name for Type { ... }` 实现定义。
+- [ ] **Generic Constraints**: 支持 `struct<T: Trait>` 和 `fn<T: Trait>` 语法。
 
-### [x] 2. 语义分析
-- [x] **Symbol Table**: 注册并查找泛型参数 `T`。
-- [x] **Instantiation**: 在使用处将 `T` 替换为具体类型。
+### [ ] 2. 语义分析
+- [ ] **Symbol Table**: 注册 Trait 符号及其方法签名。
+- [ ] **Resolution**: 解析 `impl` 块，验证是否实现了 Trait 所有方法。
+- [ ] **Constraint Check**: 在泛型实例化时，检查类型实参是否满足 Trait 约束。
 
-### [x] 3. 代码生成 (单态化)
-- [x] **Struct**: 为每个实例 (`Box<int>`) 生成唯一的 LLVM 类型。
-- [x] **Function**: 为每个实例生成唯一的函数实现。
+### [ ] 3. 虚表与分发 (VTable)
+- [ ] **VTable Layout**: 为实现了 Trait 的类型生成虚表 (可选，或仅做静态单态化约束)。
+- [ ] **Static Dispatch**: 确保单态化时能正确查找到 Trait 方法的实现。
 
-### [x] 4. 验证
-- [x] **Run Tests**: 编写并运行泛型相关的集成测试。
+---
+
+## 已完成任务 (History)
+
+### Sprint 7: 泛型 (Generics)
+- [x] Parser support (`<T>`)
+- [x] Semantic Instantiation
+- [x] Monomorphization & Codegen
+- [x] Integration Tests (`struct_basic`, `fn_basic`, `complex_generics`)
+
+## 未来规划
+
+### Sprint 9: 枚举与错误处理 (Enums & Result)
+- 实现 Sum Types (`enum`)
+- 实现 `Result<T, E>` 模式
+- 模式匹配 (`match`)
+
+### Sprint 10: 标准库 (Std Lib)
+- `List<T>`, `Map<K,V>` (基于 Traits)
+- String 增强
+- IO 与文件系统

@@ -110,7 +110,10 @@ impl<'a> TypeInferer<'a> {
                             subst_map.insert(param.name.clone(), arg.clone());
                         }
 
-                        return Ok(self.substitute_type(&field_info.ty, &subst_map));
+                        return Ok(crate::type_infer::substitute_type(
+                            &field_info.ty,
+                            &subst_map,
+                        ));
                     } else {
                         return Err(SemanticError::UndefinedField {
                             class: struct_name.clone(),

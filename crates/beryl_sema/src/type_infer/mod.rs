@@ -59,44 +59,6 @@ impl<'a> TypeInferer<'a> {
         self.current_scope = scope_id;
     }
 
-    /// 替换类型中的泛型参数 (简单的局部实现)
-    pub(crate) fn substitute_type(
-        &self,
-        ty: &Type,
-        mapping: &std::collections::HashMap<String, Type>,
-    ) -> Type {
-        match ty {
-            Type::GenericParam(name) => {
-                if let Some(concrete) = mapping.get(name) {
-                    concrete.clone()
-                } else {
-                    ty.clone()
-                }
-            }
-            Type::Generic(name, args) => {
-                let new_args = args
-                    .iter()
-                    .map(|arg| self.substitute_type(arg, mapping))
-                    .collect();
-                Type::Generic(name.clone(), new_args)
-            }
-            Type::Vec(inner) => Type::Vec(Box::new(self.substitute_type(inner, mapping))),
-            Type::Array { element_type, size } => Type::Array {
-                element_type: Box::new(self.substitute_type(element_type, mapping)),
-                size: *size,
-            },
-            Type::Nullable(inner) => Type::Nullable(Box::new(self.substitute_type(inner, mapping))),
-            Type::Struct(name) => {
-                if let Some(concrete) = mapping.get(name) {
-                    concrete.clone()
-                } else {
-                    ty.clone()
-                }
-            }
-            _ => ty.clone(),
-        }
-    }
-
     /// 查找符号（从当前作用域向上）
     fn lookup(&self, name: &str) -> Option<&Symbol> {
         self.scopes.lookup_from(name, self.current_scope)
@@ -173,7 +135,7 @@ impl<'a> TypeInferer<'a> {
                             let expr_ty = self.infer(field_expr)?;
 
                             // 获取期望类型并应用泛型替换
-                            let expected_ty = self.substitute_type(&field_info.ty, &subst_map);
+                            let expected_ty = substitute_type(&field_info.ty, &subst_map);
 
                             if !is_compatible(&expected_ty, &expr_ty) {
                                 return Err(SemanticError::TypeMismatch {
@@ -276,5 +238,42 @@ pub fn is_compatible(expected: &Type, actual: &Type) -> bool {
         (Type::Error, _) | (_, Type::Error) => true,
 
         _ => false,
+    }
+}
+
+/// 替换类型中的泛型参数 (简单的局部实现)
+pub(crate) fn substitute_type(
+    ty: &Type,
+    mapping: &std::collections::HashMap<String, Type>,
+) -> Type {
+    match ty {
+        Type::GenericParam(name) => {
+            if let Some(concrete) = mapping.get(name) {
+                concrete.clone()
+            } else {
+                ty.clone()
+            }
+        }
+        Type::Generic(name, args) => {
+            let new_args = args
+                .iter()
+                .map(|arg| substitute_type(arg, mapping))
+                .collect();
+            Type::Generic(name.clone(), new_args)
+        }
+        Type::Vec(inner) => Type::Vec(Box::new(substitute_type(inner, mapping))),
+        Type::Array { element_type, size } => Type::Array {
+            element_type: Box::new(substitute_type(element_type, mapping)),
+            size: *size,
+        },
+        Type::Nullable(inner) => Type::Nullable(Box::new(substitute_type(inner, mapping))),
+        Type::Struct(name) => {
+            if let Some(concrete) = mapping.get(name) {
+                concrete.clone()
+            } else {
+                ty.clone()
+            }
+        }
+        _ => ty.clone(),
     }
 }

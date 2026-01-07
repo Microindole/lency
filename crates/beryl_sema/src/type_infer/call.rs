@@ -53,7 +53,7 @@ impl<'a> TypeInferer<'a> {
                                 map.insert(param.name.as_str().to_string(), arg_ty.clone());
                             }
                             // Substitute return type
-                            Ok(self.substitute_type(&f.return_type, &map))
+                            Ok(crate::type_infer::substitute_type(&f.return_type, &map))
                         }
                         _ => Err(SemanticError::NotCallable {
                             ty: "generic instantiation".into(),
