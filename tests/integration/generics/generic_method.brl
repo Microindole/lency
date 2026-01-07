@@ -1,0 +1,15 @@
+struct Box<T> {
+    T value;
+}
+
+impl<T> Box<T> {
+    fn get(this) -> T {
+        return this.value;
+    }
+}
+
+int main() {
+    var b: Box<int>? = null;
+    var x = b?.get();
+    return 0;
+}

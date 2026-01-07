@@ -160,34 +160,41 @@ int main() {
 #### 计划的修改
 
 **1. 符号表扩展** (`symbol.rs`)
+-   [ ] **TypeChecker修改**: 验证泛型实例化（如 `Box<int>`）的正确性
+-   [ ] **错误处理**: 添加 `GenericArityMismatch` 等错误类型
+-   [ ] **测试**: 编写专门的泛型语义分析测试
 
-```rust
-// 新增泛型参数符号
-#[derive(Debug, Clone)]
-pub struct GenericParam {
-    pub name: String,
-    pub span: Span,
-}
+---
 
-// 修改现有符号
-pub struct StructSymbol {
-    pub generic_params: Vec<GenericParam>,  // 新增
-    // ... 其他字段
-}
+### Phase 3: Monomorphization (Basic) - ✅ Completed
+-   [x] `Monomorphizer` Pass stucture
+-   [x] `Collector` implementation
+-   [x] `Specializer` implementation (generic struct)
+-   [x] `Rewriter` implementation
+-   [x] Driver integration
+-   [x] Verification: `Box<int>` compilation
 
-pub struct FunctionSymbol {
-    pub generic_params: Vec<GenericParam>,  // 新增
-    // ... 其他字段
-}
+### Phase 4: Generic Methods - ✅ Completed
+-   [x] `generic_impls` collection
+-   [x] `Impl` block specialization (`impl Box__int`)
+-   [x] Method specialization (`Box__int_get`)
+-   [x] Integration Test: `generic_method.brl` (`Box<T>.get()`)
 
-pub enum Symbol {
-    GenericParam(GenericParam),  // 新增
-    // ... 其他变体
-}
-```
+### Phase 5: Generic Free Functions & Inference - 🚧 Pending
+-   [ ] Generic Function Calls (`identity<int>(10)`)
+-   [ ] Argument Type Inference (`identity(10)` -> `T=int`)
+-   [ ] Turbo-fish syntax support in Parser? (Already supported `ident<args>`)
+
+## 自举 (Self-Hosting) 差距分析
+要实现 Beryl 自举，当前语言还需要以下关键特性：
+1.  **完整标准库 (StdLib)**: 文件 I/O (`File`), 字符串操作 (`String`), 集合 (`HashMap` for SymbolTable).
+2.  **Trait 系统 (Interfaces)**: 编译器大量使用多态 (Visitor Pattern, AST Traits). 目前仅支持 generic impl，缺乏 trait bounds (`T: Display`).
+3.  **模块系统 (Modules)**: `use`, `import` 支持多文件编译。
+4.  **错误处理 (Error Handling)**: `Result<T, E>` 及 `?` 操作符 (语法糖已部分支持，但需要 StdLib 类型支持).
+5.  **FFI**: 调用 LLVM C API (或输出文本 IR).
+6.  **模式匹配增强**: 支持 Enum variants data match (编译器核心).
 
 **2. Resolver修改** (`resolver/decl.rs`)
-
 - 解析结构体时，将泛型参数注册到作用域
 - 解析函数时，将泛型参数注册到作用域
 - 实现 `resolve_type()` 方法验证类型引用的有效性

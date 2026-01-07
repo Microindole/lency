@@ -62,8 +62,12 @@ pub fn compile(source: &str) -> CompileResult<CompilationOutput> {
     // 2. 语义分析
     let _analysis_result = analyze(&ast).map_err(CompileError::SemanticErrors)?;
 
-    // 3. 代码生成
-    let ir = compile_to_ir(&ast, "main", Some(source))?;
+    // 3. 单态化 (Generic Monomorphization)
+    let mut monomorphizer = beryl_sema::monomorphize::Monomorphizer::new();
+    let monomorphized_ast = monomorphizer.process(ast);
+
+    // 4. 代码生成
+    let ir = compile_to_ir(&monomorphized_ast, "main", Some(source))?;
 
     Ok(CompilationOutput {
         ir,
