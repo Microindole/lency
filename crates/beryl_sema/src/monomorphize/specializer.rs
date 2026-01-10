@@ -137,6 +137,7 @@ impl Specializer {
             }
             Decl::Impl {
                 span,
+                trait_ref,
                 type_name,
                 generic_params,
                 methods,
@@ -149,11 +150,24 @@ impl Specializer {
 
                 Decl::Impl {
                     span: span.clone(),
+                    trait_ref: trait_ref.clone(),
                     type_name: type_name.clone(),
                     generic_params: remaining_params,
                     methods: methods.iter().map(|m| self.specialize_decl(m)).collect(),
                 }
             }
+            // Trait 定义：目前不需要特化，直接保留
+            Decl::Trait {
+                span,
+                name,
+                generic_params,
+                methods,
+            } => Decl::Trait {
+                span: span.clone(),
+                name: name.clone(),
+                generic_params: generic_params.clone(),
+                methods: methods.clone(),
+            },
         }
     }
 

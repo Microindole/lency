@@ -35,6 +35,8 @@ pub enum Token {
     Struct,
     #[token("impl")]
     Impl,
+    #[token("trait")]
+    Trait,
     #[token("vec")]
     Vec,
 

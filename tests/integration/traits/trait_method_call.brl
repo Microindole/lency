@@ -1,0 +1,22 @@
+// Sprint 8: Traits - 端到端测试
+// 验证 Trait 方法调用能正确编译和运行
+
+trait Greeter {
+    void greet();
+}
+
+struct User {
+    string name;
+}
+
+impl Greeter for User {
+    void greet() {
+        print(this.name);
+    }
+}
+
+int main() {
+    var u = User { name: "Alice" };
+    u.greet();  // 应该打印 "Alice"
+    return 0;
+}

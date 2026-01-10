@@ -35,11 +35,22 @@ pub enum Decl {
 
     // impl 块: impl Point { ... }
     // 泛型impl: impl<T> Box<T> { ... }
+    // Trait实现: impl Greeter for User { ... }
     Impl {
         span: Span,
+        trait_ref: Option<String>,   // Trait 名称，如 Some("Greeter")
         type_name: String,           // 实现的类型名称
         generic_params: Vec<String>, // 泛型参数
         methods: Vec<Decl>,          // 方法列表（都是 Function）
+    },
+
+    // Trait 定义: trait Greeter { void greet(); }
+    // 泛型Trait: trait Comparable<T> { bool equals(T other); }
+    Trait {
+        span: Span,
+        name: String,
+        generic_params: Vec<String>,
+        methods: Vec<TraitMethod>,
     },
 }
 
@@ -53,6 +64,15 @@ pub struct Param {
 pub struct Field {
     pub name: String,
     pub ty: Type,
+}
+
+/// Trait 方法签名（无函数体）
+/// 例如: void greet(); 或 bool equals(T other);
+#[derive(Debug, Clone)]
+pub struct TraitMethod {
+    pub name: String,
+    pub params: Vec<Param>,
+    pub return_type: Type,
 }
 
 // 语句：出现在函数体内部

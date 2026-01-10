@@ -1,0 +1,23 @@
+// Sprint 8: Traits - 错误测试用例
+// 验证语义分析能正确检测 Trait 相关错误
+
+trait Greeter {
+    void greet();
+    void sayHello();
+}
+
+struct User {
+    string name;
+}
+
+// 错误：缺少 sayHello 方法
+impl Greeter for User {
+    void greet() {
+        print("Hello");
+    }
+    // 注意：缺少 sayHello() 方法，应该报 MissingTraitMethod 错误
+}
+
+int main() {
+    return 0;
+}

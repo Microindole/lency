@@ -1,6 +1,9 @@
 use crate::resolver::Resolver;
 use crate::scope::ScopeKind;
-use crate::symbol::{FunctionSymbol, GenericParamSymbol, ParameterSymbol, StructSymbol};
+use crate::symbol::{
+    FunctionSymbol, GenericParamSymbol, ParameterSymbol, StructSymbol, TraitMethodSignature,
+    TraitSymbol,
+};
 use crate::{SemanticError, Symbol};
 use beryl_syntax::ast::{Decl, Type};
 
@@ -91,53 +94,101 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
                 resolver.errors.push(e);
             }
         }
-        Decl::Impl {
-            type_name,
+        Decl::Impl { methods: _, .. } => {
+            // impl 块的方法在 collect_impl_methods 中处理
+            // trait_ref 的验证在 resolve_decl 中处理
+        }
+        Decl::Trait {
+            name,
+            generic_params,
             methods,
             span,
-            ..
         } => {
-            // 查找对应的 Struct
-            let struct_id = resolver.scopes.lookup_id(type_name);
-            if struct_id.is_none() {
-                resolver.errors.push(SemanticError::UndefinedType {
-                    name: type_name.clone(),
-                    span: span.clone(),
-                });
-                return;
+            // 创建泛型参数符号
+            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
+                .iter()
+                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
+                .collect();
+
+            // 创建 Trait 符号
+            let mut trait_symbol = if generic_param_symbols.is_empty() {
+                TraitSymbol::new(name.clone(), span.clone())
+            } else {
+                TraitSymbol::new_generic(name.clone(), generic_param_symbols, span.clone())
+            };
+
+            // 收集方法签名
+            for method in methods {
+                let method_sig = TraitMethodSignature::new(
+                    method.name.clone(),
+                    method
+                        .params
+                        .iter()
+                        .map(|p| (p.name.clone(), p.ty.clone()))
+                        .collect(),
+                    method.return_type.clone(),
+                );
+                trait_symbol.add_method(method_sig);
             }
 
-            // 获取 StructSymbol 的可变引用
-            let struct_id = struct_id.unwrap();
-            if let Some(Symbol::Struct(struct_sym)) = resolver.scopes.get_symbol_mut(struct_id) {
-                // 为每个方法创建 FunctionSymbol 并注册
-                for method in methods {
-                    if let Decl::Function {
-                        name,
-                        params,
-                        return_type,
-                        span,
-                        ..
-                    } = method
-                    {
-                        let func_symbol = FunctionSymbol::new(
-                            name.clone(),
-                            params
-                                .iter()
-                                .map(|p| (p.name.clone(), p.ty.clone()))
-                                .collect(),
-                            return_type.clone(),
-                            span.clone(),
-                        );
-                        struct_sym.add_method(name.clone(), func_symbol);
-                    }
-                }
-            } else {
-                resolver.errors.push(SemanticError::NotAStruct {
-                    name: type_name.clone(),
-                    span: span.clone(),
-                });
+            // 注册到符号表
+            if let Err(e) = resolver.scopes.define(Symbol::Trait(trait_symbol)) {
+                resolver.errors.push(e);
             }
+        }
+    }
+}
+
+/// Pass 1.5: 收集 impl 块中的方法到 StructSymbol
+/// 注意：这需要在 collect_decl 之后单独调用，因为需要先收集所有 Struct
+pub fn collect_impl_methods(resolver: &mut Resolver, decl: &Decl) {
+    if let Decl::Impl {
+        type_name,
+        methods,
+        span,
+        ..
+    } = decl
+    {
+        // 查找对应的 Struct
+        let struct_id = resolver.scopes.lookup_id(type_name);
+        if struct_id.is_none() {
+            resolver.errors.push(SemanticError::UndefinedType {
+                name: type_name.clone(),
+                span: span.clone(),
+            });
+            return;
+        }
+
+        // 获取 StructSymbol 的可变引用
+        let struct_id = struct_id.unwrap();
+        if let Some(Symbol::Struct(struct_sym)) = resolver.scopes.get_symbol_mut(struct_id) {
+            // 为每个方法创建 FunctionSymbol 并注册
+            for method in methods {
+                if let Decl::Function {
+                    name,
+                    params,
+                    return_type,
+                    span,
+                    ..
+                } = method
+                {
+                    let func_symbol = FunctionSymbol::new(
+                        name.clone(),
+                        params
+                            .iter()
+                            .map(|p| (p.name.clone(), p.ty.clone()))
+                            .collect(),
+                        return_type.clone(),
+                        span.clone(),
+                    );
+                    struct_sym.add_method(name.clone(), func_symbol);
+                }
+            }
+        } else {
+            resolver.errors.push(SemanticError::NotAStruct {
+                name: type_name.clone(),
+                span: span.clone(),
+            });
         }
     }
 }
@@ -223,11 +274,11 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
             }
         }
         Decl::Impl {
+            trait_ref,
             type_name,
             generic_params,
             methods,
             span,
-            ..
         } => {
             // 验证 Struct 存在
             let struct_id = resolver.scopes.lookup_id(type_name);
@@ -249,6 +300,42 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
                     span: span.clone(),
                 });
                 return;
+            }
+
+            // 如果是 impl Trait for Type，验证 Trait 存在并检查方法
+            if let Some(trait_name) = trait_ref {
+                if let Some(trait_id) = resolver.scopes.lookup_id(trait_name) {
+                    if let Some(Symbol::Trait(trait_sym)) = resolver.scopes.get_symbol(trait_id) {
+                        // 检查是否实现了 Trait 的所有方法
+                        let impl_method_names: Vec<&str> = methods
+                            .iter()
+                            .filter_map(|m| {
+                                if let Decl::Function { name, .. } = m {
+                                    Some(name.as_str())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+
+                        for trait_method in &trait_sym.methods {
+                            if !impl_method_names.contains(&trait_method.name.as_str()) {
+                                resolver.errors.push(SemanticError::MissingTraitMethod {
+                                    trait_name: trait_name.clone(),
+                                    method_name: trait_method.name.clone(),
+                                    span: span.clone(),
+                                });
+                            }
+                        }
+
+                        // TODO: 验证方法签名匹配（参数类型、返回类型）
+                    }
+                } else {
+                    resolver.errors.push(SemanticError::UndefinedTrait {
+                        name: trait_name.clone(),
+                        span: span.clone(),
+                    });
+                }
             }
 
             // 解析每个方法（添加隐式 this 参数和泛型参数）
@@ -306,6 +393,10 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
                     resolver.scopes.exit_scope();
                 }
             }
+        }
+        // TODO: Sprint 8 - Trait 定义的解析
+        Decl::Trait { .. } => {
+            // 将在阶段2实现：解析 Trait 方法签名
         }
     }
 }

@@ -97,14 +97,28 @@ impl Rewriter {
             },
             Decl::Impl {
                 span,
+                trait_ref,
                 type_name,
                 generic_params,
                 methods,
             } => Decl::Impl {
                 span,
+                trait_ref,
                 type_name,
                 generic_params,
                 methods: methods.into_iter().map(|m| self.rewrite_decl(m)).collect(),
+            },
+            // Trait 定义：目前不需要重写，直接保留
+            Decl::Trait {
+                span,
+                name,
+                generic_params,
+                methods,
+            } => Decl::Trait {
+                span,
+                name,
+                generic_params,
+                methods,
             },
         }
     }

@@ -144,6 +144,8 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         }
                     }
                 }
+                // Trait 定义：阶段1不生成代码，仅注册
+                Decl::Trait { .. } => {}
             }
         }
 
@@ -172,6 +174,8 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         }
                     }
                 }
+                // Trait 定义：不需要生成代码
+                Decl::Trait { .. } => {}
             }
         }
 

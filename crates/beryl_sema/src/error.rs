@@ -156,6 +156,29 @@ pub enum SemanticError {
     /// 泛型参数必须是具体的
     #[error("generic argument must be a valid type")]
     InvalidGenericArg { span: Span },
+
+    // ============ Trait 相关错误 ============
+    /// 未定义的 Trait
+    #[error("undefined trait '{name}'")]
+    UndefinedTrait { name: String, span: Span },
+
+    /// 缺少 Trait 方法实现
+    #[error("missing method '{method_name}' required by trait '{trait_name}'")]
+    MissingTraitMethod {
+        trait_name: String,
+        method_name: String,
+        span: Span,
+    },
+
+    /// Trait 方法签名不匹配
+    #[error("method '{method_name}' signature does not match trait '{trait_name}': expected '{expected}', found '{found}'")]
+    TraitMethodSignatureMismatch {
+        trait_name: String,
+        method_name: String,
+        expected: String,
+        found: String,
+        span: Span,
+    },
 }
 
 impl SemanticError {
@@ -186,6 +209,9 @@ impl SemanticError {
             Self::GenericArityMismatch { span, .. } => span,
             Self::NotAGenericType { span, .. } => span,
             Self::InvalidGenericArg { span, .. } => span,
+            Self::UndefinedTrait { span, .. } => span,
+            Self::MissingTraitMethod { span, .. } => span,
+            Self::TraitMethodSignatureMismatch { span, .. } => span,
         }
     }
 }

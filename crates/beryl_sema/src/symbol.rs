@@ -38,6 +38,7 @@ pub enum Symbol {
     Parameter(ParameterSymbol),
     Struct(StructSymbol),
     GenericParam(GenericParamSymbol), // 泛型参数符号
+    Trait(TraitSymbol),               // Trait 符号
 }
 
 impl Symbol {
@@ -49,6 +50,7 @@ impl Symbol {
             Symbol::Parameter(p) => &p.name,
             Symbol::Struct(s) => &s.name,
             Symbol::GenericParam(g) => &g.name,
+            Symbol::Trait(t) => &t.name,
         }
     }
 
@@ -60,6 +62,7 @@ impl Symbol {
             Symbol::Parameter(p) => &p.span,
             Symbol::Struct(s) => &s.span,
             Symbol::GenericParam(g) => &g.span,
+            Symbol::Trait(t) => &t.span,
         }
     }
 
@@ -71,6 +74,7 @@ impl Symbol {
             Symbol::Parameter(p) => Some(&p.ty),
             Symbol::Struct(_) => None,
             Symbol::GenericParam(_) => None, // 泛型参数本身不是值类型
+            Symbol::Trait(_) => None,        // Trait 不是值类型
         }
     }
 }
@@ -244,5 +248,73 @@ impl StructSymbol {
     /// 查找方法
     pub fn get_method(&self, name: &str) -> Option<&FunctionSymbol> {
         self.methods.get(name)
+    }
+}
+
+/// Trait 方法签名
+///
+/// 表示 Trait 中定义的方法签名（无函数体）
+#[derive(Debug, Clone)]
+pub struct TraitMethodSignature {
+    pub name: String,
+    pub params: Vec<(String, Type)>,
+    pub return_type: Type,
+}
+
+impl TraitMethodSignature {
+    pub fn new(name: String, params: Vec<(String, Type)>, return_type: Type) -> Self {
+        Self {
+            name,
+            params,
+            return_type,
+        }
+    }
+}
+
+/// Trait 符号
+///
+/// 对应 `trait Greeter { void greet(); }`
+/// 泛型 Trait: `trait Comparable<T> { bool equals(T other); }`
+#[derive(Debug, Clone)]
+pub struct TraitSymbol {
+    pub name: String,
+    pub generic_params: Vec<GenericParamSymbol>,
+    pub methods: Vec<TraitMethodSignature>,
+    pub span: Span,
+}
+
+impl TraitSymbol {
+    pub fn new(name: String, span: Span) -> Self {
+        Self {
+            name,
+            generic_params: Vec::new(),
+            methods: Vec::new(),
+            span,
+        }
+    }
+
+    /// 创建泛型 Trait 符号
+    pub fn new_generic(name: String, generic_params: Vec<GenericParamSymbol>, span: Span) -> Self {
+        Self {
+            name,
+            generic_params,
+            methods: Vec::new(),
+            span,
+        }
+    }
+
+    /// 添加方法签名
+    pub fn add_method(&mut self, method: TraitMethodSignature) {
+        self.methods.push(method);
+    }
+
+    /// 查找方法
+    pub fn get_method(&self, name: &str) -> Option<&TraitMethodSignature> {
+        self.methods.iter().find(|m| m.name == name)
+    }
+
+    /// 是否是泛型 Trait
+    pub fn is_generic(&self) -> bool {
+        !self.generic_params.is_empty()
     }
 }

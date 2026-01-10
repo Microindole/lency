@@ -71,6 +71,8 @@ impl Collector {
                     self.collect_decl(method);
                 }
             }
+            // Trait 定义：目前不需要收集泛型实例化
+            Decl::Trait { .. } => {}
         }
     }
 

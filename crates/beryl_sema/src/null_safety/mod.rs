@@ -111,6 +111,8 @@ impl<'a> NullSafetyChecker<'a> {
                     self.check_decl(method);
                 }
             }
+            // Trait 定义：目前不需要空安全检查（方法签名无函数体）
+            Decl::Trait { .. } => {}
         }
     }
 

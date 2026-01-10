@@ -87,21 +87,75 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
 
         // impl 块: impl Point { ... }
         // 泛型impl: impl<T> Box<T> { ... }
+        // Trait实现: impl Greeter for User { ... }
         let impl_decl = just(Token::Impl)
             .ignore_then(generic_params_parser()) // 解析 <T>
-            .then(ident_parser())
+            .then(ident_parser()) // 第一个标识符（可能是 Trait 名或 Type 名）
+            .then(just(Token::For).ignore_then(ident_parser()).or_not()) // 可选的 "for TypeName"
             .then(
                 func.clone()
                     .repeated()
                     .delimited_by(just(Token::LBrace), just(Token::RBrace)),
             )
-            .map_with_span(|((generic_params, type_name), methods), span| Decl::Impl {
+            .map_with_span(
+                |(((generic_params, first_ident), for_type), methods), span| {
+                    if let Some(type_name) = for_type {
+                        // impl Trait for Type { ... }
+                        Decl::Impl {
+                            span,
+                            trait_ref: Some(first_ident),
+                            type_name,
+                            generic_params,
+                            methods,
+                        }
+                    } else {
+                        // impl Type { ... }
+                        Decl::Impl {
+                            span,
+                            trait_ref: None,
+                            type_name: first_ident,
+                            generic_params,
+                            methods,
+                        }
+                    }
+                },
+            );
+
+        // Trait 方法签名: void greet(); 或 bool equals(T other);
+        let trait_method = type_parser()
+            .then(ident_parser())
+            .then(
+                type_parser()
+                    .then(ident_parser())
+                    .map(|(ty, name)| Param { name, ty })
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::LParen), just(Token::RParen)),
+            )
+            .then_ignore(just(Token::Semicolon))
+            .map(|((return_type, name), params)| TraitMethod {
+                name,
+                params,
+                return_type,
+            });
+
+        // Trait 定义: trait Greeter { void greet(); }
+        // 泛型Trait: trait Comparable<T> { bool equals(T other); }
+        let trait_decl = just(Token::Trait)
+            .ignore_then(ident_parser())
+            .then(generic_params_parser())
+            .then(
+                trait_method
+                    .repeated()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+            )
+            .map_with_span(|((name, generic_params), methods), span| Decl::Trait {
                 span,
-                type_name,
+                name,
                 generic_params,
                 methods,
             });
 
-        choice((struct_decl, impl_decl, extern_decl, func))
+        choice((trait_decl, struct_decl, impl_decl, extern_decl, func))
     })
 }

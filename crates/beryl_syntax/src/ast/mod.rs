@@ -5,7 +5,7 @@ pub mod visitor;
 
 // 重新导出核心类型，方便外部直接使用 beryl_syntax::ast::Expr 等
 pub use expr::{BinaryOp, Expr, ExprKind, Literal, MatchCase, MatchPattern, Span, UnaryOp};
-pub use stmt::{Decl, Field, Param, Stmt};
+pub use stmt::{Decl, Field, Param, Stmt, TraitMethod};
 pub use types::Type;
 pub use visitor::Visitor;
 

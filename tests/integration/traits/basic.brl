@@ -1,0 +1,34 @@
+// Sprint 8: Traits - 基础语法测试
+// 测试 trait 定义和 impl for 语法是否能正确解析
+
+// 简单 Trait 定义
+trait Greeter {
+    void greet();
+}
+
+// 结构体定义
+struct User {
+    string name;
+}
+
+// 为 User 实现 Greeter trait
+impl Greeter for User {
+    void greet() {
+        print("Hello");
+    }
+}
+
+// 普通的 impl 块（无 trait）
+impl User {
+    string getName() {
+        return this.name;
+    }
+}
+
+// 测试入口
+int main() {
+    var u = User { name: "Alice" };
+    // TODO: 阶段2 - 调用 u.greet() 需要 trait 语义分析支持
+    print(u.getName());
+    return 0;
+}

@@ -1,15 +1,15 @@
 # 当前任务清单: Sprint 8 特性 (Traits)
 > 目标: 引入接口机制，实现泛型约束，为标准库和错误处理打下基础。遵循 "Safety by Default" 哲学。
 
-### [ ] 1. 语法 & AST
-- [ ] **Parser**: 支持 `trait Name { ... }` 接口定义。
-- [ ] **Parser**: 支持 `impl Name for Type { ... }` 实现定义。
-- [ ] **Generic Constraints**: 支持 `struct<T: Trait>` 和 `fn<T: Trait>` 语法。
+### [x] 1. 语法 & AST ✅
+- [x] **Parser**: 支持 `trait Name { ... }` 接口定义。
+- [x] **Parser**: 支持 `impl Name for Type { ... }` 实现定义。
+- [ ] **Generic Constraints**: 支持 `struct<T: Trait>` 和 `fn<T: Trait>` 语法。(阶段3)
 
-### [ ] 2. 语义分析
-- [ ] **Symbol Table**: 注册 Trait 符号及其方法签名。
-- [ ] **Resolution**: 解析 `impl` 块，验证是否实现了 Trait 所有方法。
-- [ ] **Constraint Check**: 在泛型实例化时，检查类型实参是否满足 Trait 约束。
+### [x] 2. 语义分析 ✅
+- [x] **Symbol Table**: 注册 Trait 符号及其方法签名。
+- [x] **Resolution**: 解析 `impl` 块，验证是否实现了 Trait 所有方法。
+- [ ] **Constraint Check**: 在泛型实例化时，检查类型实参是否满足 Trait 约束。(阶段3)
 
 ### [ ] 3. 虚表与分发 (VTable)
 - [ ] **VTable Layout**: 为实现了 Trait 的类型生成虚表 (可选，或仅做静态单态化约束)。

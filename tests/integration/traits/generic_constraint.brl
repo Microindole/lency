@@ -1,0 +1,26 @@
+// Sprint 8: Traits - 泛型约束语法测试
+// 验证 <T: Trait> 语法能正确解析
+
+trait Greeter {
+    void greet();
+}
+
+struct User {
+    string name;
+}
+
+impl Greeter for User {
+    void greet() {
+        print("Hello");
+    }
+}
+
+// 泛型函数带约束（语法测试）
+void run<T: Greeter>(T u) {
+    // TODO: 未来需要调用 u.greet()
+    print("running");
+}
+
+int main() {
+    return 0;
+}
