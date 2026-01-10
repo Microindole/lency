@@ -17,6 +17,7 @@ enum PostfixOp {
     SafeMember(String, Span),
     Call(Vec<Expr>, Span),
     GenericInstantiation(Vec<Type>, Span),
+    Try(Span),
 }
 
 /// 解析表达式 (公共接口)
@@ -163,7 +164,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
             .or(ident)
             .or(paren);
 
-        // 后缀操作符: 索引 arr[i] 或 成员 obj.field 或 安全访问 obj?.field
+        // 后缀操作符: 索引 arr[i] 或 成员 obj.field 或 安全访问 obj?.field 或 Try expr?
         let postfix = atom.clone()
             .then(
                 expr.clone()
@@ -175,6 +176,8 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                     .or(just(Token::QuestionDot)
                         .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
                         .map(|(n, s)| PostfixOp::SafeMember(n, s)))
+                    .or(just(Token::Question)
+                        .map_with_span(|_, s| PostfixOp::Try(s))) // Try Operator
                     .or(just(Token::Colon)
                         .then(just(Token::Colon))
                         .ignore_then(just(Token::Lt))
@@ -241,6 +244,13 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                             base: Box::new(lhs),
                             args,
                         },
+                        span,
+                    }
+                }
+                PostfixOp::Try(try_span) => {
+                    let span = lhs.span.start..try_span.end;
+                    Expr {
+                        kind: ExprKind::Try(Box::new(lhs)),
                         span,
                     }
                 }

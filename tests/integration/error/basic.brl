@@ -1,16 +1,30 @@
 // Sprint 9: Error Handling - 语法测试
 // 验证 int! 语法糖和 Ok/Err 构造器能正确解析
 
+struct Error {
+    string message
+}
+
 // 返回 Result<int, Error> 的函数
 int! divide(int a, int b) {
     if b == 0 {
-        return Err("division by zero")
+        return Err(Error { message: "division by zero" })
     }
     return Ok(a / b)
 }
 
+// 验证 ? 运算符 (Early Return)
+int! test_try(int a, int b) {
+    var res = divide(a, b)?
+    return Ok(res * 2)
+}
+
 int main() {
-    // TODO: 调用 divide 并处理结果
-    // 目前仅测试语法解析
+    var res1 = test_try(10, 2) // Ok(10)
+    
+    // 如果实现正确，Early Return 应该工作
+    var res2 = test_try(10, 0) // Err(...)
+    
+    // TODO: Assert results (需实现 unwrap)
     return 0
 }

@@ -77,11 +77,32 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                 "generics not yet supported".to_string(),
             )),
 
-            // Result 类型: 暂时用 struct { i1 is_ok, T ok_value, E err_value }
-            // TODO: 实现完整的 Result 结构体布局
-            Type::Result { .. } => Err(CodegenError::UnsupportedType(
-                "Result type codegen not yet implemented".to_string(),
-            )),
+            // Result 类型: 使用匿名结构体 { i1, ok_value?, err_value? }
+            // 指针语义: 返回 StructType*
+            Type::Result { ok_type, err_type } => {
+                let mut field_types: Vec<BasicTypeEnum> = Vec::new();
+
+                // 1. is_ok 标志位 (i1)
+                field_types.push(context.context.bool_type().as_basic_type_enum());
+
+                // 2. ok_value (如果不是 void)
+                if !matches!(**ok_type, Type::Void) {
+                    field_types.push(ok_type.to_llvm_type(context)?);
+                }
+
+                // 3. err_value (如果不是 void - 虽然 Error 通常不是 Void)
+                if !matches!(**err_type, Type::Void) {
+                    field_types.push(err_type.to_llvm_type(context)?);
+                }
+
+                // 创建匿名结构体 (packed=false)
+                let struct_type = context.context.struct_type(&field_types, false);
+
+                // 返回结构体指针
+                Ok(struct_type
+                    .ptr_type(AddressSpace::default())
+                    .as_basic_type_enum())
+            }
 
             Type::Error => Err(CodegenError::UnsupportedType("error type".to_string())),
         }

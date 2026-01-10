@@ -61,6 +61,18 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         let mut locals: HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)> =
             HashMap::new();
 
+        // 注入当前函数的返回类型，供 ExprGenerator (如 gen_try) 使用
+        // 使用特殊的 key "__return_type"
+        // PointerValue 使用 null，因为这里只关注 Type
+        // 注意：PointerValue 必须有类型。这里随便用 i8* null。
+        let null_ptr = self
+            .ctx
+            .context
+            .i8_type()
+            .ptr_type(inkwell::AddressSpace::default())
+            .const_null();
+        locals.insert("__return_type".to_string(), (null_ptr, return_type.clone()));
+
         // 检测是否是方法（通过 mangled name 格式: StructName_methodName，且不以__开头）
         let is_method = llvm_name_override.is_some()
             && llvm_name.contains('_')
@@ -116,7 +128,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         }
 
         // 生成函数体
-        let mut stmt_gen = StmtGenerator::new(self.ctx, &mut locals);
+        let mut stmt_gen = StmtGenerator::new(self.ctx, &mut locals, return_type);
         stmt_gen.generate_block(body)?;
 
         // 如果是 void 函数且没有显式 return，添加隐式 return

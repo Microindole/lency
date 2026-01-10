@@ -9,6 +9,7 @@ mod intrinsic;
 mod literal;
 mod match_expr;
 mod method_call;
+mod result;
 mod string_ops;
 mod struct_access;
 mod struct_init;
@@ -117,10 +118,9 @@ fn generate_expr<'ctx>(
         ExprKind::GenericInstantiation { .. } => {
             unreachable!("GenericInstantiation (turbo-fish) should be monomorphized before codegen")
         }
-        // TODO: Result 相关表达式的代码生成
-        ExprKind::Try(_) | ExprKind::Ok(_) | ExprKind::Err(_) => {
-            Err(CodegenError::UnsupportedExpression)
-        }
+        ExprKind::Ok(inner) => result::gen_ok(ctx, locals, inner),
+        ExprKind::Err(inner) => result::gen_err(ctx, locals, inner),
+        ExprKind::Try(inner) => result::gen_try(ctx, locals, inner),
     }
 }
 
