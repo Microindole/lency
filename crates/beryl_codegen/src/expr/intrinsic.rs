@@ -29,6 +29,7 @@ pub fn gen_print<'ctx>(
         Type::Generic(_, _) => "[Generic]\n",
         Type::Void => "\n",
         Type::Nullable(_) => "[Nullable]\n",
+        Type::Result { .. } => "[Result]\n",
         Type::Error => "%d\n", // Fallback
     };
 

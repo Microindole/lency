@@ -39,6 +39,10 @@ pub enum Token {
     Trait,
     #[token("vec")]
     Vec,
+    #[token("Ok")]
+    Ok,
+    #[token("Err")]
+    Err,
 
     // 字面量关键字
     #[token("null")]

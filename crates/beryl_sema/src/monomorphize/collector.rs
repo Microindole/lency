@@ -216,6 +216,10 @@ impl Collector {
                     self.collect_type(arg);
                 }
             }
+            // Result 相关表达式
+            ExprKind::Try(inner) => self.collect_expr(inner),
+            ExprKind::Ok(inner) => self.collect_expr(inner),
+            ExprKind::Err(inner) => self.collect_expr(inner),
         }
     }
 

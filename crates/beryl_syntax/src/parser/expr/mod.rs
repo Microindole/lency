@@ -128,12 +128,36 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                 span,
             });
 
+        // Ok 构造器: Ok(value)
+        let ok_expr = just(Token::Ok)
+            .ignore_then(
+                expr.clone()
+                    .delimited_by(just(Token::LParen), just(Token::RParen)),
+            )
+            .map_with_span(|inner, span| Expr {
+                kind: ExprKind::Ok(Box::new(inner)),
+                span,
+            });
+
+        // Err 构造器: Err(message)
+        let err_expr = just(Token::Err)
+            .ignore_then(
+                expr.clone()
+                    .delimited_by(just(Token::LParen), just(Token::RParen)),
+            )
+            .map_with_span(|inner, span| Expr {
+                kind: ExprKind::Err(Box::new(inner)),
+                span,
+            });
+
         // let atom = val.or(call).or(ident).or(paren);
         // Integrate match_expr. Should be high precedence.
         let atom = match_expr
             .or(print_expr)
             .or(vec_literal)
             .or(array_literal)
+            .or(ok_expr)
+            .or(err_expr)
             .or(struct_literal)
             .or(val)
             .or(ident)

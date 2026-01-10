@@ -1,0 +1,16 @@
+// Sprint 9: Error Handling - 语法测试
+// 验证 int! 语法糖和 Ok/Err 构造器能正确解析
+
+// 返回 Result<int, Error> 的函数
+int! divide(int a, int b) {
+    if b == 0 {
+        return Err("division by zero")
+    }
+    return Ok(a / b)
+}
+
+int main() {
+    // TODO: 调用 divide 并处理结果
+    // 目前仅测试语法解析
+    return 0
+}

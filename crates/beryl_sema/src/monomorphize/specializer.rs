@@ -339,6 +339,10 @@ impl Specializer {
                     .collect(),
                 default: default.as_ref().map(|e| Box::new(self.specialize_expr(e))),
             },
+            // Result 相关表达式
+            ExprKind::Try(inner) => ExprKind::Try(Box::new(self.specialize_expr(inner))),
+            ExprKind::Ok(inner) => ExprKind::Ok(Box::new(self.specialize_expr(inner))),
+            ExprKind::Err(inner) => ExprKind::Err(Box::new(self.specialize_expr(inner))),
         };
 
         Expr {

@@ -117,6 +117,10 @@ fn generate_expr<'ctx>(
         ExprKind::GenericInstantiation { .. } => {
             unreachable!("GenericInstantiation (turbo-fish) should be monomorphized before codegen")
         }
+        // TODO: Result 相关表达式的代码生成
+        ExprKind::Try(_) | ExprKind::Ok(_) | ExprKind::Err(_) => {
+            Err(CodegenError::UnsupportedExpression)
+        }
     }
 }
 

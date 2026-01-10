@@ -35,6 +35,13 @@ pub enum Type {
     // 动态数组类型: Vec<T>
     Vec(Box<Type>),
 
+    // Result 类型: Result<T, E> 或 T! (语法糖)
+    // 用于错误处理，符合 "Safety by Default" 哲学
+    Result {
+        ok_type: Box<Type>,
+        err_type: Box<Type>,
+    },
+
     // 错误占位符 (当用户写错类型时，编译器用这个占位，防止崩溃)
     Error,
 }
@@ -64,6 +71,7 @@ impl Display for Type {
             Type::Array { element_type, size } => write!(f, "[{}]{}", size, element_type),
             Type::Struct(name) => write!(f, "{}", name),
             Type::Vec(inner) => write!(f, "Vec<{}>", inner),
+            Type::Result { ok_type, err_type } => write!(f, "Result<{}, {}>", ok_type, err_type),
             Type::Error => write!(f, "<?>"),
         }
     }

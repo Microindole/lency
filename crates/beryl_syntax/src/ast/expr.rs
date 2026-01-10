@@ -72,6 +72,15 @@ pub enum ExprKind {
 
     // Vec 字面量: vec![1, 2, 3]
     VecLiteral(Vec<Expr>),
+
+    // Try 运算符: expr? (如果 err 则提前返回)
+    Try(Box<Expr>),
+
+    // Ok 构造器: Ok(value)
+    Ok(Box<Expr>),
+
+    // Err 构造器: Err(message)
+    Err(Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

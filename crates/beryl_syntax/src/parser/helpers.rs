@@ -62,17 +62,18 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
             });
 
         // 组合
-        let type_without_nullable = choice((vec_type, array_type, basic, ident_or_generic));
+        let type_without_suffix = choice((vec_type, array_type, basic, ident_or_generic));
 
-        // 可空类型 Type?
-        type_without_nullable
-            .then(just(Token::Question).or_not())
-            .map(|(t, q)| {
-                if q.is_some() {
-                    Type::Nullable(Box::new(t))
-                } else {
-                    t
-                }
+        // 后缀类型修饰符: T? (可空) 或 T! (Result)
+        type_without_suffix
+            .then(just(Token::Question).or(just(Token::Bang)).or_not())
+            .map(|(t, suffix)| match suffix {
+                Some(Token::Question) => Type::Nullable(Box::new(t)),
+                Some(Token::Bang) => Type::Result {
+                    ok_type: Box::new(t),
+                    err_type: Box::new(Type::Struct("Error".to_string())),
+                },
+                _ => t,
             })
     })
 }

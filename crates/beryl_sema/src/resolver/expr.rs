@@ -86,5 +86,9 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
                 resolver.resolve_expr(value);
             }
         }
+        // Result 相关表达式
+        ExprKind::Try(inner) => resolver.resolve_expr(inner),
+        ExprKind::Ok(inner) => resolver.resolve_expr(inner),
+        ExprKind::Err(inner) => resolver.resolve_expr(inner),
     }
 }

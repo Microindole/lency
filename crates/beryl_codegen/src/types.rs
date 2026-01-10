@@ -77,6 +77,12 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                 "generics not yet supported".to_string(),
             )),
 
+            // Result 类型: 暂时用 struct { i1 is_ok, T ok_value, E err_value }
+            // TODO: 实现完整的 Result 结构体布局
+            Type::Result { .. } => Err(CodegenError::UnsupportedType(
+                "Result type codegen not yet implemented".to_string(),
+            )),
+
             Type::Error => Err(CodegenError::UnsupportedType("error type".to_string())),
         }
     }

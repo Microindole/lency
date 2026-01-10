@@ -203,6 +203,36 @@ impl<'a> TypeInferer<'a> {
                     span: expr.span.clone(),
                 })
             }
+            // Result 相关表达式
+            ExprKind::Try(inner) => {
+                // expr? 解包 Result，返回 ok_type
+                let inner_ty = self.infer(inner)?;
+                match inner_ty {
+                    Type::Result { ok_type, .. } => Ok(*ok_type),
+                    _ => Err(SemanticError::TypeMismatch {
+                        expected: "Result<T, E>".to_string(),
+                        found: inner_ty.to_string(),
+                        span: expr.span.clone(),
+                    }),
+                }
+            }
+            ExprKind::Ok(inner) => {
+                // Ok(x) 的类型是 Result<typeof(x), Error>
+                let inner_ty = self.infer(inner)?;
+                Ok(Type::Result {
+                    ok_type: Box::new(inner_ty),
+                    err_type: Box::new(Type::Struct("Error".to_string())),
+                })
+            }
+            ExprKind::Err(inner) => {
+                // Err(msg) 的类型需要知道 ok_type，暂时返回 Result<void, Error>
+                // TODO: 通过上下文推导 ok_type
+                self.infer(inner)?;
+                Ok(Type::Result {
+                    ok_type: Box::new(Type::Void),
+                    err_type: Box::new(Type::Struct("Error".to_string())),
+                })
+            }
         }
     }
 }
@@ -231,6 +261,25 @@ pub fn is_compatible(expected: &Type, actual: &Type) -> bool {
                 true
             } else {
                 t1 == t2
+            }
+        }
+
+        // Result 兼容性: Result<void, E> (来自 Err 构造器) 可以匹配任意 Result<T, E>
+        (
+            Type::Result {
+                ok_type: expected_ok,
+                err_type: expected_err,
+            },
+            Type::Result {
+                ok_type: actual_ok,
+                err_type: actual_err,
+            },
+        ) => {
+            // 如果 actual_ok 是 Void (来自 Err 构造器)，视为兼容
+            if matches!(**actual_ok, Type::Void) {
+                is_compatible(expected_err, actual_err)
+            } else {
+                is_compatible(expected_ok, actual_ok) && is_compatible(expected_err, actual_err)
             }
         }
 
