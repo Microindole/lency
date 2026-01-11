@@ -25,13 +25,13 @@
 
 ### 阶段 7: 泛型 (Generics)
 - ✅ **泛型结构体**: `struct Box<T> { ... }`。
-- ✅ **泛型函数**: `fn identity<T>(x: T) -> T`。
+- ✅ **泛型函数**: `T identity<T>(T x)`。
 - ✅ **单态化实现**: 编译时为具体类型生成代码，零运行时开销。
 
 ### 阶段 8: 特性 (Traits)
 - ✅ **Trait 定义**: 接口定义与方法签名。
 - ✅ **Trait 实现**: `impl Trait for Type`。
-- ✅ **泛型约束**: `fn foo<T: Trait>(x: T)`。
+- ✅ **泛型约束**: `void foo<T: Trait>(T x)`。
 
 ### 阶段 9: 错误处理 (Error Handling)
 - ✅ **Result 类型**: `int!` 语法糖 (等价于 `Result<int, Error>`)。

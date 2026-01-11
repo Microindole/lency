@@ -5,7 +5,7 @@ use beryl_syntax::ast::{Expr, Type, UnaryOp};
 impl<'a> TypeInferer<'a> {
     /// 推导二元表达式类型
     pub(crate) fn infer_binary(
-        &self,
+        &mut self,
         left: &mut Expr,
         op: &beryl_syntax::ast::BinaryOp,
         right: &mut Expr,
@@ -45,7 +45,7 @@ impl<'a> TypeInferer<'a> {
 
     /// 推导一元表达式类型
     pub(crate) fn infer_unary(
-        &self,
+        &mut self,
         op: &UnaryOp,
         operand: &mut Expr,
         span: &std::ops::Range<usize>,

@@ -1,0 +1,19 @@
+enum Option<T> {
+    Some(T),
+    None
+}
+
+void main() {
+    var opt = Option::<int>.Some(42)
+    
+    match opt {
+        case Option.Some(v) => print(v),
+        case Option.None => print(0)
+    }
+
+    var none = Option::<int>.None
+    match none {
+        case Option.Some(v) => print(1),
+        case Option.None => print(-1)
+    }
+}

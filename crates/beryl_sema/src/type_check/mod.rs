@@ -69,8 +69,8 @@ impl<'a> TypeChecker<'a> {
     }
 
     /// 推导表达式类型（封装 TypeInferer）
-    pub(crate) fn infer_type(&self, expr: &mut Expr) -> Result<Type, SemanticError> {
-        let inferer = TypeInferer::new(self.scopes);
+    pub(crate) fn infer_type(&mut self, expr: &mut Expr) -> Result<Type, SemanticError> {
+        let mut inferer = TypeInferer::new(self.scopes);
         inferer.infer(expr)
     }
 

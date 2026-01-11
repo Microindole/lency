@@ -16,13 +16,13 @@ pub type SymbolId = usize;
 #[derive(Debug, Clone)]
 pub struct GenericParamSymbol {
     pub name: String,
+    pub bound: Option<Type>, // 约束类型，如 T: Display
     pub span: Span,
-    // 未来可扩展：pub bounds: Vec<String>,  // trait bounds
 }
 
 impl GenericParamSymbol {
-    pub fn new(name: String, span: Span) -> Self {
-        Self { name, span }
+    pub fn new(name: String, bound: Option<Type>, span: Span) -> Self {
+        Self { name, bound, span }
     }
 }
 
@@ -39,6 +39,7 @@ pub enum Symbol {
     Struct(StructSymbol),
     GenericParam(GenericParamSymbol), // 泛型参数符号
     Trait(TraitSymbol),               // Trait 符号
+    Enum(EnumSymbol),                 // Enum 符号
 }
 
 impl Symbol {
@@ -51,6 +52,7 @@ impl Symbol {
             Symbol::Struct(s) => &s.name,
             Symbol::GenericParam(g) => &g.name,
             Symbol::Trait(t) => &t.name,
+            Symbol::Enum(e) => &e.name,
         }
     }
 
@@ -63,6 +65,7 @@ impl Symbol {
             Symbol::Struct(s) => &s.span,
             Symbol::GenericParam(g) => &g.span,
             Symbol::Trait(t) => &t.span,
+            Symbol::Enum(e) => &e.span,
         }
     }
 
@@ -75,6 +78,7 @@ impl Symbol {
             Symbol::Struct(_) => None,
             Symbol::GenericParam(_) => None, // 泛型参数本身不是值类型
             Symbol::Trait(_) => None,        // Trait 不是值类型
+            Symbol::Enum(_) => None,         // Enum本身是类型
         }
     }
 }
@@ -316,5 +320,59 @@ impl TraitSymbol {
     /// 是否是泛型 Trait
     pub fn is_generic(&self) -> bool {
         !self.generic_params.is_empty()
+    }
+}
+
+/// Enum 符号
+///
+/// 对应 `enum Option<T> { Some(T), None }`
+#[derive(Debug, Clone)]
+pub struct EnumSymbol {
+    pub name: String,
+    pub generic_params: Vec<GenericParamSymbol>,
+    pub variants: HashMap<String, Vec<Type>>, // 变体名 -> 字段类型列表
+    pub methods: HashMap<String, FunctionSymbol>,
+    pub span: Span,
+}
+
+impl EnumSymbol {
+    pub fn new(name: String, span: Span) -> Self {
+        Self {
+            name,
+            generic_params: Vec::new(),
+            variants: HashMap::new(),
+            methods: HashMap::new(),
+            span,
+        }
+    }
+
+    pub fn new_generic(name: String, generic_params: Vec<GenericParamSymbol>, span: Span) -> Self {
+        Self {
+            name,
+            generic_params,
+            variants: HashMap::new(),
+            methods: HashMap::new(),
+            span,
+        }
+    }
+
+    pub fn is_generic(&self) -> bool {
+        !self.generic_params.is_empty()
+    }
+
+    pub fn add_variant(&mut self, name: String, types: Vec<Type>) {
+        self.variants.insert(name, types);
+    }
+
+    pub fn get_variant(&self, name: &str) -> Option<&Vec<Type>> {
+        self.variants.get(name)
+    }
+
+    pub fn add_method(&mut self, name: String, method: FunctionSymbol) {
+        self.methods.insert(name, method);
+    }
+
+    pub fn get_method(&self, name: &str) -> Option<&FunctionSymbol> {
+        self.methods.get(name)
     }
 }

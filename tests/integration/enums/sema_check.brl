@@ -1,0 +1,7 @@
+enum Status {
+    Success,
+    Failure(UndefinedType) // EXPECTED ERROR: Undefined type
+}
+
+void main() {
+}

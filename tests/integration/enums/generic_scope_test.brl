@@ -1,0 +1,10 @@
+enum Option<T> {
+    Some(T),
+    None
+}
+
+void main() {
+    var opt = Option::<int>.Some(42)
+    // Try to use it
+    var x = opt // Should work if opt is defined
+}

@@ -3,7 +3,7 @@ use beryl_syntax::ast::{Literal, Type};
 
 impl<'a> TypeInferer<'a> {
     /// 推导字面量类型
-    pub(crate) fn infer_literal(&self, lit: &Literal) -> Type {
+    pub fn infer_literal(&mut self, lit: &beryl_syntax::ast::Literal) -> Type {
         match lit {
             Literal::Int(_) => Type::Int,
             Literal::Float(_) => Type::Float,

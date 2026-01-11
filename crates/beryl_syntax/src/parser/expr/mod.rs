@@ -38,42 +38,24 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
         let match_expr = just(Token::Match)
             .ignore_then(expr.clone())
             .then(
-                // 解析 match body { ... }
-                // 格式: literal => expr (重复)
-                // 最后可选: _ => expr
-                ident_parser()
-                    .or_not()
-                    .ignore_then(just(Token::LBrace)) // Hack: ident_parser check is weird here? No, just brace.
-                    .ignore_then(
-                        // Cases: value => expr
-                        literal::literal_value_parser()
-                            .then_ignore(just(Token::Arrow))
-                            .then(expr.clone())
-                            .map_with_span(|(pattern, body), span| MatchCase {
-                                pattern: MatchPattern::Literal(pattern),
-                                body: Box::new(body),
-                                span,
-                            })
-                            .repeated()
-                            .then(
-                                // Default: _ => expr
-                                just(Token::Underscore)
-                                    .ignore_then(just(Token::Arrow))
-                                    .ignore_then(expr.clone())
-                                    .map(Box::new)
-                                    .or_not(),
-                            )
-                            .delimited_by(
-                                just(Token::LBrace).or_not(), // .or_not because we might have consumed it? No.
-                                just(Token::RBrace),
-                            ),
-                    ),
+                just(Token::Case)
+                    .ignore_then(super::pattern::pattern_parser())
+                    .then_ignore(just(Token::Arrow))
+                    .then(expr.clone())
+                    .map_with_span(|(pattern, body), span| MatchCase {
+                        pattern,
+                        body: Box::new(body),
+                        span,
+                    })
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
             )
-            .map_with_span(|(value, (cases, default)), span| Expr {
+            .map_with_span(|(value, cases), span| Expr {
                 kind: ExprKind::Match {
                     value: Box::new(value),
                     cases,
-                    default,
+                    default: None, // Default is handled via Wildcard pattern now
                 },
                 span,
             });

@@ -19,8 +19,8 @@ fn make_expr(kind: ExprKind) -> Expr {
 
 #[test]
 fn test_infer_array_literal() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // [1, 2, 3]
     let mut elements = vec![
@@ -44,8 +44,8 @@ fn test_infer_array_literal() {
 
 #[test]
 fn test_infer_array_literal_float() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // [1.0, 2.5, 3.15]
     let mut elements = vec![
@@ -69,8 +69,8 @@ fn test_infer_array_literal_float() {
 
 #[test]
 fn test_infer_empty_array_error() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // [] - Empty array should error
     let mut elements = vec![];
@@ -85,8 +85,8 @@ fn test_infer_empty_array_error() {
 
 #[test]
 fn test_infer_array_mixed_types_error() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // [1, "hello"] - Mixed types should error
     let mut elements = vec![
@@ -104,8 +104,8 @@ fn test_infer_array_mixed_types_error() {
 
 #[test]
 fn test_infer_index_access_int_array() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // Create array expression (using literals)
     let mut array_expr = make_expr(ExprKind::Array(vec![
@@ -124,8 +124,8 @@ fn test_infer_index_access_int_array() {
 
 #[test]
 fn test_infer_index_compile_time_bounds_check_negative() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // arr: [3]int
     let mut array_expr = make_expr(ExprKind::Array(vec![
@@ -151,8 +151,8 @@ fn test_infer_index_compile_time_bounds_check_negative() {
 
 #[test]
 fn test_infer_index_compile_time_bounds_check_overflow() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // arr: [3]int
     let mut array_expr = make_expr(ExprKind::Array(vec![
@@ -178,8 +178,8 @@ fn test_infer_index_compile_time_bounds_check_overflow() {
 
 #[test]
 fn test_infer_index_non_int_index_error() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // arr: [3]int
     let mut array_expr = make_expr(ExprKind::Array(vec![
@@ -201,8 +201,8 @@ fn test_infer_index_non_int_index_error() {
 
 #[test]
 fn test_infer_array_length_property() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // arr.length
     let mut array_expr = make_expr(ExprKind::Array(vec![
@@ -218,8 +218,8 @@ fn test_infer_array_length_property() {
 
 #[test]
 fn test_infer_array_invalid_property() {
-    let scopes = create_test_scopes();
-    let inferer = TypeInferer::new(&scopes);
+    let mut scopes = create_test_scopes();
+    let mut inferer = TypeInferer::new(&mut scopes);
 
     // arr.foo - Array doesn't have foo property
     let mut array_expr = make_expr(ExprKind::Array(vec![make_expr(ExprKind::Literal(

@@ -23,10 +23,9 @@ pub fn resolve_stmt(resolver: &mut Resolver, stmt: &mut Stmt) {
             // 推导类型（如果没有显式声明）
             let var_ty = ty.clone().unwrap_or_else(|| {
                 // 使用 TypeInferer 推导变量类型
-                let inferer = crate::type_infer::TypeInferer::with_scope(
-                    &resolver.scopes,
-                    resolver.scopes.current_scope(),
-                );
+                let scope_id = resolver.scopes.current_scope();
+                let mut inferer =
+                    crate::type_infer::TypeInferer::with_scope(&mut resolver.scopes, scope_id);
                 inferer.infer(value).unwrap_or(Type::Error)
             });
 

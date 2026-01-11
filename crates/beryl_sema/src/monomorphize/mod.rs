@@ -59,6 +59,13 @@ impl Monomorphizer {
                 } if !generic_params.is_empty() => {
                     self.generic_definitions.insert(name.clone(), decl);
                 }
+                Decl::Enum {
+                    name,
+                    generic_params,
+                    ..
+                } if !generic_params.is_empty() => {
+                    self.generic_definitions.insert(name.clone(), decl);
+                }
                 // Impl blocks with generics?
                 // Currently Beryl parser might have Impl<T> Box<T>.
                 // We treat Impl as generic if it has params.
@@ -228,14 +235,15 @@ impl Monomorphizer {
             Decl::Struct { generic_params, .. } => generic_params,
             Decl::Function { generic_params, .. } => generic_params,
             Decl::Impl { generic_params, .. } => generic_params,
+            Decl::Enum { generic_params, .. } => generic_params,
             _ => return template.clone(), // Should not happen
         };
 
         // Build Type Map: T -> int, U -> string
         let mut type_map = HashMap::new();
-        for (i, param_name) in generic_params.iter().enumerate() {
+        for (i, param) in generic_params.iter().enumerate() {
             if i < args.len() {
-                type_map.insert(param_name.clone(), args[i].clone());
+                type_map.insert(param.name.clone(), args[i].clone());
             }
         }
 
@@ -247,6 +255,7 @@ impl Monomorphizer {
             Decl::Struct { name, .. } => *name = mangled_name.to_string(),
             Decl::Function { name, .. } => *name = mangled_name.to_string(),
             Decl::Impl { type_name, .. } => *type_name = mangled_name.to_string(),
+            Decl::Enum { name, .. } => *name = mangled_name.to_string(),
             _ => {}
         }
 

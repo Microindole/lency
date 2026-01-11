@@ -121,6 +121,17 @@ impl Resolver {
                     Some(Symbol::GenericParam(_)) => {
                         // 引用泛型参数 (如 T)，合法
                     }
+                    Some(Symbol::Enum(e)) => {
+                        // 引用枚举类型
+                        if !e.generic_params.is_empty() {
+                            self.errors.push(SemanticError::GenericArityMismatch {
+                                name: name.clone(),
+                                expected: e.generic_params.len(),
+                                found: 0,
+                                span: span.clone(),
+                            });
+                        }
+                    }
                     Some(_) => {
                         self.errors.push(SemanticError::UndefinedType {
                             name: name.clone(),

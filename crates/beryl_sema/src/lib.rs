@@ -79,7 +79,7 @@ pub fn analyze(program: &mut Program) -> Result<AnalysisResult, Vec<SemanticErro
     }
 
     // Pass 3: 空安全检查
-    let mut null_checker = NullSafetyChecker::new(&scopes);
+    let mut null_checker = NullSafetyChecker::new(&mut scopes);
     if let Err(errors) = null_checker.check(program) {
         all_errors.extend(errors);
     }

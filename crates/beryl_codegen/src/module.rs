@@ -2,7 +2,7 @@
 //!
 //! 模块代码生成器，负责生成整个程序
 
-use beryl_syntax::ast::{Decl, Program, Type};
+use beryl_syntax::ast::{Decl, EnumVariant, Program, Type};
 
 use crate::context::CodegenContext;
 use crate::error::CodegenResult;
@@ -37,9 +37,19 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
             .fn_type(&[self.ctx.context.i64_type().into()], false);
         self.ctx.module.add_function("malloc", malloc_type, None);
 
-        // 第零遍：注册所有 Struct 类型（opaque）
+        // 第零遍：注册类型 (opaque) - 跳过泛型定义
         for decl in &program.decls {
-            if let Decl::Struct { name, fields, .. } = decl {
+            if let Decl::Struct {
+                name,
+                fields,
+                generic_params,
+                ..
+            } = decl
+            {
+                if !generic_params.is_empty() {
+                    continue;
+                }
+
                 let struct_type = self.ctx.context.opaque_struct_type(name);
                 self.ctx.struct_types.insert(name.clone(), struct_type);
 
@@ -51,12 +61,49 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 self.ctx
                     .struct_field_types
                     .insert(name.clone(), field_types);
+            } else if let Decl::Enum {
+                name,
+                variants,
+                generic_params,
+                ..
+            } = decl
+            {
+                if !generic_params.is_empty() {
+                    continue;
+                }
+
+                // 注册 Enum 类型 (opaque)
+                let enum_type = self.ctx.context.opaque_struct_type(name);
+                self.ctx.struct_types.insert(name.clone(), enum_type);
+                self.ctx.enum_types.insert(name.clone());
+
+                // 记录变体信息
+                let mut variants_info = Vec::new();
+                for variant in variants {
+                    match variant {
+                        EnumVariant::Unit(v_name) => variants_info.push((v_name.clone(), vec![])),
+                        EnumVariant::Tuple(v_name, types) => {
+                            variants_info.push((v_name.clone(), types.clone()))
+                        }
+                    }
+                }
+                self.ctx.enum_variants.insert(name.clone(), variants_info);
             }
         }
 
         // 第0.5遍：定义 Struct Body
         for decl in &program.decls {
-            if let Decl::Struct { name, fields, .. } = decl {
+            if let Decl::Struct {
+                name,
+                fields,
+                generic_params,
+                ..
+            } = decl
+            {
+                if !generic_params.is_empty() {
+                    continue;
+                }
+
                 // 上一步已经注册了，直接获取
                 let struct_type = self.ctx.struct_types.get(name).unwrap();
 
@@ -71,15 +118,178 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
             }
         }
 
+        // 第0.6遍：定义 Enum Body (必须在 Struct Body 之后，以便计算大小)
+        for decl in &program.decls {
+            if let Decl::Enum {
+                name,
+                variants,
+                generic_params,
+                ..
+            } = decl
+            {
+                if !generic_params.is_empty() {
+                    continue;
+                }
+
+                let enum_type = *self.ctx.struct_types.get(name).unwrap();
+                let data_layout = self.ctx.module.get_data_layout();
+                let mut max_payload_size = 0;
+
+                for variant in variants {
+                    match variant {
+                        EnumVariant::Unit(_) => {}
+                        EnumVariant::Tuple(_, types) => {
+                            // 计算 tuple struct 大小 (考虑对齐)
+                            let mut field_types = Vec::new();
+                            for ty in types {
+                                field_types.push(ty.to_llvm_type(&*self.ctx)?);
+                            }
+                            // 创建临时 struct type 来获取正确的大小和 layout padding
+                            let temp_struct = self.ctx.context.struct_type(&field_types, false);
+                            // 注意: get_store_size 需要 TargetData
+                            use inkwell::targets::TargetData;
+                            use inkwell::types::BasicType;
+
+                            // Inkwell 0.4.0: module.get_data_layout() returns Ref<DataLayout>
+                            // DataLayout doesn't have get_store_size, but TargetData does.
+                            // We create TargetData from the string representation.
+                            let target_data =
+                                TargetData::create(&data_layout.as_str().to_string_lossy());
+                            let size =
+                                target_data.get_store_size(&temp_struct.as_basic_type_enum());
+                            if size > max_payload_size {
+                                max_payload_size = size;
+                            }
+                        }
+                    }
+                }
+
+                let tag_type = self.ctx.context.i64_type(); // Tag (i64 for alignment)
+                let payload_array_type = self
+                    .ctx
+                    .context
+                    .i8_type()
+                    .array_type(max_payload_size as u32);
+
+                // Layout: { tag: i64, payload: [max_size x i8] }
+                // Ensures 8-byte alignment for payload
+                enum_type.set_body(&[tag_type.into(), payload_array_type.into()], false);
+
+                // Generate Constructors (Values)
+                // fn Enum_Variant(fields...) -> Enum
+                for (tag_idx, variant) in variants.iter().enumerate() {
+                    let (variant_name, field_types_ast) = match variant {
+                        EnumVariant::Unit(n) => (n, vec![]),
+                        EnumVariant::Tuple(n, t) => (n, t.clone()),
+                    };
+
+                    let ctor_name = format!("{}_{}", name, variant_name);
+
+                    // Convert field types to LLVM
+                    let mut llvm_param_types = Vec::new();
+                    for ty in &field_types_ast {
+                        let llvm_ty = ty.to_llvm_type(&*self.ctx)?;
+                        llvm_param_types.push(llvm_ty.into()); // BasicTypeEnum -> BasicMetadataTypeEnum
+                    }
+
+                    // Constructor Function Type: (params) -> Enum (Value)
+                    // Note: Returning Struct Value usually uses sret, handled by inkwell?
+                    // inkwell fn_type returns FunctionType.
+                    // StructType::fn_type handles return by value in signature.
+                    let fn_type = enum_type.fn_type(&llvm_param_types, false);
+
+                    let function = self.ctx.module.add_function(&ctor_name, fn_type, None);
+
+                    // Generate Body
+                    let basic_block = self.ctx.context.append_basic_block(function, "entry");
+                    self.ctx.builder.position_at_end(basic_block);
+
+                    // 1. Alloca Enum (Local)
+                    let alloca = self
+                        .ctx
+                        .builder
+                        .build_alloca(enum_type, "enum_instance")
+                        .unwrap();
+
+                    // 2. Store Tag
+                    let tag_ptr = self
+                        .ctx
+                        .builder
+                        .build_struct_gep(enum_type, alloca, 0, "tag_ptr")
+                        .unwrap();
+                    let tag_val = self.ctx.context.i64_type().const_int(tag_idx as u64, false);
+                    self.ctx.builder.build_store(tag_ptr, tag_val).unwrap();
+
+                    // 3. Store Fields (if any)
+                    if !field_types_ast.is_empty() {
+                        // Get Payload Array Ptr
+                        let payload_arr_ptr = self
+                            .ctx
+                            .builder
+                            .build_struct_gep(enum_type, alloca, 1, "payload_arr_ptr")
+                            .unwrap();
+
+                        // Create Variant Struct Type for casting
+                        let mut variant_llvm_types = Vec::new();
+                        for ty in &field_types_ast {
+                            variant_llvm_types.push(ty.to_llvm_type(&*self.ctx)?);
+                        }
+                        let variant_struct_type =
+                            self.ctx.context.struct_type(&variant_llvm_types, false);
+
+                        // Bitcast i8* (payload_arr) to { fields... }*
+                        let payload_ptr = self
+                            .ctx
+                            .builder
+                            .build_bitcast(
+                                payload_arr_ptr,
+                                variant_struct_type.ptr_type(inkwell::AddressSpace::default()),
+                                "payload_ptr",
+                            )
+                            .unwrap();
+
+                        // Store params
+                        for (i, _arg_ty) in field_types_ast.iter().enumerate() {
+                            let param_val = function.get_nth_param(i as u32).unwrap();
+                            let field_gep = self
+                                .ctx
+                                .builder
+                                .build_struct_gep(
+                                    variant_struct_type,
+                                    payload_ptr.into_pointer_value(),
+                                    i as u32,
+                                    "field_ptr",
+                                )
+                                .unwrap();
+                            self.ctx.builder.build_store(field_gep, param_val).unwrap();
+                        }
+                    }
+
+                    // 4. Load and Return
+                    let ret_val = self
+                        .ctx
+                        .builder
+                        .build_load(enum_type, alloca, "ret_val")
+                        .unwrap();
+                    self.ctx.builder.build_return(Some(&ret_val)).unwrap();
+                }
+            }
+        }
+
         // 第一遍：声明所有函数（支持前向引用）
         for decl in &program.decls {
             match decl {
                 Decl::Function {
                     name,
+                    generic_params,
                     params,
                     return_type,
                     ..
                 } => {
+                    if !generic_params.is_empty() {
+                        continue;
+                    }
+
                     self.ctx
                         .function_signatures
                         .insert(name.clone(), return_type.clone());
@@ -146,6 +356,8 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 }
                 // Trait 定义：阶段1不生成代码，仅注册
                 Decl::Trait { .. } => {}
+                // Enum 定义：在 to_llvm_type 时按需生成布局，这里跳过
+                Decl::Enum { .. } => {}
             }
         }
 
@@ -153,7 +365,14 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
         let mut func_gen = FunctionGenerator::new(&*self.ctx);
         for decl in &program.decls {
             match decl {
-                Decl::Function { name, .. } => {
+                Decl::Function {
+                    name,
+                    generic_params,
+                    ..
+                } => {
+                    if !generic_params.is_empty() {
+                        continue;
+                    }
                     if name == "main" {
                         func_gen.generate(decl, Some("__beryl_main"))?;
                     } else {
@@ -176,6 +395,8 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 }
                 // Trait 定义：不需要生成代码
                 Decl::Trait { .. } => {}
+                // Enum 定义：不需要生成代码
+                Decl::Enum { .. } => {}
             }
         }
 

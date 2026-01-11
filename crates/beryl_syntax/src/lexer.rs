@@ -44,6 +44,9 @@ pub enum Token {
     #[token("Err")]
     Err,
 
+    #[token("enum")]
+    Enum,
+
     // 字面量关键字
     #[token("null")]
     Null,
@@ -132,6 +135,8 @@ pub enum Token {
 
     #[token("match")]
     Match,
+    #[token("case")]
+    Case,
 
     // --- 复杂数据 (Data) ---
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]

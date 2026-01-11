@@ -1,0 +1,47 @@
+enum OptionInt {
+    Some(int),
+    None
+}
+
+int match_test(OptionInt o) {
+    return match o {
+        case OptionInt.Some(x) => x,
+        case OptionInt.None => 0,
+    };
+}
+
+int literal_test(int x) {
+    return match x {
+        case 0 => 100,
+        case 1 => 200,
+        case _ => 300,
+    };
+}
+
+int nested_test(OptionInt o) {
+    return match o {
+        case OptionInt.Some(0) => 0,
+        case OptionInt.Some(x) => x + 1,
+        case OptionInt.None => -1,
+    };
+}
+
+int main() {
+    var o1 = OptionInt.Some(42);
+    var o2 = OptionInt.None;
+
+    if (match_test(o1) != 42) { return 1; }
+    if (match_test(o2) != 0) { return 2; }
+    
+    if (literal_test(0) != 100) { return 3; }
+    if (literal_test(1) != 200) { return 4; }
+    if (literal_test(42) != 300) { return 5; }
+    
+    // Nested check
+    var o3 = OptionInt.Some(0);
+    if (nested_test(o3) != 0) { return 6; }
+    if (nested_test(o1) != 43) { return 7; } // 42 + 1
+    
+    print("All match tests passed");
+    return 0;
+}

@@ -1,0 +1,9 @@
+enum Res {
+    Success(int),
+    Failure
+}
+
+void main() {
+    var a = Res.Success(100)
+    print(1)
+}

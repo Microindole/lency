@@ -1,0 +1,9 @@
+enum Small {
+    A,
+    B
+}
+
+void main() {
+    var x = Small.A
+    print(1)
+}

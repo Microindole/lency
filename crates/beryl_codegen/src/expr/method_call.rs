@@ -18,6 +18,53 @@ pub fn gen_method_call<'ctx>(
     args: &[Expr],
     line: u32,
 ) -> CodegenResult<CodegenValue<'ctx>> {
+    // 0. Check for Enum Constructor Call (Enum.Variant(args))
+    let enum_check = match &object.kind {
+        beryl_syntax::ast::ExprKind::Variable(name) => Some(name.clone()),
+        beryl_syntax::ast::ExprKind::GenericInstantiation { base, .. } => {
+            if let beryl_syntax::ast::ExprKind::Variable(name) = &base.kind {
+                Some(name.clone())
+            } else {
+                None
+            }
+        }
+        _ => None,
+    };
+
+    if let Some(name) = enum_check {
+        if ctx.enum_types.contains(&name) {
+            // It's an Enum Constructor!
+            let ctor_name = format!("{}_{}", name, method_name);
+            let function = ctx
+                .module
+                .get_function(&ctor_name)
+                .ok_or_else(|| CodegenError::FunctionNotFound(ctor_name.clone()))?;
+
+            let mut compiled_args = Vec::with_capacity(args.len());
+            for arg in args {
+                let arg_val = generate_expr(ctx, locals, arg)?;
+                compiled_args.push(arg_val.value.into());
+            }
+
+            let call_site = ctx
+                .builder
+                .build_call(function, &compiled_args, "call_ctor")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+            let val = call_site
+                .try_as_basic_value()
+                .left()
+                .ok_or(CodegenError::LLVMBuildError(
+                    "Constructor returned void".into(),
+                ))?;
+
+            return Ok(CodegenValue {
+                value: val,
+                ty: Type::Struct(name.clone()),
+            });
+        }
+    }
+
     // 1. 生成对象表达式
     let object_val = generate_expr(ctx, locals, object)?;
 

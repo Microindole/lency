@@ -51,9 +51,7 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
             // 结构体类型: struct Point -> %Point*
             Type::Struct(name) => {
                 if let Some(struct_type) = context.struct_types.get(name) {
-                    Ok(struct_type
-                        .ptr_type(AddressSpace::default())
-                        .as_basic_type_enum())
+                    Ok(struct_type.as_basic_type_enum())
                 } else {
                     Err(CodegenError::UndefinedStructType(name.clone()))
                 }

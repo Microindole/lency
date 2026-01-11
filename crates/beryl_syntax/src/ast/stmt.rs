@@ -9,7 +9,7 @@ pub enum Decl {
     Function {
         span: Span,
         name: String,
-        generic_params: Vec<String>, // 泛型参数: ["T", "U"]
+        generic_params: Vec<GenericParam>, // 泛型参数
         params: Vec<Param>,
         return_type: Type,
         body: Vec<Stmt>,
@@ -19,7 +19,7 @@ pub enum Decl {
     ExternFunction {
         span: Span,
         name: String,
-        generic_params: Vec<String>, // 外部函数也可以有泛型
+        generic_params: Vec<GenericParam>,
         params: Vec<Param>,
         return_type: Type,
     },
@@ -29,7 +29,7 @@ pub enum Decl {
     Struct {
         span: Span,
         name: String,
-        generic_params: Vec<String>, // 泛型参数: ["T", "U"]
+        generic_params: Vec<GenericParam>,
         fields: Vec<Field>,
     },
 
@@ -38,10 +38,10 @@ pub enum Decl {
     // Trait实现: impl Greeter for User { ... }
     Impl {
         span: Span,
-        trait_ref: Option<String>,   // Trait 名称，如 Some("Greeter")
-        type_name: String,           // 实现的类型名称
-        generic_params: Vec<String>, // 泛型参数
-        methods: Vec<Decl>,          // 方法列表（都是 Function）
+        trait_ref: Option<String>,         // Trait 名称，如 Some("Greeter")
+        type_name: String,                 // 实现的类型名称
+        generic_params: Vec<GenericParam>, // 泛型参数
+        methods: Vec<Decl>,                // 方法列表（都是 Function）
     },
 
     // Trait 定义: trait Greeter { void greet(); }
@@ -49,9 +49,33 @@ pub enum Decl {
     Trait {
         span: Span,
         name: String,
-        generic_params: Vec<String>,
+        generic_params: Vec<GenericParam>,
         methods: Vec<TraitMethod>,
     },
+
+    // 枚举定义 (Sprint 10)
+    // enum Option<T> { Some(T), None }
+    Enum {
+        span: Span,
+        name: String,
+        generic_params: Vec<GenericParam>,
+        variants: Vec<EnumVariant>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct GenericParam {
+    pub span: Span,
+    pub name: String,
+    pub bound: Option<Type>, // 约束类型，如 T: Display
+}
+
+#[derive(Debug, Clone)]
+pub enum EnumVariant {
+    // Unit Variant: None
+    Unit(String),
+    // Tuple Variant: Some(T)
+    Tuple(String, Vec<Type>),
 }
 
 #[derive(Debug, Clone)]

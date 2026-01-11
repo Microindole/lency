@@ -78,9 +78,10 @@ impl Specializer {
                 fields,
             } => {
                 // Keep generic_params that are NOT in type_map
-                let remaining_params: Vec<String> = generic_params
+                // Keep generic_params that are NOT in type_map
+                let remaining_params: Vec<GenericParam> = generic_params
                     .iter()
-                    .filter(|p| !self.type_map.contains_key(*p))
+                    .filter(|p| !self.type_map.contains_key(&p.name))
                     .cloned()
                     .collect();
 
@@ -99,9 +100,9 @@ impl Specializer {
                 return_type,
                 body,
             } => {
-                let remaining_params: Vec<String> = generic_params
+                let remaining_params: Vec<GenericParam> = generic_params
                     .iter()
-                    .filter(|p| !self.type_map.contains_key(*p))
+                    .filter(|p| !self.type_map.contains_key(&p.name))
                     .cloned()
                     .collect();
 
@@ -121,9 +122,9 @@ impl Specializer {
                 params,
                 return_type,
             } => {
-                let remaining_params: Vec<String> = generic_params
+                let remaining_params: Vec<GenericParam> = generic_params
                     .iter()
-                    .filter(|p| !self.type_map.contains_key(*p))
+                    .filter(|p| !self.type_map.contains_key(&p.name))
                     .cloned()
                     .collect();
 
@@ -142,9 +143,9 @@ impl Specializer {
                 generic_params,
                 methods,
             } => {
-                let remaining_params: Vec<String> = generic_params
+                let remaining_params: Vec<GenericParam> = generic_params
                     .iter()
-                    .filter(|p| !self.type_map.contains_key(*p))
+                    .filter(|p| !self.type_map.contains_key(&p.name))
                     .cloned()
                     .collect();
 
@@ -168,6 +169,34 @@ impl Specializer {
                 generic_params: generic_params.clone(),
                 methods: methods.clone(),
             },
+            Decl::Enum {
+                span,
+                name,
+                generic_params,
+                variants,
+            } => {
+                let remaining_params: Vec<GenericParam> = generic_params
+                    .iter()
+                    .filter(|p| !self.type_map.contains_key(&p.name))
+                    .cloned()
+                    .collect();
+
+                Decl::Enum {
+                    span: span.clone(),
+                    name: name.clone(),
+                    generic_params: remaining_params,
+                    variants: variants
+                        .iter()
+                        .map(|v| match v {
+                            EnumVariant::Unit(n) => EnumVariant::Unit(n.clone()),
+                            EnumVariant::Tuple(n, types) => EnumVariant::Tuple(
+                                n.clone(),
+                                types.iter().map(|t| self.specialize_type(t)).collect(),
+                            ),
+                        })
+                        .collect(),
+                }
+            }
         }
     }
 

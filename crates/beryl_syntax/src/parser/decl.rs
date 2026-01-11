@@ -156,6 +156,47 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
                 methods,
             });
 
-        choice((trait_decl, struct_decl, impl_decl, extern_decl, func))
+        // Enum Variant: Idle 或 Some(T)
+        let enum_variant = ident_parser() // Variant Name
+            .then(
+                type_parser()
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::LParen), just(Token::RParen))
+                    .or_not(),
+            )
+            .then_ignore(just(Token::Comma).or_not()) // Optional trailing comma
+            .map(|(name, args)| {
+                if let Some(types) = args {
+                    EnumVariant::Tuple(name, types)
+                } else {
+                    EnumVariant::Unit(name)
+                }
+            });
+
+        // Enum 定义: enum Option<T> { Some(T), None }
+        let enum_decl = just(Token::Enum)
+            .ignore_then(ident_parser())
+            .then(generic_params_parser())
+            .then(
+                enum_variant
+                    .repeated()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+            )
+            .map_with_span(|((name, generic_params), variants), span| Decl::Enum {
+                span,
+                name,
+                generic_params,
+                variants,
+            });
+
+        choice((
+            enum_decl,
+            trait_decl,
+            struct_decl,
+            impl_decl,
+            extern_decl,
+            func,
+        ))
     })
 }

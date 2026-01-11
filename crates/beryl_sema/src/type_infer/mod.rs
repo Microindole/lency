@@ -25,7 +25,7 @@ use beryl_syntax::ast::{Expr, ExprKind, Type};
 /// 注意：TypeInferer 需要知道当前所在的作用域，
 /// 因为变量查找需要从正确的作用域开始。
 pub struct TypeInferer<'a> {
-    pub(crate) scopes: &'a ScopeStack,
+    pub(crate) scopes: &'a mut ScopeStack,
     /// 当前作用域 ID（由调用者设置，用于正确的符号查找）
     pub(crate) current_scope: ScopeId,
     /// 二元运算符注册表
@@ -35,17 +35,17 @@ pub struct TypeInferer<'a> {
 }
 
 impl<'a> TypeInferer<'a> {
-    pub fn new(scopes: &'a ScopeStack) -> Self {
+    pub fn new(scopes: &'a mut ScopeStack) -> Self {
         Self {
-            scopes,
             current_scope: scopes.current_scope(),
+            scopes,
             binary_ops: BinaryOpRegistry::new(),
             unary_ops: UnaryOpRegistry::new(),
         }
     }
 
     /// 创建一个指定作用域的推导器
-    pub fn with_scope(scopes: &'a ScopeStack, scope_id: ScopeId) -> Self {
+    pub fn with_scope(scopes: &'a mut ScopeStack, scope_id: ScopeId) -> Self {
         Self {
             scopes,
             current_scope: scope_id,
@@ -65,7 +65,7 @@ impl<'a> TypeInferer<'a> {
     }
 
     /// 推导表达式的类型
-    pub fn infer(&self, expr: &mut Expr) -> Result<Type, SemanticError> {
+    pub fn infer(&mut self, expr: &mut Expr) -> Result<Type, SemanticError> {
         match &mut expr.kind {
             ExprKind::Literal(lit) => Ok(self.infer_literal(lit)),
 
@@ -109,13 +109,21 @@ impl<'a> TypeInferer<'a> {
                     }
                 };
 
-                // 查找结构体符号
-                if let Some(crate::symbol::Symbol::Struct(struct_sym)) = self.lookup(type_name) {
+                // Get struct info first (Clone to avoid holding borrow during inference)
+                let struct_data = self.lookup(type_name).and_then(|sym| {
+                    if let crate::symbol::Symbol::Struct(s) = sym {
+                        Some((s.generic_params.clone(), s.fields.clone()))
+                    } else {
+                        None
+                    }
+                });
+
+                if let Some((struct_params, struct_fields)) = struct_data {
                     // 检查泛型参数数量
-                    if struct_sym.generic_params.len() != generic_args.len() {
+                    if struct_params.len() != generic_args.len() {
                         return Err(SemanticError::GenericArityMismatch {
                             name: type_name.clone(),
-                            expected: struct_sym.generic_params.len(),
+                            expected: struct_params.len(),
                             found: generic_args.len(),
                             span: expr.span.clone(),
                         });
@@ -123,14 +131,14 @@ impl<'a> TypeInferer<'a> {
 
                     // 构建泛型替换表
                     let mut subst_map = std::collections::HashMap::new();
-                    for (param, arg) in struct_sym.generic_params.iter().zip(generic_args.iter()) {
+                    for (param, arg) in struct_params.iter().zip(generic_args.iter()) {
                         subst_map.insert(param.name.clone(), arg.clone());
                     }
 
                     // 检查所有字段
                     for (field_name, field_expr) in fields {
                         // 验证字段存在
-                        if let Some(field_info) = struct_sym.get_field(field_name) {
+                        if let Some(field_info) = struct_fields.get(field_name) {
                             // 推导字段值的类型
                             let expr_ty = self.infer(field_expr)?;
 

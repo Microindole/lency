@@ -19,7 +19,7 @@ pub mod stmt;
 
 /// Null Safety 检查器
 pub struct NullSafetyChecker<'a> {
-    pub(crate) scopes: &'a ScopeStack,
+    pub(crate) scopes: &'a mut ScopeStack,
     pub(crate) current_scope: ScopeId,
     pub(crate) next_child_index: usize,
     pub(crate) errors: Vec<SemanticError>,
@@ -28,10 +28,10 @@ pub struct NullSafetyChecker<'a> {
 }
 
 impl<'a> NullSafetyChecker<'a> {
-    pub fn new(scopes: &'a ScopeStack) -> Self {
+    pub fn new(scopes: &'a mut ScopeStack) -> Self {
         Self {
-            scopes,
             current_scope: scopes.current_scope(), // Start at root/global
+            scopes,
             next_child_index: 0,
             errors: Vec::new(),
             known_non_null: HashSet::new(),
@@ -113,6 +113,9 @@ impl<'a> NullSafetyChecker<'a> {
             }
             // Trait 定义：目前不需要空安全检查（方法签名无函数体）
             Decl::Trait { .. } => {}
+
+            // Enum 定义：也不需要（变体类型检查在 Type Check）
+            Decl::Enum { .. } => {}
         }
     }
 
@@ -172,8 +175,8 @@ mod tests {
 
     #[test]
     fn test_is_nullable() {
-        let scopes = ScopeStack::new();
-        let checker = NullSafetyChecker::new(&scopes);
+        let mut scopes = ScopeStack::new();
+        let checker = NullSafetyChecker::new(&mut scopes);
 
         assert!(!checker.is_nullable(&Type::Int));
         assert!(!checker.is_nullable(&Type::String));

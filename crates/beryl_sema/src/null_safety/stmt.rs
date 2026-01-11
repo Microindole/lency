@@ -132,7 +132,7 @@ fn check_assignment(
     span: &std::ops::Range<usize>,
 ) {
     // 获取目标类型
-    let inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
+    let mut inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
     if let Ok(target_ty) = inferer.infer(target) {
         // 检查是否将 null 赋给非空类型
         if checker.is_null_literal(value) && !checker.is_nullable(&target_ty) {

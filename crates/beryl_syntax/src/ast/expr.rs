@@ -92,7 +92,13 @@ pub struct MatchCase {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MatchPattern {
-    Literal(Literal), // Only Int for now
+    Literal(Literal),
+    Variant {
+        name: String,
+        sub_patterns: Vec<MatchPattern>,
+    },
+    Variable(String),
+    Wildcard,
 }
 
 #[derive(Debug, Clone, PartialEq)]

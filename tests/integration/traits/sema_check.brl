@@ -1,0 +1,17 @@
+trait ValidTrait {
+    int valid_method(int x);
+}
+
+trait InvalidTypes {
+    void bad_arg(UndefinedType x); // Expected: Undefined type
+    UndefinedRet bad_ret(); // Expected: Undefined type
+}
+
+struct MyStruct {}
+
+impl ValidTrait for MyStruct {
+    // Expected: Mismatched signature (param type)
+    int valid_method(bool x) {
+        return 1
+    }
+}

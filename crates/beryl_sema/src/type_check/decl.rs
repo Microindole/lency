@@ -32,9 +32,14 @@ pub fn check_decl(checker: &mut TypeChecker, decl: &mut Decl) {
                 check_decl(checker, method);
             }
         }
-        // TODO: Sprint 8 - Trait 定义的类型检查
         Decl::Trait { .. } => {
             // 将在阶段2实现：验证 Trait 方法签名的类型
+        }
+        Decl::Enum { generic_params, .. } => {
+            // 如果是泛型枚举，Resolver 创建了作用域，需要跳过
+            if !generic_params.is_empty() {
+                checker.next_child_index += 1;
+            }
         }
     }
 }

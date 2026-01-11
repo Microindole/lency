@@ -1,0 +1,12 @@
+enum Res {
+    Success(int),
+    Failure
+}
+
+void main() {
+    var a = Res.Success(100)
+    match a {
+        case Res.Success(x) => print(1),
+        case Res.Failure => print(0)
+    }
+}

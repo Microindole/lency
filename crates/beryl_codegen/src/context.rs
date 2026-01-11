@@ -26,6 +26,14 @@ pub struct CodegenContext<'ctx> {
     /// Struct Field Types (ordered) - used to recover Beryl Type from field access
     /// Struct Field Types (ordered) - used to recover Beryl Type from field access
     pub struct_field_types: std::collections::HashMap<String, Vec<beryl_syntax::ast::Type>>,
+
+    // Enum Metadata (Sprint 10)
+    /// Set of Enum Names
+    pub enum_types: std::collections::HashSet<String>,
+    /// Map EnumName -> Ordered Variants [(Name, Types)]
+    pub enum_variants:
+        std::collections::HashMap<String, Vec<(String, Vec<beryl_syntax::ast::Type>)>>,
+
     /// Runtime Panic Function
     pub panic_func: Option<inkwell::values::FunctionValue<'ctx>>,
     /// Line starts for source mapping
@@ -56,6 +64,8 @@ impl<'ctx> CodegenContext<'ctx> {
             struct_fields: std::collections::HashMap::new(),
             function_signatures: std::collections::HashMap::new(),
             struct_field_types: std::collections::HashMap::new(),
+            enum_types: std::collections::HashSet::new(),
+            enum_variants: std::collections::HashMap::new(),
             panic_func: None,
             line_starts,
         }

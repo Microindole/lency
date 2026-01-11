@@ -21,7 +21,7 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
             // 创建泛型参数符号
             let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
                 .iter()
-                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
+                .map(|p| GenericParamSymbol::new(p.name.clone(), p.bound.clone(), p.span.clone()))
                 .collect();
 
             let func_symbol = FunctionSymbol::new_generic(
@@ -49,10 +49,15 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
             ..
         } => {
             // 创建泛型参数符号
-            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
-                .iter()
-                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
-                .collect();
+            let mut gps = Vec::new();
+            for param in generic_params {
+                gps.push(GenericParamSymbol::new(
+                    param.name.clone(),
+                    param.bound.clone(),
+                    param.span.clone(),
+                ));
+            }
+            let generic_param_symbols = gps;
 
             let func_symbol = FunctionSymbol::new_generic(
                 name.clone(),
@@ -77,10 +82,15 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
             ..
         } => {
             // 创建泛型参数符号
-            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
-                .iter()
-                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
-                .collect();
+            let mut gps = Vec::new();
+            for param in generic_params {
+                gps.push(GenericParamSymbol::new(
+                    param.name.clone(),
+                    param.bound.clone(),
+                    param.span.clone(),
+                ));
+            }
+            let generic_param_symbols = gps;
 
             let mut struct_symbol =
                 StructSymbol::new_generic(name.clone(), generic_param_symbols, span.clone());
@@ -105,10 +115,15 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
             span,
         } => {
             // 创建泛型参数符号
-            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
-                .iter()
-                .map(|p| GenericParamSymbol::new(p.clone(), span.clone()))
-                .collect();
+            let mut gps = Vec::new();
+            for param in generic_params {
+                gps.push(GenericParamSymbol::new(
+                    param.name.clone(),
+                    param.bound.clone(),
+                    param.span.clone(),
+                ));
+            }
+            let generic_param_symbols = gps;
 
             // 创建 Trait 符号
             let mut trait_symbol = if generic_param_symbols.is_empty() {
@@ -133,6 +148,47 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) {
 
             // 注册到符号表
             if let Err(e) = resolver.scopes.define(Symbol::Trait(trait_symbol)) {
+                resolver.errors.push(e);
+            }
+        }
+        Decl::Enum {
+            name,
+            generic_params,
+            variants,
+            span,
+        } => {
+            let mut gps = Vec::new();
+            for param in generic_params {
+                gps.push(GenericParamSymbol::new(
+                    param.name.clone(),
+                    param.bound.clone(),
+                    param.span.clone(),
+                ));
+            }
+            let generic_param_symbols = gps;
+
+            let mut enum_symbol = if generic_param_symbols.is_empty() {
+                crate::symbol::EnumSymbol::new(name.clone(), span.clone())
+            } else {
+                crate::symbol::EnumSymbol::new_generic(
+                    name.clone(),
+                    generic_param_symbols,
+                    span.clone(),
+                )
+            };
+
+            for variant in variants {
+                match variant {
+                    beryl_syntax::ast::EnumVariant::Unit(n) => {
+                        enum_symbol.add_variant(n.clone(), vec![])
+                    }
+                    beryl_syntax::ast::EnumVariant::Tuple(n, types) => {
+                        enum_symbol.add_variant(n.clone(), types.clone())
+                    }
+                }
+            }
+
+            if let Err(e) = resolver.scopes.define(Symbol::Enum(enum_symbol)) {
                 resolver.errors.push(e);
             }
         }
@@ -210,8 +266,16 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
 
             // 注册泛型参数到作用域
             // 这样在函数体中可以识别 T, U 等类型参数
-            for gp in generic_params {
-                let gp_symbol = GenericParamSymbol::new(gp.clone(), span.clone());
+            // 泛型参数处理
+            let mut gps = Vec::new();
+            for param in generic_params {
+                gps.push(GenericParamSymbol::new(
+                    param.name.clone(),
+                    param.bound.clone(),
+                    param.span.clone(),
+                ));
+            }
+            for gp_symbol in gps {
                 if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
                     resolver.errors.push(e);
                 }
@@ -257,7 +321,8 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
                 resolver.scopes.enter_scope(ScopeKind::Block);
                 // 注册泛型参数到作用域
                 for gp in generic_params {
-                    let gp_symbol = GenericParamSymbol::new(gp.clone(), span.clone());
+                    let gp_symbol =
+                        GenericParamSymbol::new(gp.name.clone(), gp.bound.clone(), gp.span.clone());
                     if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
                         resolver.errors.push(e);
                     }
@@ -328,7 +393,69 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
                             }
                         }
 
-                        // TODO: 验证方法签名匹配（参数类型、返回类型）
+                        // 验证方法签名匹配（参数类型、返回类型）
+                        for method in methods.iter() {
+                            if let Decl::Function {
+                                name: method_name,
+                                params,
+                                return_type,
+                                span,
+                                ..
+                            } = method
+                            {
+                                // 查找对应的 Trait 方法签名
+                                if let Some(trait_sig) =
+                                    trait_sym.methods.iter().find(|m| m.name == *method_name)
+                                {
+                                    // 1. 检查返回类型
+                                    if return_type != &trait_sig.return_type {
+                                        resolver.errors.push(
+                                            SemanticError::TraitMethodSignatureMismatch {
+                                                trait_name: trait_name.clone(),
+                                                method_name: method_name.clone(),
+                                                expected: trait_sig.return_type.to_string(),
+                                                found: return_type.to_string(),
+                                                span: span.clone(),
+                                            },
+                                        );
+                                        continue;
+                                    }
+
+                                    // 2. 检查参数数量
+                                    if params.len() != trait_sig.params.len() {
+                                        resolver.errors.push(
+                                            SemanticError::TraitMethodSignatureMismatch {
+                                                trait_name: trait_name.clone(),
+                                                method_name: method_name.clone(),
+                                                expected: format!(
+                                                    "{} params",
+                                                    trait_sig.params.len()
+                                                ),
+                                                found: format!("{} params", params.len()),
+                                                span: span.clone(),
+                                            },
+                                        );
+                                        continue;
+                                    }
+
+                                    // 3. 检查参数类型
+                                    for (i, param) in params.iter().enumerate() {
+                                        let (_, trait_param_ty) = &trait_sig.params[i];
+                                        if &param.ty != trait_param_ty {
+                                            resolver.errors.push(
+                                                SemanticError::TraitMethodSignatureMismatch {
+                                                    trait_name: trait_name.clone(),
+                                                    method_name: method_name.clone(),
+                                                    expected: trait_param_ty.to_string(),
+                                                    found: param.ty.to_string(),
+                                                    span: span.clone(),
+                                                },
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
                     resolver.errors.push(SemanticError::UndefinedTrait {
@@ -350,7 +477,14 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
                     // 注册impl块的泛型参数到作用域
                     // 这样方法可以使用 impl<T> 声明的类型参数
                     for gp in generic_params.iter() {
-                        let gp_symbol = GenericParamSymbol::new(gp.clone(), span.clone());
+                        if let Some(bound) = &gp.bound {
+                            resolver.resolve_type(bound, &gp.span);
+                        }
+                        let gp_symbol = GenericParamSymbol::new(
+                            gp.name.clone(),
+                            gp.bound.clone(),
+                            gp.span.clone(),
+                        );
                         if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
                             resolver.errors.push(e);
                         }
@@ -394,9 +528,85 @@ pub fn resolve_decl(resolver: &mut Resolver, decl: &mut Decl) {
                 }
             }
         }
-        // TODO: Sprint 8 - Trait 定义的解析
-        Decl::Trait { .. } => {
-            // 将在阶段2实现：解析 Trait 方法签名
+
+        Decl::Trait {
+            generic_params,
+            methods,
+            span,
+            ..
+        } => {
+            // 解析 Trait 定义中的类型
+
+            // 1. 进入泛型作用域 (如果有)
+            let has_generics = !generic_params.is_empty();
+            if has_generics {
+                resolver.scopes.enter_scope(ScopeKind::Block);
+                for gp in generic_params {
+                    if let Some(bound) = &gp.bound {
+                        resolver.resolve_type(bound, &gp.span);
+                    }
+                    let gp_symbol =
+                        GenericParamSymbol::new(gp.name.clone(), gp.bound.clone(), gp.span.clone());
+                    if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
+                        resolver.errors.push(e);
+                    }
+                }
+            }
+
+            // 2. 解析每个方法的签名类型
+            for method in methods {
+                // 验证返回类型
+                resolver.resolve_type(&method.return_type, span);
+
+                // 验证参数类型
+                for param in &method.params {
+                    resolver.resolve_type(&param.ty, span);
+                }
+            }
+
+            // 3. 退出作用域
+            if has_generics {
+                resolver.scopes.exit_scope();
+            }
+        }
+        Decl::Enum {
+            variants,
+            generic_params,
+            span,
+            ..
+        } => {
+            // 如果是泛型枚举，创建临时作用域来注册泛型参数
+            let has_generics = !generic_params.is_empty();
+            if has_generics {
+                resolver.scopes.enter_scope(ScopeKind::Block);
+                // 注册泛型参数到作用域
+                for gp in generic_params {
+                    if let Some(bound) = &gp.bound {
+                        resolver.resolve_type(bound, &gp.span);
+                    }
+                    let gp_symbol =
+                        GenericParamSymbol::new(gp.name.clone(), gp.bound.clone(), gp.span.clone());
+                    if let Err(e) = resolver.scopes.define(Symbol::GenericParam(gp_symbol)) {
+                        resolver.errors.push(e);
+                    }
+                }
+            }
+
+            // 验证变体中的类型
+            for variant in variants {
+                match variant {
+                    beryl_syntax::ast::EnumVariant::Unit(_) => {}
+                    beryl_syntax::ast::EnumVariant::Tuple(_, types) => {
+                        for ty in types {
+                            resolver.resolve_type(ty, span);
+                        }
+                    }
+                }
+            }
+
+            if has_generics {
+                resolver.scopes.exit_scope();
+            }
         }
     }
 }

@@ -88,12 +88,14 @@ pub fn field_parser() -> impl Parser<Token, Field, Error = ParserError> + Clone 
 
 /// 解析泛型参数列表: <T, U> 或 <T: Bound, U: Bound>
 /// 返回空Vec如果没有泛型参数
-/// 注意：当前版本暂时忽略约束（bounds），仅返回参数名称
-pub fn generic_params_parser() -> impl Parser<Token, Vec<String>, Error = ParserError> + Clone {
+/// 解析泛型参数列表: <T, U> 或 <T: Bound, U: Bound>
+/// 返回空Vec如果没有泛型参数
+pub fn generic_params_parser(
+) -> impl Parser<Token, Vec<crate::ast::GenericParam>, Error = ParserError> + Clone {
     // 单个泛型参数: T 或 T: Bound
     let single_param = ident_parser()
         .then(just(Token::Colon).ignore_then(type_parser()).or_not())
-        .map(|(name, _bound)| name); // TODO: 存储 bound 以支持约束验证
+        .map_with_span(|(name, bound), span| crate::ast::GenericParam { span, name, bound });
 
     single_param
         .separated_by(just(Token::Comma))

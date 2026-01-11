@@ -7,7 +7,7 @@ pub fn check_expr(checker: &mut NullSafetyChecker, expr: &mut Expr) {
     match &mut expr.kind {
         ExprKind::Get { object, .. } => {
             // 检查是否在可空类型上访问成员
-            let inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
+            let mut inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
             if let Ok(Type::Nullable(inner)) = inferer.infer(object) {
                 // 检查变量是否已知非空
                 let is_safe = if let ExprKind::Variable(name) = &object.kind {
@@ -47,7 +47,7 @@ pub fn check_expr(checker: &mut NullSafetyChecker, expr: &mut Expr) {
         }
         ExprKind::Index { array, index } => {
             // 检查不可空索引访问
-            let inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
+            let mut inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
             if let Ok(Type::Nullable(inner)) = inferer.infer(array) {
                 let is_safe = if let ExprKind::Variable(name) = &array.kind {
                     checker.known_non_null.contains(name)

@@ -1,6 +1,8 @@
 use super::Resolver;
 use crate::error::SemanticError;
-use beryl_syntax::ast::{Expr, ExprKind};
+use crate::scope::ScopeKind;
+use crate::symbol::{Symbol, VariableSymbol};
+use beryl_syntax::ast::{Expr, ExprKind, MatchPattern, Type};
 
 pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
     match &mut expr.kind {
@@ -48,11 +50,6 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
         ExprKind::GenericInstantiation { base, args: _ } => {
             // Resolve the base expression (the function being called)
             resolver.resolve_expr(base);
-            // We don't resolve types here as they are Type nodes, handled during TypeCheck validation?
-            // Actually, if they refer to types, we should check them?
-            // But existing Resolver focuses on name binding.
-            // Types in `Box<T>` are validated by `resolve_type` elsewhere?
-            // For now, resolving base is sufficient to bind `identity` to symbol.
         }
         ExprKind::Literal(_) => {
             // 字面量不需要解析
@@ -64,7 +61,10 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
         } => {
             resolver.resolve_expr(value);
             for case in cases {
+                resolver.scopes.enter_scope(ScopeKind::Block);
+                declare_pattern_vars(resolver, &case.pattern);
                 resolver.resolve_expr(&mut case.body);
+                resolver.scopes.exit_scope();
             }
             if let Some(default_expr) = default {
                 resolver.resolve_expr(default_expr);
@@ -90,5 +90,27 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
         ExprKind::Try(inner) => resolver.resolve_expr(inner),
         ExprKind::Ok(inner) => resolver.resolve_expr(inner),
         ExprKind::Err(inner) => resolver.resolve_expr(inner),
+    }
+}
+
+fn declare_pattern_vars(resolver: &mut Resolver, pattern: &MatchPattern) {
+    match pattern {
+        MatchPattern::Variable(name) => {
+            let var_sym = VariableSymbol::new(
+                name.clone(),
+                Type::Void, // TypeChecker will infer later
+                false,      // Immutable binding
+                0..0,       // Span dummy? Or we should pass span?
+            );
+            if let Err(e) = resolver.scopes.define(Symbol::Variable(var_sym)) {
+                resolver.errors.push(e);
+            }
+        }
+        MatchPattern::Variant { sub_patterns, .. } => {
+            for pat in sub_patterns {
+                declare_pattern_vars(resolver, pat);
+            }
+        }
+        _ => {}
     }
 }

@@ -73,6 +73,16 @@ impl Collector {
             }
             // Trait 定义：目前不需要收集泛型实例化
             Decl::Trait { .. } => {}
+            // Enum 定义：收集包含的类型
+            Decl::Enum { variants, .. } => {
+                for variant in variants {
+                    if let EnumVariant::Tuple(_, types) = variant {
+                        for ty in types {
+                            self.collect_type(ty);
+                        }
+                    }
+                }
+            }
         }
     }
 

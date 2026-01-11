@@ -1,0 +1,17 @@
+enum OptionInt {
+    Some(int),
+    None
+}
+
+int match_test(OptionInt o) {
+    return match o {
+        case OptionInt.Some(x) => x,
+        case OptionInt.None => 0,
+    };
+}
+
+int main() {
+    var o = OptionInt.Some(42);
+    if (match_test(o) != 42) return 1;
+    return 0;
+}

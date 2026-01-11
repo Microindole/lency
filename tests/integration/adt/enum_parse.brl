@@ -1,0 +1,28 @@
+// 验证 Enum 语法解析
+
+// 1. 无值枚举
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+// 2. 带值枚举 Use C-style struct syntax, so Types first? No, enum definition syntax in Parser is `Ident(Types)`.
+// Decl::EnumVariant::Tuple(String, Vec<Type>)
+// Parser logic: ident_parser() .then (Type...)
+// So: `Variant(Type, Type)`
+enum Shape {
+    Circle(float),
+    Rect(float, float),
+    Unit
+}
+
+// 3. 泛型枚举
+enum Option<T> {
+    Some(T),
+    None
+}
+
+int main() {
+    return 0
+}

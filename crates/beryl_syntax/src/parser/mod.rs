@@ -5,6 +5,7 @@
 pub mod decl;
 pub mod expr;
 pub mod helpers;
+pub mod pattern;
 pub mod stmt;
 
 use crate::ast::Program;

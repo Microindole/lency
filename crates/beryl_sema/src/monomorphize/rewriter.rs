@@ -120,6 +120,26 @@ impl Rewriter {
                 generic_params,
                 methods,
             },
+            Decl::Enum {
+                span,
+                name,
+                generic_params,
+                variants,
+            } => Decl::Enum {
+                span,
+                name,
+                generic_params,
+                variants: variants
+                    .into_iter()
+                    .map(|v| match v {
+                        EnumVariant::Unit(n) => EnumVariant::Unit(n),
+                        EnumVariant::Tuple(n, types) => EnumVariant::Tuple(
+                            n,
+                            types.into_iter().map(|t| self.rewrite_type(&t)).collect(),
+                        ),
+                    })
+                    .collect(),
+            },
         }
     }
 

@@ -1,26 +1,39 @@
-// Sprint 8: Traits - 泛型约束语法测试
-// 验证 <T: Trait> 语法能正确解析
-
-trait Greeter {
-    void greet();
+trait Display {
+   void print_self();
 }
 
-struct User {
-    string name;
+// 泛型约束语法测试
+// T 必须实现 Display trait
+void print_it<T: Display>(T item) {
+    // TODO: 未来需要调用 u.greet()
+    // item.print_self(); 
 }
 
-impl Greeter for User {
-    void greet() {
-        print("Hello");
+struct Wrapper<T: Display> {
+    T value
+}
+
+// impl 块的约束
+impl<T: Display> Wrapper<T> {
+    void display() {
+        // this.value.print_self();
     }
 }
 
-// 泛型函数带约束（语法测试）
-void run<T: Greeter>(T u) {
-    // TODO: 未来需要调用 u.greet()
-    print("running");
+struct MyInt {
+    int val
 }
 
-int main() {
-    return 0;
+impl Display for MyInt {
+    void print_self() {
+        print(this.val);
+    }
+}
+
+void main() {
+    var i = MyInt { val: 42 };
+    print_it<MyInt>(i);
+    
+    var w = Wrapper<MyInt> { value: i };
+    w.display();
 }
