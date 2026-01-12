@@ -5,6 +5,7 @@
 mod array;
 mod binary;
 mod call;
+mod closure;
 mod intrinsic;
 mod literal;
 mod match_expr;
@@ -121,6 +122,7 @@ fn generate_expr<'ctx>(
         ExprKind::Ok(inner) => result::gen_ok(ctx, locals, inner),
         ExprKind::Err(inner) => result::gen_err(ctx, locals, inner),
         ExprKind::Try(inner) => result::gen_try(ctx, locals, inner),
+        ExprKind::Closure { params, body } => closure::gen_closure(ctx, locals, params, body),
     }
 }
 

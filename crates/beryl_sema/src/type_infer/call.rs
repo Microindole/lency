@@ -20,6 +20,27 @@ impl<'a> TypeInferer<'a> {
                         // Constructor
                         Ok(Type::Struct(s.name.clone()))
                     }
+                    // 支持调用函数类型的变量 (闭包)
+                    Some(Symbol::Variable(var)) => {
+                        if let Type::Function { return_type, .. } = &var.ty {
+                            Ok(*return_type.clone())
+                        } else {
+                            Err(SemanticError::NotCallable {
+                                ty: var.ty.to_string(),
+                                span: span.clone(),
+                            })
+                        }
+                    }
+                    Some(Symbol::Parameter(param)) => {
+                        if let Type::Function { return_type, .. } = &param.ty {
+                            Ok(*return_type.clone())
+                        } else {
+                            Err(SemanticError::NotCallable {
+                                ty: param.ty.to_string(),
+                                span: span.clone(),
+                            })
+                        }
+                    }
                     Some(_) => Err(SemanticError::NotCallable {
                         ty: name.clone(),
                         span: span.clone(),
@@ -114,17 +135,102 @@ impl<'a> TypeInferer<'a> {
                 let obj_ty = self.infer(object)?;
                 match obj_ty {
                     Type::Struct(struct_name) => {
-                        // Check mangled name lookup: Struct_Method
-                        let mangled = format!("{}_{}", struct_name, name);
-                        if let Some(Symbol::Function(f)) = self.lookup(&mangled) {
-                            return Ok(f.return_type.clone());
+                        // 查找符号
+                        let symbol = self.lookup(&struct_name).cloned();
+                        match symbol {
+                            Some(Symbol::Struct(struct_sym)) => {
+                                if let Some(method) = struct_sym.get_method(name) {
+                                    Ok(method.return_type.clone())
+                                } else {
+                                    Err(SemanticError::UndefinedMethod {
+                                        class: struct_name.clone(),
+                                        method: name.clone(),
+                                        span: span.clone(),
+                                    })
+                                }
+                            }
+                            Some(Symbol::GenericParam(gp)) => {
+                                // 泛型参数调用的推导
+                                if let Some(bound_ty) = &gp.bound {
+                                    if let Type::Struct(trait_name) = bound_ty {
+                                        if let Some(Symbol::Trait(trait_sym)) =
+                                            self.lookup(trait_name)
+                                        {
+                                            if let Some(method) = trait_sym.get_method(name) {
+                                                Ok(method.return_type.clone())
+                                            } else {
+                                                Err(SemanticError::UndefinedMethod {
+                                                    class: format!("Trait {}", trait_name),
+                                                    method: name.clone(),
+                                                    span: span.clone(),
+                                                })
+                                            }
+                                        } else {
+                                            Err(SemanticError::UndefinedTrait {
+                                                name: trait_name.clone(),
+                                                span: span.clone(),
+                                            })
+                                        }
+                                    } else {
+                                        Err(SemanticError::NotCallable {
+                                            ty: format!("{:?}", bound_ty),
+                                            span: span.clone(),
+                                        })
+                                    }
+                                } else {
+                                    Err(SemanticError::NotCallable {
+                                        ty: format!("Generic {} has no bounds", struct_name),
+                                        span: span.clone(),
+                                    })
+                                }
+                            }
+                            _ => Err(SemanticError::UndefinedMethod {
+                                class: struct_name.clone(),
+                                method: name.clone(),
+                                span: span.clone(),
+                            }),
                         }
-
-                        Err(SemanticError::UndefinedMethod {
-                            class: struct_name,
-                            method: name.clone(),
-                            span: span.clone(),
-                        })
+                    }
+                    Type::GenericParam(param_name) => {
+                        // Explicit GenericParam handling
+                        if let Some(Symbol::GenericParam(gp)) = self.lookup(&param_name) {
+                            if let Some(bound_ty) = &gp.bound {
+                                if let Type::Struct(trait_name) = bound_ty {
+                                    if let Some(Symbol::Trait(trait_sym)) = self.lookup(trait_name)
+                                    {
+                                        if let Some(method) = trait_sym.get_method(name) {
+                                            Ok(method.return_type.clone())
+                                        } else {
+                                            Err(SemanticError::UndefinedMethod {
+                                                class: format!("Trait {}", trait_name),
+                                                method: name.clone(),
+                                                span: span.clone(),
+                                            })
+                                        }
+                                    } else {
+                                        Err(SemanticError::UndefinedTrait {
+                                            name: trait_name.clone(),
+                                            span: span.clone(),
+                                        })
+                                    }
+                                } else {
+                                    Err(SemanticError::NotCallable {
+                                        ty: format!("{:?}", bound_ty),
+                                        span: span.clone(),
+                                    })
+                                }
+                            } else {
+                                Err(SemanticError::NotCallable {
+                                    ty: format!("Generic {} has no bounds", param_name),
+                                    span: span.clone(),
+                                })
+                            }
+                        } else {
+                            Err(SemanticError::UndefinedType {
+                                name: param_name.clone(),
+                                span: span.clone(),
+                            })
+                        }
                     }
                     Type::Vec(inner) => match name.as_str() {
                         "push" | "set" => Ok(Type::Void),

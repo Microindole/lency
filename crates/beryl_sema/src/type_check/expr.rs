@@ -88,18 +88,149 @@ pub fn check_call(
             // 方法调用处理
             let obj_type = checker.infer_type(object)?;
             match obj_type {
-                Type::Struct(struct_name) => {
-                    // 构建 mangled name: StructName_methodName
-                    let mangled_name = format!("{}_{}", struct_name, name);
-                    match checker.scopes.lookup(&mangled_name) {
-                        Some(Symbol::Function(f)) => (f.clone(), true, HashMap::new()),
+                Type::Struct(name) => {
+                    // 查找符号定义
+                    //可能是 Struct，也可能是 GenericParam (因为 Parser 将 T 解析为 Type::Struct)
+                    let symbol = checker.scopes.lookup(&name).cloned();
+
+                    match symbol {
+                        Some(Symbol::Struct(struct_sym)) => {
+                            if let Some(method) = struct_sym.get_method(&name) {
+                                let mut func = method.clone();
+                                let this_type = Type::Struct(name.clone());
+                                func.params.insert(0, ("this".to_string(), this_type));
+                                (func, true, HashMap::new())
+                            } else {
+                                return Err(SemanticError::UndefinedMethod {
+                                    class: name.clone(),
+                                    method: name.clone(),
+                                    span: span.clone(),
+                                });
+                            }
+                        }
+                        Some(Symbol::GenericParam(gp_sym)) => {
+                            // 复用泛型方法调用逻辑
+                            if let Some(bound_ty) = &gp_sym.bound {
+                                if let Type::Struct(trait_name) = bound_ty {
+                                    if let Some(Symbol::Trait(trait_sym)) =
+                                        checker.scopes.lookup(trait_name)
+                                    {
+                                        if let Some(trait_method) = trait_sym.get_method(&name) {
+                                            let mut params = trait_method.params.clone();
+                                            params.insert(
+                                                0,
+                                                (
+                                                    "this".to_string(),
+                                                    Type::GenericParam(name.clone()),
+                                                ),
+                                            );
+
+                                            let func_sym = FunctionSymbol {
+                                                name: trait_method.name.clone(),
+                                                params,
+                                                return_type: trait_method.return_type.clone(),
+                                                generic_params: vec![],
+                                                span: trait_sym.span.clone(),
+                                                is_public: true,
+                                            };
+                                            (func_sym, true, HashMap::new())
+                                        } else {
+                                            return Err(SemanticError::UndefinedMethod {
+                                                class: format!("Trait {}", trait_name),
+                                                method: name.clone(),
+                                                span: span.clone(),
+                                            });
+                                        }
+                                    } else {
+                                        return Err(SemanticError::UndefinedTrait {
+                                            name: trait_name.clone(),
+                                            span: span.clone(),
+                                        });
+                                    }
+                                } else {
+                                    return Err(SemanticError::NotCallable {
+                                        ty: format!("Bounded type {:?}", bound_ty),
+                                        span: span.clone(),
+                                    });
+                                }
+                            } else {
+                                return Err(SemanticError::NotCallable {
+                                    ty: format!("Generic {} has no bounds", name),
+                                    span: span.clone(),
+                                });
+                            }
+                        }
                         _ => {
-                            return Err(SemanticError::UndefinedMethod {
-                                class: struct_name,
-                                method: name.clone(),
+                            return Err(SemanticError::UndefinedType {
+                                name: name.clone(),
+                                span: object.span.clone(),
+                            });
+                        }
+                    }
+                }
+                Type::GenericParam(param_name) => {
+                    // 泛型参数方法调用: t.foo() where T: Trait
+                    if let Some(Symbol::GenericParam(gp_sym)) = checker.scopes.lookup(&param_name) {
+                        if let Some(bound_ty) = &gp_sym.bound {
+                            // 解析约束类型
+                            // 目前假设 bound 是 Type::Struct(TraitName) 形式（由 Parser 生成）
+                            if let Type::Struct(trait_name) = bound_ty {
+                                if let Some(Symbol::Trait(trait_sym)) =
+                                    checker.scopes.lookup(trait_name)
+                                {
+                                    if let Some(trait_method) = trait_sym.get_method(name) {
+                                        // 从 Trait 方法签名构造 FunctionSymbol
+                                        // 需要添加隐式 this 参数，类型为 GenericParam(T)
+                                        let mut params = trait_method.params.clone();
+                                        params.insert(
+                                            0,
+                                            (
+                                                "this".to_string(),
+                                                Type::GenericParam(param_name.clone()),
+                                            ),
+                                        );
+
+                                        let func_sym = FunctionSymbol {
+                                            name: trait_method.name.clone(),
+                                            params,
+                                            return_type: trait_method.return_type.clone(),
+                                            generic_params: vec![], // Trait 方法特定的泛型参数？暂不支持
+                                            span: trait_sym.span.clone(), // 使用 Trait 的 span 作为近似
+                                            is_public: true, // Trait 方法通过接口总是可见的
+                                        };
+                                        (func_sym, true, HashMap::new())
+                                    } else {
+                                        return Err(SemanticError::UndefinedMethod {
+                                            class: format!("Trait {}", trait_name),
+                                            method: name.clone(),
+                                            span: span.clone(),
+                                        });
+                                    }
+                                } else {
+                                    return Err(SemanticError::UndefinedTrait {
+                                        name: trait_name.clone(),
+                                        span: span.clone(),
+                                    });
+                                }
+                            } else {
+                                // 复杂的约束类型暂时不支持
+                                return Err(SemanticError::NotCallable {
+                                    ty: format!("Bounded type {:?}", bound_ty),
+                                    span: span.clone(),
+                                });
+                            }
+                        } else {
+                            // 无约束，无法调用方法
+                            return Err(SemanticError::NotCallable {
+                                ty: format!("Generic {} has no bounds", param_name),
                                 span: span.clone(),
                             });
                         }
+                    } else {
+                        return Err(SemanticError::UndefinedType {
+                            name: param_name,
+                            span: object.span.clone(),
+                        });
                     }
                 }
                 Type::Vec(inner_type) => {

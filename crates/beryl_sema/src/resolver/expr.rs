@@ -90,6 +90,27 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
         ExprKind::Try(inner) => resolver.resolve_expr(inner),
         ExprKind::Ok(inner) => resolver.resolve_expr(inner),
         ExprKind::Err(inner) => resolver.resolve_expr(inner),
+        // 闭包
+        ExprKind::Closure { params, body } => {
+            // 进入闭包作用域
+            resolver.scopes.enter_scope(ScopeKind::Function);
+            // 注册参数
+            for param in params {
+                resolver.resolve_type(&param.ty, &expr.span);
+                let param_sym = crate::symbol::ParameterSymbol::new(
+                    param.name.clone(),
+                    param.ty.clone(),
+                    expr.span.clone(),
+                    0,
+                );
+                if let Err(e) = resolver.scopes.define(Symbol::Parameter(param_sym)) {
+                    resolver.errors.push(e);
+                }
+            }
+            // 解析闭包体
+            resolver.resolve_expr(body);
+            resolver.scopes.exit_scope();
+        }
     }
 }
 

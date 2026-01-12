@@ -372,6 +372,17 @@ impl Specializer {
             ExprKind::Try(inner) => ExprKind::Try(Box::new(self.specialize_expr(inner))),
             ExprKind::Ok(inner) => ExprKind::Ok(Box::new(self.specialize_expr(inner))),
             ExprKind::Err(inner) => ExprKind::Err(Box::new(self.specialize_expr(inner))),
+            // 闭包
+            ExprKind::Closure { params, body } => ExprKind::Closure {
+                params: params
+                    .iter()
+                    .map(|p| Param {
+                        name: p.name.clone(),
+                        ty: self.specialize_type(&p.ty),
+                    })
+                    .collect(),
+                body: Box::new(self.specialize_expr(body)),
+            },
         };
 
         Expr {

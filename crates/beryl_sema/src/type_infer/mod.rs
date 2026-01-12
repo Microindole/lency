@@ -241,6 +241,36 @@ impl<'a> TypeInferer<'a> {
                     err_type: Box::new(Type::Struct("Error".to_string())),
                 })
             }
+            // 闭包
+            ExprKind::Closure { params, body } => {
+                // 进入闭包作用域
+                let scope_id = self.scopes.enter_scope(crate::scope::ScopeKind::Function);
+                let parent_scope = self.current_scope;
+                self.current_scope = scope_id;
+
+                // 注册参数
+                for (i, param) in params.iter().enumerate() {
+                    let param_sym = crate::symbol::ParameterSymbol::new(
+                        param.name.clone(),
+                        param.ty.clone(),
+                        expr.span.clone(),
+                        i,
+                    );
+                    let _ = self.scopes.define(Symbol::Parameter(param_sym));
+                }
+
+                // 推导闭包体类型
+                let body_ty = self.infer(body)?;
+
+                self.scopes.exit_scope();
+                self.current_scope = parent_scope;
+
+                // 返回函数类型
+                Ok(Type::Function {
+                    param_types: params.iter().map(|p| p.ty.clone()).collect(),
+                    return_type: Box::new(body_ty),
+                })
+            }
         }
     }
 }

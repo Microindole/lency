@@ -50,12 +50,53 @@ impl<'a> TypeInferer<'a> {
             }
         }
 
-        // Exhaustiveness check (Basic)
-        // Check if there is a Wildcard or Variable pattern at top level
-        // Or if all Enum variants are covered (requires collecting tags)
-        // For Phase 4.1: Just warn if no wildcard?
-        // Or assume user handles it.
-        // If ret_ty is inferred, we assume OK.
+        // Exhaustiveness check
+        // 1. Check for Wildcard/Variable (always exhaust)
+        let has_catch_all = cases.iter().any(|c| {
+            matches!(
+                c.pattern,
+                MatchPattern::Wildcard | MatchPattern::Variable(_)
+            )
+        });
+
+        if !has_catch_all {
+            // 2. If matching on an Enum, check all variants are covered
+            let enum_name = match &value_ty {
+                Type::Struct(n) => Some(n.clone()),
+                Type::Generic(n, _) => Some(n.clone()),
+                _ => None,
+            };
+
+            if let Some(ref name) = enum_name {
+                if let Some(Symbol::Enum(e)) = self.lookup(name) {
+                    let all_variants: std::collections::HashSet<String> =
+                        e.variants.keys().cloned().collect();
+
+                    let matched_variants: std::collections::HashSet<String> = cases
+                        .iter()
+                        .filter_map(|c| {
+                            if let MatchPattern::Variant { name, .. } = &c.pattern {
+                                Some(name.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+
+                    let missing: Vec<String> = all_variants
+                        .difference(&matched_variants)
+                        .cloned()
+                        .collect();
+
+                    if !missing.is_empty() {
+                        return Err(SemanticError::PatternNotExhaustive {
+                            missing_variants: missing,
+                            span: span.clone(),
+                        });
+                    }
+                }
+            }
+        }
 
         if cases.is_empty() {
             return Err(SemanticError::TypeMismatch {

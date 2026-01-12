@@ -5,7 +5,6 @@ trait Display {
 // 泛型约束语法测试
 // T 必须实现 Display trait
 void print_it<T: Display>(T item) {
-    // TODO: 未来需要调用 u.greet()
     // item.print_self(); 
 }
 

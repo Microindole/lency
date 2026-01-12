@@ -24,7 +24,7 @@ pub fn gen_struct_member_ptr<'ctx>(
     // 2. 必须是指针类型（结构体是通过指针传递的）
     if !object_val.value.is_pointer_value() {
         return Err(CodegenError::UnsupportedType(
-            "Field access on non-pointer value".to_string(),
+            "Field access on non-pointer value [LValue]".to_string(),
         ));
     }
     let ptr_val = object_val.value.into_pointer_value();
@@ -90,7 +90,7 @@ pub fn gen_struct_member_ptr_val<'ctx>(
     // 2. 必须是指针类型（结构体是通过指针传递的）
     if !object_val.value.is_pointer_value() {
         return Err(CodegenError::UnsupportedType(
-            "Field access on non-pointer value".to_string(),
+            "Field access on non-pointer value [Helper]".to_string(),
         ));
     }
     let ptr_val = object_val.value.into_pointer_value();
@@ -235,11 +235,43 @@ pub fn gen_member_access<'ctx>(
         }
     }
 
-    let field_ptr =
-        gen_struct_member_ptr_val(ctx, &object_val, object_expr.span.start, field_name, line)?;
+    // Check pointer or value
+    if object_val.value.is_pointer_value() {
+        let field_ptr =
+            gen_struct_member_ptr_val(ctx, &object_val, object_expr.span.start, field_name, line)?;
+        load_field(ctx, &object_val, field_name, field_ptr)
+    } else {
+        // Struct Value (RValue Aggregate) - use ExtractValue
+        let struct_name = match &object_val.ty {
+            Type::Struct(name) => name,
+            _ => return Err(CodegenError::TypeMismatch),
+        };
 
-    // Load logic...
-    load_field(ctx, &object_val, field_name, field_ptr)
+        let field_names = ctx
+            .struct_fields
+            .get(struct_name)
+            .ok_or(CodegenError::TypeMismatch)?;
+        let idx = field_names
+            .iter()
+            .position(|n| n == field_name)
+            .ok_or(CodegenError::TypeMismatch)?;
+        let field_types = ctx.struct_field_types.get(struct_name).unwrap();
+        let ret_type = field_types[idx].clone();
+
+        let val = ctx
+            .builder
+            .build_extract_value(
+                object_val.value.into_struct_value(),
+                idx as u32,
+                &format!("field_{}_extract", field_name),
+            )
+            .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+        Ok(CodegenValue {
+            value: val,
+            ty: ret_type,
+        })
+    }
 }
 
 /// 辅助：加载字段
@@ -357,9 +389,47 @@ pub fn gen_safe_member_access<'ctx>(
             load_field(ctx, &object_val, field_name, field_ptr)
         }
     } else {
-        let field_ptr =
-            gen_struct_member_ptr_val(ctx, &object_val, object_expr.span.start, field_name, line)?;
-        load_field(ctx, &object_val, field_name, field_ptr)
+        if object_val.value.is_pointer_value() {
+            let field_ptr = gen_struct_member_ptr_val(
+                ctx,
+                &object_val,
+                object_expr.span.start,
+                field_name,
+                line,
+            )?;
+            load_field(ctx, &object_val, field_name, field_ptr)
+        } else {
+            // Struct Value (RValue Aggregate) - use ExtractValue
+            let struct_name = match &object_val.ty {
+                Type::Struct(name) => name,
+                _ => return Err(CodegenError::TypeMismatch),
+            };
+
+            let field_names = ctx
+                .struct_fields
+                .get(struct_name)
+                .ok_or(CodegenError::TypeMismatch)?;
+            let idx = field_names
+                .iter()
+                .position(|n| n == field_name)
+                .ok_or(CodegenError::TypeMismatch)?;
+            let field_types = ctx.struct_field_types.get(struct_name).unwrap();
+            let ret_type = field_types[idx].clone();
+
+            let val = ctx
+                .builder
+                .build_extract_value(
+                    object_val.value.into_struct_value(),
+                    idx as u32,
+                    &format!("field_{}_extract", field_name),
+                )
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+            Ok(CodegenValue {
+                value: val,
+                ty: ret_type,
+            })
+        }
     };
 
     let valid_val = access_res?;

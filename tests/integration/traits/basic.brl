@@ -28,7 +28,7 @@ impl User {
 // 测试入口
 int main() {
     var u = User { name: "Alice" };
-    // TODO: 阶段2 - 调用 u.greet() 需要 trait 语义分析支持
+    u.greet();
     print(u.getName());
     return 0;
 }

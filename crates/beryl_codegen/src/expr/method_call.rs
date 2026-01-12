@@ -124,8 +124,68 @@ pub fn gen_method_call<'ctx>(
     // 6. 生成参数列表
     let mut compiled_args = Vec::with_capacity(args.len() + 1);
 
-    // 添加 this（作为第一个参数）
-    compiled_args.push(this_ptr.into());
+    // Determines how to pass 'this'
+    let first_param = function.get_first_param();
+    if let Some(param) = first_param {
+        let expected_type = param.get_type();
+
+        let this_arg = if expected_type.is_pointer_type() {
+            // Function expects pointer
+            if object_val.value.is_pointer_value() {
+                object_val.value
+            } else {
+                // Have value, need pointer -> Alloca
+                let struct_type = object_val.value.get_type();
+                let alloca = ctx
+                    .builder
+                    .build_alloca(struct_type, "this_tmp")
+                    .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+                ctx.builder
+                    .build_store(alloca, object_val.value)
+                    .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+                // Null check if we just created it? It's non-null.
+                // If object_val was pointer, we invoke check below (if enabled) but here we store value so it is valid logic.
+                alloca.into()
+            }
+        } else {
+            // Function expects value
+            if object_val.value.is_pointer_value() {
+                // Have pointer, need value -> Load
+                let load = ctx
+                    .builder
+                    .build_load(
+                        expected_type,
+                        object_val.value.into_pointer_value(),
+                        "this_load",
+                    )
+                    .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+                load
+            } else {
+                // Have value, expect value -> Direct
+                object_val.value
+            }
+        };
+
+        // Null Check logic (original) - only if we have pointer?
+        // Reuse logic if pointer?
+        if this_arg.is_pointer_value() {
+            if let Some(panic_func) = ctx.panic_func {
+                crate::runtime::gen_null_check(
+                    ctx.context,
+                    &ctx.builder,
+                    panic_func,
+                    this_arg.into_pointer_value(),
+                    line,
+                );
+            }
+        }
+
+        compiled_args.push(this_arg.into());
+    } else {
+        // Should not happen for methods? Or static methods?
+        // If no params, ignore 'this'.
+    }
 
     // 添加其他参数
     for arg in args {

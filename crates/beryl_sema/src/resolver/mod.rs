@@ -9,6 +9,7 @@ use crate::symbol::Symbol;
 use beryl_syntax::ast::{Decl, Expr, Program, Span, Stmt, Type};
 
 pub mod decl;
+mod decl_impl;
 pub mod expr;
 pub mod stmt;
 

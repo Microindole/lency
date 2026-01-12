@@ -42,6 +42,13 @@ pub enum Type {
         err_type: Box<Type>,
     },
 
+    // 函数类型: int(int, int) - C系风格
+    // 用于高阶函数和闭包
+    Function {
+        param_types: Vec<Type>,
+        return_type: Box<Type>,
+    },
+
     // 错误占位符 (当用户写错类型时，编译器用这个占位，防止崩溃)
     Error,
 }
@@ -72,6 +79,19 @@ impl Display for Type {
             Type::Struct(name) => write!(f, "{}", name),
             Type::Vec(inner) => write!(f, "Vec<{}>", inner),
             Type::Result { ok_type, err_type } => write!(f, "Result<{}, {}>", ok_type, err_type),
+            Type::Function {
+                param_types,
+                return_type,
+            } => {
+                write!(f, "{}(", return_type)?;
+                for (i, param) in param_types.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", param)?;
+                }
+                write!(f, ")")
+            }
             Type::Error => write!(f, "<?>"),
         }
     }

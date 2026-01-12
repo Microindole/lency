@@ -66,14 +66,35 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
 
         // 后缀类型修饰符: T? (可空) 或 T! (Result)
         type_without_suffix
+            .clone()
             .then(just(Token::Question).or(just(Token::Bang)).or_not())
-            .map(|(t, suffix)| match suffix {
-                Some(Token::Question) => Type::Nullable(Box::new(t)),
-                Some(Token::Bang) => Type::Result {
-                    ok_type: Box::new(t),
-                    err_type: Box::new(Type::Struct("Error".to_string())),
-                },
-                _ => t,
+            .then(
+                // 函数类型后缀: int(int, int)
+                // 如果后面跟着括号，解析为函数类型
+                ty.clone()
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing()
+                    .delimited_by(just(Token::LParen), just(Token::RParen))
+                    .or_not(),
+            )
+            .map(|((t, suffix), func_params)| {
+                let base = match suffix {
+                    Some(Token::Question) => Type::Nullable(Box::new(t)),
+                    Some(Token::Bang) => Type::Result {
+                        ok_type: Box::new(t),
+                        err_type: Box::new(Type::Struct("Error".to_string())),
+                    },
+                    _ => t,
+                };
+                // 如果有函数参数列表，则是函数类型
+                if let Some(params) = func_params {
+                    Type::Function {
+                        param_types: params,
+                        return_type: Box::new(base),
+                    }
+                } else {
+                    base
+                }
             })
     })
 }

@@ -1,0 +1,16 @@
+enum Color {
+    Red,
+    Green,
+    Blue
+}
+
+int main() {
+    var c = Color.Red
+
+    // This match is NOT exhaustive - missing Blue
+    return match c {
+        case Color.Red => 1,
+        case Color.Green => 2
+        // Missing Blue => should cause compile error!
+    }
+}

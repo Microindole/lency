@@ -78,7 +78,7 @@ pub enum EnumVariant {
     Tuple(String, Vec<Type>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Param {
     pub name: String,
     pub ty: Type,

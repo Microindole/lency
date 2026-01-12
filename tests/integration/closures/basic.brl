@@ -1,0 +1,10 @@
+// Test file for Sprint 11: Closures and Function Types
+
+// Test 1: Function type annotation
+// var func: int(int) = |int x| => x * 2
+
+// Test 2: Basic closure
+void main() {
+    var double = |int x| => x * 2
+    print(double(5))
+}

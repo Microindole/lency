@@ -1,0 +1,24 @@
+trait Display {
+    void show();
+}
+
+struct MyInt { int val; }
+
+impl Display for MyInt {
+    void show() { print(this.val); }
+}
+
+void print_it<T: Display>(T item) {
+    // This semantic check is the core goal:
+    // `item` is Type::GenericParam("T")
+    // We must verify T: Display, and Display has method `show`.
+    item.show(); 
+}
+
+void main() {
+    var i = MyInt { val: 42 };
+    
+    // Monomorphization test:
+    // Should generate specialized function where item.show() becomes MyInt::show(item)
+    print_it::<MyInt>(i);
+}

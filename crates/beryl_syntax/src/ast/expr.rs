@@ -81,6 +81,12 @@ pub enum ExprKind {
 
     // Err 构造器: Err(message)
     Err(Box<Expr>),
+
+    // 闭包: |int a, int b| => a + b
+    Closure {
+        params: Vec<crate::ast::Param>,
+        body: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]

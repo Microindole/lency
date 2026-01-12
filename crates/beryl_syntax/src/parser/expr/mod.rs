@@ -133,9 +133,33 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                 span,
             });
 
+        // 闭包: |int a, int b| => a + b
+        // 参数: Type Ident
+        let closure_param = type_parser()
+            .then(ident_parser())
+            .map(|(ty, name)| Param { name, ty });
+
+        let closure_expr = just(Token::Pipe)
+            .ignore_then(
+                closure_param
+                    .separated_by(just(Token::Comma))
+                    .allow_trailing(),
+            )
+            .then_ignore(just(Token::Pipe))
+            .then_ignore(just(Token::Arrow))
+            .then(expr.clone())
+            .map_with_span(|(params, body), span| Expr {
+                kind: ExprKind::Closure {
+                    params,
+                    body: Box::new(body),
+                },
+                span,
+            });
+
         // let atom = val.or(call).or(ident).or(paren);
         // Integrate match_expr. Should be high precedence.
-        let atom = match_expr
+        let atom = closure_expr
+            .or(match_expr)
             .or(print_expr)
             .or(vec_literal)
             .or(array_literal)

@@ -179,6 +179,14 @@ pub enum SemanticError {
         found: String,
         span: Span,
     },
+
+    // ============ 模式匹配错误 ============
+    /// 模式匹配不穷尽
+    #[error("pattern not exhaustive. Missing variants: {missing_variants:?}")]
+    PatternNotExhaustive {
+        missing_variants: Vec<String>,
+        span: Span,
+    },
 }
 
 impl SemanticError {
@@ -212,6 +220,7 @@ impl SemanticError {
             Self::UndefinedTrait { span, .. } => span,
             Self::MissingTraitMethod { span, .. } => span,
             Self::TraitMethodSignatureMismatch { span, .. } => span,
+            Self::PatternNotExhaustive { span, .. } => span,
         }
     }
 }

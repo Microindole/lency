@@ -48,6 +48,15 @@ pub fn mangle_type(ty: &Type) -> String {
             format!("Result__{}_{}", mangle_type(ok_type), mangle_type(err_type))
         }
 
+        // Function int(int, int) -> Fn__int__int_int
+        Type::Function {
+            param_types,
+            return_type,
+        } => {
+            let params: Vec<String> = param_types.iter().map(mangle_type).collect();
+            format!("Fn__{}_{}", mangle_type(return_type), params.join("_"))
+        }
+
         Type::Error => "Error".to_string(),
     }
 }

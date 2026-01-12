@@ -226,10 +226,15 @@ impl Collector {
                     self.collect_type(arg);
                 }
             }
-            // Result 相关表达式
             ExprKind::Try(inner) => self.collect_expr(inner),
             ExprKind::Ok(inner) => self.collect_expr(inner),
             ExprKind::Err(inner) => self.collect_expr(inner),
+            ExprKind::Closure { params, body } => {
+                for param in params {
+                    self.collect_type(&param.ty);
+                }
+                self.collect_expr(body);
+            }
         }
     }
 
@@ -246,6 +251,15 @@ impl Collector {
             Type::Vec(inner) => self.collect_type(inner),
             Type::Array { element_type, .. } => self.collect_type(element_type),
             Type::Nullable(inner) => self.collect_type(inner),
+            Type::Function {
+                param_types,
+                return_type,
+            } => {
+                for param in param_types {
+                    self.collect_type(param);
+                }
+                self.collect_type(return_type);
+            }
             _ => {}
         }
     }

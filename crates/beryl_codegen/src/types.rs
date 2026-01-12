@@ -102,6 +102,32 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                     .as_basic_type_enum())
             }
 
+            // 函数类型: int(int, int) -> function pointer
+            Type::Function {
+                param_types,
+                return_type,
+            } => {
+                let param_llvm_types: Result<Vec<_>, _> = param_types
+                    .iter()
+                    .map(|t| t.to_llvm_type(context).map(|ty| ty.into()))
+                    .collect();
+                let param_llvm_types = param_llvm_types?;
+
+                let fn_type = if matches!(**return_type, Type::Void) {
+                    context
+                        .context
+                        .void_type()
+                        .fn_type(&param_llvm_types, false)
+                } else {
+                    let ret = return_type.to_llvm_type(context)?;
+                    ret.fn_type(&param_llvm_types, false)
+                };
+
+                Ok(fn_type
+                    .ptr_type(AddressSpace::default())
+                    .as_basic_type_enum())
+            }
+
             Type::Error => Err(CodegenError::UnsupportedType("error type".to_string())),
         }
     }

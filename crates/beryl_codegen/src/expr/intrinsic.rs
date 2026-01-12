@@ -30,6 +30,7 @@ pub fn gen_print<'ctx>(
         Type::Void => "\n",
         Type::Nullable(_) => "[Nullable]\n",
         Type::Result { .. } => "[Result]\n",
+        Type::Function { .. } => "[Function]\n",
         Type::Error => "%d\n", // Fallback
     };
 

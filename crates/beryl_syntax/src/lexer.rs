@@ -100,6 +100,8 @@ pub enum Token {
     And,
     #[token("||")]
     Or,
+    #[token("|")]
+    Pipe,
 
     #[token("(")]
     LParen,
