@@ -65,18 +65,18 @@ Box<T> box<T>(T value) {
 // }
 
 // 反转 Vec
-// TODO: 需要 Vec 方法调用支持
-// void reverse<T>(Vec<T> v) {
-//     var left = 0
-//     var right = v.len() - 1
-//     while left < right {
-//         var tmp = v.get(left)
-//         v.set(left, v.get(right))
-//         v.set(right, tmp)
-//         left = left + 1
-//         right = right - 1
-//     }
-// }
+// 反转 Vec
+void reverse<T>(Vec<T> v) {
+    var left = 0
+    var right = v.len() - 1
+    while left < right {
+        var tmp = v.get(left)
+        v.set(left, v.get(right))
+        v.set(right, tmp)
+        left = left + 1
+        right = right - 1
+    }
+}
 
 // ============== 运行时 Vec FFI (供参考) ==============
 //

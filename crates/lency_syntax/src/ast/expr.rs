@@ -12,6 +12,9 @@ pub enum ExprKind {
     // 字面量: 1, "hello", true, null
     Literal(Literal),
 
+    // Unit value: ()
+    Unit,
+
     // 变量使用: x, count
     Variable(String),
 

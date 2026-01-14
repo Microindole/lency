@@ -17,6 +17,7 @@ pub fn resolve_stmt(resolver: &mut Resolver, stmt: &mut Stmt) {
 
             // 如果有显式类型声明，验证类型
             if let Some(t) = ty {
+                resolver.normalize_type(t);
                 resolver.resolve_type(t, span);
             }
 

@@ -149,6 +149,14 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                 span,
             });
 
+        // Unit literal: ()
+        let unit = just(Token::LParen)
+            .ignore_then(just(Token::RParen))
+            .map_with_span(|_, span| Expr {
+                kind: ExprKind::Unit,
+                span,
+            });
+
         // let atom = val.or(call).or(ident).or(paren);
         // Integrate match_expr. Should be high precedence.
         let atom = closure_expr
@@ -159,6 +167,7 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
             .or(ok_expr)
             .or(err_expr)
             .or(struct_literal)
+            .or(unit) // Check unit () before paren (expr)
             .or(val)
             .or(ident)
             .or(paren);
@@ -170,10 +179,18 @@ pub fn expr_parser() -> impl Parser<Token, Expr, Error = ParserError> + Clone {
                     .delimited_by(just(Token::LBracket), just(Token::RBracket))
                     .map(PostfixOp::Index)
                     .or(just(Token::Dot)
-                        .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
+                        .ignore_then(
+                            ident_parser()
+                                .or(just(Token::Len).to("len".to_string()))
+                                .map_with_span(|n, s| (n, s)),
+                        )
                         .map(|(n, s)| PostfixOp::Member(n, s)))
                     .or(just(Token::QuestionDot)
-                        .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
+                        .ignore_then(
+                            ident_parser()
+                                .or(just(Token::Len).to("len".to_string()))
+                                .map_with_span(|n, s| (n, s)),
+                        )
                         .map(|(n, s)| PostfixOp::SafeMember(n, s)))
                     .or(just(Token::Question)
                         .map_with_span(|_, s| PostfixOp::Try(s))) // Try Operator

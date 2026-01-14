@@ -59,6 +59,49 @@ impl Resolver {
         self.root_dir = path;
     }
 
+    /// Normalize types (e.g., Vec<T> -> Type::Vec(T))
+    /// This allows users to write `Vec<int>` and have it treated as the built-in vector type.
+    pub fn normalize_type(&mut self, ty: &mut Type) {
+        match ty {
+            Type::Generic(name, args) if name == "Vec" => {
+                if args.len() != 1 {
+                    // This error will be caught during validation elsewhere or we can report here?
+                    // normalize is called before validation.
+                    // Let's just normalize for now, and validation will complain if Vec is not found?
+                    // Actually, Vec is not in symbol table. So if we don't normalize, it's undefined type.
+                    // If we do normalize, it becomes Type::Vec.
+                    // If validation sees Type::Vec, checking its inner.
+                    // If args != 1, we can't form valid Type::Vec.
+                    return;
+                }
+                // Rewrite in place
+                let inner = args.remove(0);
+                *ty = Type::Vec(Box::new(inner));
+
+                // Recurse on inner
+                if let Type::Vec(inner) = ty {
+                    self.normalize_type(inner);
+                }
+            }
+            Type::Generic(_, args) => {
+                for arg in args {
+                    self.normalize_type(arg);
+                }
+            }
+            Type::Nullable(inner) => {
+                self.normalize_type(inner);
+            }
+            Type::Vec(inner) => {
+                // Already normalized Vec
+                self.normalize_type(inner);
+            }
+            Type::Array { element_type, .. } => {
+                self.normalize_type(element_type);
+            }
+            _ => {}
+        }
+    }
+
     /// 解析整个程序
     ///
     /// 采用两遍扫描：

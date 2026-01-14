@@ -23,7 +23,8 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
             all_new_decls
         }
         Decl::Var { span, name, ty, .. } => {
-            let ty = ty.clone().unwrap_or(lency_syntax::ast::Type::Void);
+            let mut ty = ty.clone().unwrap_or(lency_syntax::ast::Type::Void);
+            resolver.normalize_type(&mut ty);
             let sym = crate::symbol::VariableSymbol::new(name.clone(), ty, true, span.clone());
             if let Err(e) = resolver.scopes.define(crate::symbol::Symbol::Variable(sym)) {
                 resolver.errors.push(e);
@@ -48,9 +49,17 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
                 generic_param_symbols,
                 params
                     .iter()
-                    .map(|p| (p.name.clone(), p.ty.clone()))
+                    .map(|p| {
+                        let mut ty = p.ty.clone();
+                        resolver.normalize_type(&mut ty);
+                        (p.name.clone(), ty)
+                    })
                     .collect(),
-                return_type.clone(),
+                {
+                    let mut rt = return_type.clone();
+                    resolver.normalize_type(&mut rt);
+                    rt
+                },
                 span.clone(),
             );
 
@@ -83,9 +92,17 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
                 generic_param_symbols,
                 params
                     .iter()
-                    .map(|p| (p.name.clone(), p.ty.clone()))
+                    .map(|p| {
+                        let mut ty = p.ty.clone();
+                        resolver.normalize_type(&mut ty);
+                        (p.name.clone(), ty)
+                    })
                     .collect(),
-                return_type.clone(),
+                {
+                    let mut rt = return_type.clone();
+                    resolver.normalize_type(&mut rt);
+                    rt
+                },
                 span.clone(),
             );
 
@@ -115,7 +132,9 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
                 StructSymbol::new_generic(name.clone(), generic_param_symbols, span.clone());
 
             for field in fields {
-                struct_symbol.add_field(field.name.clone(), field.ty.clone(), span.clone());
+                let mut field_ty = field.ty.clone();
+                resolver.normalize_type(&mut field_ty);
+                struct_symbol.add_field(field.name.clone(), field_ty, span.clone());
             }
 
             if let Err(e) = resolver.scopes.define(Symbol::Struct(struct_symbol)) {

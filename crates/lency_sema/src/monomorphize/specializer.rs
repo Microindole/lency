@@ -320,6 +320,7 @@ impl Specializer {
 
         let new_kind = match &expr.kind {
             ExprKind::Literal(lit) => ExprKind::Literal(lit.clone()), // Lit 不变
+            ExprKind::Unit => ExprKind::Unit,
             ExprKind::Variable(name) => ExprKind::Variable(name.clone()),
             ExprKind::Binary(lhs, op, rhs) => ExprKind::Binary(
                 Box::new(self.specialize_expr(lhs)),

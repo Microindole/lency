@@ -99,12 +99,16 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
                 CodegenError::LLVMBuildError("missing this parameter".to_string())
             })?;
 
+            // this 参数是指向结构体的指针
             let this_type = Type::Struct(struct_name);
-            let this_llvm_type = this_type.to_llvm_type(self.ctx)?;
+            // 使用指针类型的 alloca 来存储 this 指针
+            let this_ptr_llvm_type = this_type
+                .to_llvm_type(self.ctx)?
+                .ptr_type(inkwell::AddressSpace::default());
             let this_alloca = self
                 .ctx
                 .builder
-                .build_alloca(this_llvm_type, "this")
+                .build_alloca(this_ptr_llvm_type, "this")
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
             self.ctx
@@ -167,7 +171,21 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         // 构建参数类型列表
         let mut param_types = Vec::new();
         for param in params {
-            let param_ty = param.ty.to_llvm_type(self.ctx)?;
+            // 对于方法的 this 参数，使用指针类型（结构体通过指针传递）
+            let param_ty = if param.name == "this" {
+                if let Type::Struct(_) = &param.ty {
+                    // this 参数使用指针类型
+                    param
+                        .ty
+                        .to_llvm_type(self.ctx)?
+                        .ptr_type(inkwell::AddressSpace::default())
+                        .into()
+                } else {
+                    param.ty.to_llvm_type(self.ctx)?
+                }
+            } else {
+                param.ty.to_llvm_type(self.ctx)?
+            };
             param_types.push(param_ty.into());
         }
 

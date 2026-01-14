@@ -8,6 +8,7 @@ use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 use crate::expr::CodegenValue;
 use crate::types::ToLLVMType;
+use inkwell::types::BasicType;
 
 /// 生成变量引用代码
 pub(super) fn gen_variable<'ctx>(
@@ -92,7 +93,18 @@ pub(super) fn gen_variable<'ctx>(
     };
 
     // 使用保存的类型信息进行加载
-    let llvm_type = ty.to_llvm_type(ctx)?;
+    // 对于 this 变量（方法中），它是指向结构体的指针，需要使用指针类型加载
+    let llvm_type = if name == "this" {
+        if let lency_syntax::ast::Type::Struct(_) = ty {
+            ty.to_llvm_type(ctx)?
+                .ptr_type(inkwell::AddressSpace::default())
+                .into()
+        } else {
+            ty.to_llvm_type(ctx)?
+        }
+    } else {
+        ty.to_llvm_type(ctx)?
+    };
     let val = ctx
         .builder
         .build_load(llvm_type, *ptr, name)

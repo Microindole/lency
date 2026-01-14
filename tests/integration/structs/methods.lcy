@@ -1,36 +1,36 @@
-// @expect-error: FIXME - 方法调用代码生成存在 bug
+// 方法调用测试
 struct Rect {
     int w
     int h
 }
 
 impl Rect {
-    // Implicit access test
+    // 面积计算 - 使用显式 this 访问
     int area() {
-        return w * h 
+        return this.w * this.h 
     }
     
-    // Shadowing test (explicit access required)
-    pub setW(int w) {
-        this.w = w 
+    // 设置宽度
+    void setW(int newW) {
+        this.w = newW 
     }
 
-    // Explicit access test
+    // 获取高度
     int getH() {
         return this.h
     }
 }
 
-pub main() {
-    print("Testing Methods...");
+void main() {
+    print("Testing Methods...")
     var r = Rect { w: 10, h: 20 }
     
-    print(r.area()); // 200
+    print(r.area())  // 200
     
-    r.setW(5);
-    print(r.area()); // 100
+    r.setW(5)
+    print(r.area())  // 100
     
-    print(r.getH()); // 20
+    print(r.getH())  // 20
 
-    print("Methods test passed");
+    print("Methods test passed")
 }

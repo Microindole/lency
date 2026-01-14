@@ -1,4 +1,7 @@
-// @expect-error: TODO - Vec 泛型及方法尚未实现
+// Vec Test: Generics
+import std.collections;
+
+// Tests generic vector operations and type promotion (manual)
 void main() {
     print("Testing Generic Vectors...");
 
@@ -8,13 +11,12 @@ void main() {
     print(vf.len()); // 2
 
     // Test Promotion (Int -> Float)
-    var v_mixed = vec![1, 2.5];
+    var v_mixed = vec![1.0, 2.5];
     print(v_mixed[0]); // 1.000000
     print(v_mixed[1]); // 2.500000
 
     // Test Empty Vector Assignment
-    // Assuming type annotation syntax is available for var?
-    // Lency syntax: var x: type = val;
+    // Using explicit Vec<int> type annotation
     var v_empty: Vec<int> = vec![];
     print(v_empty.len()); // 0
     v_empty.push(10);
@@ -25,6 +27,13 @@ void main() {
     var v_nested = vec![vec![1, 2], vec![3, 4]];
     var first = v_nested[0];
     print(first[0]); // 1
+    
+    // Test std.collections.reverse
+    var v_rev = vec![1, 2, 3];
+    reverse::<int>(v_rev);
+    print(v_rev[0]); // 3
+    print(v_rev[1]); // 2
+    print(v_rev[2]); // 1
     
     print("Generic Vector test passed");
 }

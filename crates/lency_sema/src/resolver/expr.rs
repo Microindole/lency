@@ -59,6 +59,7 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
         ExprKind::Literal(_) => {
             // 字面量不需要解析
         }
+        ExprKind::Unit => {}
         ExprKind::Match {
             value,
             cases,
@@ -84,6 +85,7 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
         }
         ExprKind::StructLiteral { type_, fields } => {
             // Check Struct type (handles generics)
+            resolver.normalize_type(type_);
             resolver.resolve_type(type_, &expr.span);
 
             // 解析每个字段的值表达式
@@ -101,6 +103,7 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
             resolver.scopes.enter_scope(ScopeKind::Function);
             // 注册参数
             for param in params {
+                resolver.normalize_type(&mut param.ty);
                 resolver.resolve_type(&param.ty, &expr.span);
                 let param_sym = crate::symbol::ParameterSymbol::new(
                     param.name.clone(),

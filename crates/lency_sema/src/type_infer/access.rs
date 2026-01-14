@@ -365,6 +365,10 @@ impl<'a> TypeInferer<'a> {
                 // 字符串索引: s[i] -> int (byte value)
                 Ok(Type::Int)
             }
+            Type::Vec(inner_type) => {
+                // Vector 索引: v[i] -> T
+                Ok(*inner_type.clone())
+            }
             _ => Err(SemanticError::TypeMismatch {
                 expected: "array, list or string".to_string(),
                 found: array_ty.to_string(),

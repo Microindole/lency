@@ -1,4 +1,8 @@
 //! Vec Literal Code Generation
+//!
+//! TODO: Vec 方法支持尚未完全实现，以下部分函数暂未使用
+
+#![allow(dead_code)]
 
 use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
@@ -34,25 +38,17 @@ pub fn gen_vec_literal<'ctx>(
         .ok_or_else(|| CodegenError::LLVMBuildError("vec_new returned void".to_string()))?;
 
     // 4. For each element, call lency_vec_push(vec, element)
-    for elem in elements {
+    let mut inner_type = Type::Int;
+
+    // 4. For each element, call lency_vec_push(vec, element)
+    for (i, elem) in elements.iter().enumerate() {
         let elem_val = generate_expr(ctx, locals, elem)?;
 
-        // Ensure element is i64
-        let elem_i64 = match elem_val.value {
-            BasicValueEnum::IntValue(iv) => {
-                // If it's not i64, cast it
-                if iv.get_type() == ctx.context.i64_type() {
-                    iv
-                } else {
-                    ctx.builder
-                        .build_int_cast(iv, ctx.context.i64_type(), "cast_to_i64")
-                        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?
-                }
-            }
-            _ => {
-                return Err(CodegenError::TypeMismatch);
-            }
-        };
+        if i == 0 {
+            inner_type = elem_val.ty.clone();
+        }
+
+        let elem_i64 = cast_to_i64(ctx, elem_val.value)?;
 
         ctx.builder
             .build_call(vec_push_fn, &[vec_ptr.into(), elem_i64.into()], "")
@@ -62,7 +58,7 @@ pub fn gen_vec_literal<'ctx>(
     // 5. Return the vec pointer
     Ok(CodegenValue {
         value: vec_ptr,
-        ty: Type::Vec(Box::new(Type::Int)),
+        ty: Type::Vec(Box::new(inner_type)),
     })
 }
 

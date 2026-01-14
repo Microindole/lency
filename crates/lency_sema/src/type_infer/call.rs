@@ -140,6 +140,8 @@ impl<'a> TypeInferer<'a> {
                     Type::Bool => Some("bool".to_string()),
                     Type::String => Some("string".to_string()),
                     Type::Float => Some("float".to_string()),
+                    // 泛型实例化类型：使用基础名称查找方法
+                    Type::Generic(base_name, _) => Some(base_name.clone()),
                     _ => None,
                 };
 
@@ -148,7 +150,19 @@ impl<'a> TypeInferer<'a> {
                     match symbol {
                         Some(Symbol::Struct(struct_sym)) => {
                             if let Some(method) = struct_sym.get_method(name) {
-                                Ok(method.return_type.clone())
+                                // 对于泛型实例化类型，替换返回类型中的泛型参数
+                                let return_type = if let Type::Generic(_, type_args) = &obj_ty {
+                                    let mut map = std::collections::HashMap::new();
+                                    for (param, arg_ty) in
+                                        struct_sym.generic_params.iter().zip(type_args.iter())
+                                    {
+                                        map.insert(param.name.clone(), arg_ty.clone());
+                                    }
+                                    crate::type_infer::substitute_type(&method.return_type, &map)
+                                } else {
+                                    method.return_type.clone()
+                                };
+                                Ok(return_type)
                             } else {
                                 Err(SemanticError::UndefinedMethod {
                                     class: type_name.clone(),

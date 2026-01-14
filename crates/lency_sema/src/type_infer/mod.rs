@@ -69,6 +69,8 @@ impl<'a> TypeInferer<'a> {
         match &mut expr.kind {
             ExprKind::Literal(lit) => Ok(self.infer_literal(lit)),
 
+            ExprKind::Unit => Ok(Type::Void),
+
             ExprKind::Variable(name) => self.infer_variable(name, &expr.span),
 
             ExprKind::Binary(left, op, right) => self.infer_binary(left, op, right, &expr.span),

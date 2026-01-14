@@ -95,6 +95,8 @@ pub fn check_call(
                 Type::Bool => Some("bool".to_string()),
                 Type::String => Some("string".to_string()),
                 Type::Float => Some("float".to_string()),
+                // 泛型实例化类型：使用 mangle 后的名称查找方法
+                Type::Generic(base_name, _) => Some(base_name.clone()),
                 _ => None,
             };
 
@@ -112,7 +114,21 @@ pub fn check_call(
                                 _ => obj_type.clone(),
                             };
                             func.params.insert(0, ("this".to_string(), this_type));
-                            (func, true, HashMap::new())
+
+                            // 对于泛型实例化类型，构建泛型参数替换映射
+                            let subst_map = if let Type::Generic(_, type_args) = &obj_type {
+                                let mut map = HashMap::new();
+                                for (param, arg_ty) in
+                                    struct_sym.generic_params.iter().zip(type_args.iter())
+                                {
+                                    map.insert(param.name.clone(), arg_ty.clone());
+                                }
+                                map
+                            } else {
+                                HashMap::new()
+                            };
+
+                            (func, true, subst_map)
                         } else {
                             return Err(SemanticError::UndefinedMethod {
                                 class: type_name.clone(),

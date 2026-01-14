@@ -31,7 +31,8 @@ pub fn resolve_function(resolver: &mut Resolver, decl: &mut Decl) {
             }
         }
 
-        for (i, param) in params.iter().enumerate() {
+        for (i, param) in params.iter_mut().enumerate() {
+            resolver.normalize_type(&mut param.ty);
             resolver.resolve_type(&param.ty, span);
             let param_symbol =
                 ParameterSymbol::new(param.name.clone(), param.ty.clone(), span.clone(), i);
@@ -40,6 +41,7 @@ pub fn resolve_function(resolver: &mut Resolver, decl: &mut Decl) {
             }
         }
 
+        resolver.normalize_type(return_type);
         resolver.resolve_type(return_type, span);
 
         for stmt in body {
@@ -72,6 +74,7 @@ pub fn resolve_struct(resolver: &mut Resolver, decl: &mut Decl) {
         }
 
         for field in fields {
+            resolver.normalize_type(&mut field.ty);
             resolver.resolve_type(&field.ty, span);
         }
 
@@ -345,7 +348,8 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                     resolver.errors.push(e);
                 }
 
-                for (i, param) in params.iter().enumerate() {
+                for (i, param) in params.iter_mut().enumerate() {
+                    resolver.normalize_type(&mut param.ty);
                     resolver.resolve_type(&param.ty, span);
 
                     let param_symbol = ParameterSymbol::new(
@@ -393,8 +397,10 @@ pub fn resolve_trait(resolver: &mut Resolver, decl: &mut Decl) {
         }
 
         for method in methods {
+            resolver.normalize_type(&mut method.return_type);
             resolver.resolve_type(&method.return_type, span);
-            for param in &method.params {
+            for param in &mut method.params {
+                resolver.normalize_type(&mut param.ty);
                 resolver.resolve_type(&param.ty, span);
             }
         }
@@ -433,6 +439,7 @@ pub fn resolve_enum(resolver: &mut Resolver, decl: &mut Decl) {
                 lency_syntax::ast::EnumVariant::Unit(_) => {}
                 lency_syntax::ast::EnumVariant::Tuple(_, types) => {
                     for ty in types {
+                        resolver.normalize_type(ty);
                         resolver.resolve_type(ty, span);
                     }
                 }

@@ -1,4 +1,4 @@
-// @expect-error: FIXME - 方法调用代码生成存在 bug (Field access on non-pointer value)
+
 struct Counter {
     int count;
 }

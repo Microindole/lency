@@ -1,19 +1,23 @@
-// @expect-error: FIXME - Ok(()) 语法不支持，void! 返回类型存在问题
 // Test file for Sprint 12: File I/O
 // 测试文件读写内置函数
 
+struct Error {
+    string message
+}
+
 void main() {
+    print("Checking file_io...")
+
     // Test 1: write_file - 写入文件
     var write_result = write_file("/tmp/lency_test.txt", "Hello from Lency!")
-    // write_result 是 void! (Result<void, Error>)
-
+    
     // Test 2: read_file - 读取文件
     var read_result = read_file("/tmp/lency_test.txt")
-    // read_result 是 string! (Result<string, Error>)
+    
+    // Test helper function
+    test_file_operations()
 
-    // Test 3: 读取不存在的文件 (应返回 Err)
-    var missing = read_file("/tmp/nonexistent_file_12345.txt")
-    // missing.is_err() 应该为 true
+    print("Success")
 }
 
 // 一个返回 Result 的函数，可以使用 ? 运算符

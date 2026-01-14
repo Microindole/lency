@@ -168,6 +168,7 @@ impl Collector {
     fn collect_expr(&mut self, expr: &Expr) {
         match &expr.kind {
             ExprKind::Literal(_) => {}
+            ExprKind::Unit => {}
             ExprKind::Variable(_) => {}
             ExprKind::Binary(l, _, r) => {
                 self.collect_expr(l);

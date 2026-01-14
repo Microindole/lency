@@ -1,0 +1,7 @@
+void main() {
+    var v: Vec<int> = vec![1, 2, 3];
+    print(v.len());
+
+    var v2: Vec<float> = vec![1.0, 2.0];
+    print(v2.len());
+}

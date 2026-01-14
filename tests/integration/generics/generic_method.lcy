@@ -1,4 +1,4 @@
-// @expect-error: FIXME - 泛型方法调用存在 bug ('Box<int>' is not callable)
+// Generic Method Test (Fixed)
 struct Box<T> {
     T value
 }

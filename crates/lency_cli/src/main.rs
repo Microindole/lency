@@ -83,7 +83,36 @@ fn cmd_run(input: &str) -> Result<()> {
     fs::write(temp_ir, result.ir)?;
 
     // 3. 使用 lli 运行 LLVM IR
-    let output = std::process::Command::new("lli-15").arg(temp_ir).output()?;
+    let mut cmd = std::process::Command::new("lli-15");
+
+    // 加载运行时库
+    // 尝试在 target/debug 和 target/release 中查找
+    let mut runtime_found = false;
+    if let Ok(cwd) = std::env::current_dir() {
+        // Check for .so (Linux) or .dylib (macOS)
+        let libs = ["liblency_runtime.so", "liblency_runtime.dylib"];
+        let dirs = ["target/debug", "target/release"];
+
+        for dir in dirs {
+            for lib in libs {
+                let lib_path = cwd.join(dir).join(lib);
+                if lib_path.exists() {
+                    cmd.arg(format!("-load={}", lib_path.display()));
+                    runtime_found = true;
+                    break;
+                }
+            }
+            if runtime_found {
+                break;
+            }
+        }
+    }
+
+    if !runtime_found {
+        eprintln!("Warning: lency_runtime library not found. I/O operations may fail.");
+    }
+
+    let output = cmd.arg(temp_ir).output()?;
 
     print!("{}", String::from_utf8_lossy(&output.stdout));
     eprint!("{}", String::from_utf8_lossy(&output.stderr));

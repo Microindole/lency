@@ -70,6 +70,10 @@ fn generate_expr<'ctx>(
 ) -> CodegenResult<CodegenValue<'ctx>> {
     match &expr.kind {
         ExprKind::Literal(lit) => literal::gen_literal(ctx, lit),
+        ExprKind::Unit => Ok(CodegenValue {
+            value: ctx.context.bool_type().const_int(0, false).into(),
+            ty: lency_syntax::ast::Type::Void,
+        }),
         ExprKind::Variable(name) => variable::gen_variable(ctx, locals, name),
         ExprKind::Binary(left, op, right) => binary::gen_binary(ctx, locals, left, op, right),
         ExprKind::Unary(op, operand) => unary::gen_unary(ctx, locals, op, operand),
