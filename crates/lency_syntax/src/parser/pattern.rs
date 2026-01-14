@@ -71,15 +71,13 @@ pub fn pattern_parser() -> impl Parser<Token, MatchPattern, Error = ParserError>
                         // So yes, ignoring prefix is fine for now.
                         sub_patterns: args.unwrap_or_default(),
                     }
-                } else {
-                    if let Some(args) = args {
-                        MatchPattern::Variant {
-                            name: base,
-                            sub_patterns: args,
-                        }
-                    } else {
-                        MatchPattern::Variable(base)
+                } else if let Some(args) = args {
+                    MatchPattern::Variant {
+                        name: base,
+                        sub_patterns: args,
                     }
+                } else {
+                    MatchPattern::Variable(base)
                 }
             });
 

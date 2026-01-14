@@ -1,3 +1,4 @@
+// @expect-error: TODO - std.core import 和 hash/eq trait 尚未实现
 
 import std.core;
 

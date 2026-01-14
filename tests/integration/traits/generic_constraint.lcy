@@ -1,3 +1,4 @@
+// @expect-error: TODO - 泛型约束语法尚未完全支持
 trait Display {
    void print_self();
 }

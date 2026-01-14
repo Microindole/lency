@@ -1,3 +1,4 @@
+// @expect-error: 测试缺少 trait 方法检测
 // Sprint 8: Traits - 错误测试用例
 // 验证语义分析能正确检测 Trait 相关错误
 

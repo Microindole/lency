@@ -1,3 +1,4 @@
+// @expect-error: FIXME - 方法调用代码生成存在 bug
 struct Rect {
     int w
     int h

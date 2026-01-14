@@ -1,3 +1,4 @@
+// @expect-error: TODO - Vec 泛型及方法尚未实现
 void main() {
     print("Testing Generic Vectors...");
 

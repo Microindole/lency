@@ -1,3 +1,4 @@
+// @expect-error: 测试泛型语义错误检测（参数数量不匹配、未定义类型等）
 // tests/integration/generics/semantic_check.lcy
 
 struct Box<T> {

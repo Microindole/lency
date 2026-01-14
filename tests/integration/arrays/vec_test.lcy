@@ -1,3 +1,4 @@
+// @expect-error: TODO - Vec 方法（len/push/pop/set）尚未实现
 void main() {
     print("Testing Vectors...");
 

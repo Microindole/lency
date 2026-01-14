@@ -1,3 +1,4 @@
+// @expect-error: 测试非穷尽匹配检测
 enum Color {
     Red,
     Green,

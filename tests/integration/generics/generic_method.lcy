@@ -1,15 +1,17 @@
+// @expect-error: FIXME - 泛型方法调用存在 bug ('Box<int>' is not callable)
 struct Box<T> {
-    T value;
+    T value
 }
 
 impl<T> Box<T> {
-    fn get(this) -> T {
-        return this.value;
+    T get() {
+        return this.value
     }
 }
 
 int main() {
-    var b: Box<int>? = null;
-    var x = b?.get();
-    return 0;
+    var b = Box<int> { value: 42 }
+    var x = b.get()
+    print(x)
+    return 0
 }

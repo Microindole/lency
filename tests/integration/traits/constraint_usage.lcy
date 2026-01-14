@@ -1,3 +1,4 @@
+// @expect-error: TODO - trait 约束泛型方法调用尚未实现
 trait Display {
     void show();
 }

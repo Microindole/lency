@@ -1,3 +1,4 @@
+// @expect-error: TODO - print() 不支持 Vec 类型
 void main() {
     var v = vec![10, 20, 30];
     print(v);

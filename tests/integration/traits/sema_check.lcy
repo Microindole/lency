@@ -1,3 +1,4 @@
+// @expect-error: 测试 trait 类型错误检测
 trait ValidTrait {
     int valid_method(int x);
 }

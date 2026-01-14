@@ -1,3 +1,4 @@
+// @expect-error: 测试未定义类型检测
 enum Status {
     Success,
     Failure(UndefinedType) // EXPECTED ERROR: Undefined type
