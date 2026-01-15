@@ -7,6 +7,7 @@ mod binary;
 mod call;
 mod closure;
 mod file_io;
+pub mod hashmap;
 mod intrinsic;
 mod literal;
 mod match_expr;

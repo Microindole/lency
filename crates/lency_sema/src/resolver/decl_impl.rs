@@ -256,6 +256,7 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                     }
 
                     // 注册 trait 方法到 StructSymbol
+                    let trait_generic_params = trait_sym.generic_params.clone();
                     for method in methods.iter() {
                         if let Decl::Function {
                             name: method_name,
@@ -265,13 +266,29 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                             ..
                         } = method
                         {
+                            // Normalize types for Symbol using generic params
+                            let normalized_params: Vec<_> = params
+                                .iter()
+                                .map(|p| {
+                                    let mut ty = p.ty.clone();
+                                    resolver.normalize_type_with_generics(
+                                        &mut ty,
+                                        &trait_generic_params,
+                                    );
+                                    (p.name.clone(), ty)
+                                })
+                                .collect();
+
+                            let mut normalized_return_type = return_type.clone();
+                            resolver.normalize_type_with_generics(
+                                &mut normalized_return_type,
+                                &trait_generic_params,
+                            );
+
                             let func_sym = FunctionSymbol::new(
                                 method_name.clone(),
-                                params
-                                    .iter()
-                                    .map(|p| (p.name.clone(), p.ty.clone()))
-                                    .collect(),
-                                return_type.clone(),
+                                normalized_params,
+                                normalized_return_type,
                                 method_span.clone(),
                             );
 
@@ -291,6 +308,12 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
             }
         } else {
             // 普通 impl 块 (无 trait): 也需要注册方法到 StructSymbol
+            // Coerce AST Generic Params to Symbols for normalization
+            let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
+                .iter()
+                .map(|p| GenericParamSymbol::new(p.name.clone(), p.bound.clone(), p.span.clone()))
+                .collect();
+
             for method in methods.iter() {
                 if let Decl::Function {
                     name: method_name,
@@ -300,13 +323,26 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                     ..
                 } = method
                 {
+                    // Normalize types using normalize_type_with_generics
+                    let normalized_params: Vec<_> = params
+                        .iter()
+                        .map(|p| {
+                            let mut ty = p.ty.clone();
+                            resolver.normalize_type_with_generics(&mut ty, &generic_param_symbols);
+                            (p.name.clone(), ty)
+                        })
+                        .collect();
+
+                    let mut normalized_return_type = return_type.clone();
+                    resolver.normalize_type_with_generics(
+                        &mut normalized_return_type,
+                        &generic_param_symbols,
+                    );
+
                     let func_sym = FunctionSymbol::new(
                         method_name.clone(),
-                        params
-                            .iter()
-                            .map(|p| (p.name.clone(), p.ty.clone()))
-                            .collect(),
-                        return_type.clone(),
+                        normalized_params,
+                        normalized_return_type,
                         method_span.clone(),
                     );
 
@@ -321,7 +357,11 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
 
         for method in methods {
             if let Decl::Function {
-                params, body, span, ..
+                params,
+                return_type,
+                body,
+                span,
+                ..
             } = method
             {
                 resolver.scopes.enter_scope(ScopeKind::Function);
@@ -341,7 +381,9 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                 // Currently using implicit type_name assumption
                 // NOTE: Using type_name.clone() which is now Type!
                 // We need Type for ParameterSymbol
-                let this_type = type_name.clone();
+                let mut this_type = type_name.clone();
+                resolver.normalize_type(&mut this_type);
+
                 let this_param =
                     ParameterSymbol::new("this".to_string(), this_type, span.clone(), 0);
                 if let Err(e) = resolver.scopes.define(Symbol::Parameter(this_param)) {
@@ -362,6 +404,10 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                         resolver.errors.push(e);
                     }
                 }
+
+                // CRITICAL: Normalize return type in AST!
+                resolver.normalize_type(return_type);
+                resolver.resolve_type(return_type, span);
 
                 for stmt in body {
                     resolver.resolve_stmt(stmt);

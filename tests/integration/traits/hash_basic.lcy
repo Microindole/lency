@@ -1,4 +1,4 @@
-// @expect-error: TODO - std.core import 和 hash/eq trait 尚未实现
+// Sprint 13: Hash/Eq Traits 和 Import 系统验证测试
 
 import std.core;
 

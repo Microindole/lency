@@ -5,23 +5,32 @@
 // 是编译器内置函数 (intrinsics)，不需要在这里定义。
 // 本文件提供更高级的 I/O 抽象。
 
-// ============== 文件操作辅助函数 ==============
-
-// 检查文件是否存在 (通过尝试读取)
-// TODO: 需要更好的实现
-// bool file_exists(string path) {
-//     var result = read_file(path)
-//     // result.is_ok() - 需要 Result 方法支持
-//     return false
-// }
+// ============== 控制台输出 ==============
 
 void println(string s) {
-    print(s);
-    print("\n");
+    print(s)
+    print("\n")
 }
 
+// 打印整数并换行
+void println_int(int n) {
+    print(n)
+    print("\n")
+}
+
+// 打印布尔值并换行
+void println_bool(bool b) {
+    if b {
+        print("true\n")
+    } else {
+        print("false\n")
+    }
+}
+
+// ============== 文件操作 ==============
+
 // 读取文件的所有行
-// TODO: 需要 split 支持换行符
+// FIXME: Result 返回类型需要修复
 // Vec<string>! read_lines(string path) {
 //     var content = read_file(path)?
 //     var lines = split(content, "\n")
@@ -29,29 +38,77 @@ void println(string s) {
 // }
 
 // 写入多行到文件
-// TODO: 需要 join 支持换行符
+// FIXME: void! 返回类型需要修复
 // void! write_lines(string path, Vec<string> lines) {
 //     var content = join(lines, "\n")
 //     write_file(path, content)?
 //     return Ok(0)
 // }
 
-// ============== 路径操作 ==============
-// TODO: 需要更多字符串函数支持
-
-// 获取文件扩展名
-// string get_extension(string path) {
-//     var parts = split(path, ".")
-//     // 返回最后一个部分
-//     return ""
+// 追加内容到文件
+// FIXME: 需要 Result.is_ok() 方法
+// void! append_file(string path, string content) {
+//     var existing = read_file(path)
+//     var new_content = ""
+//     write_file(path, content)?
+//     return Ok(0)
 // }
+
+// ============== 路径操作 ==============
+
+// 获取文件扩展名 (不含点)
+string get_extension(string path) {
+    var parts = split(path, ".")
+    if parts.len() <= 1 {
+        return ""
+    }
+    return parts.get(parts.len() - 1)
+}
 
 // 获取文件名 (不含路径)
-// string get_filename(string path) {
-//     var parts = split(path, "/")
-//     // 返回最后一个部分
-//     return ""
-// }
+string get_filename(string path) {
+    var parts = split(path, "/")
+    if parts.len() == 0 {
+        return path
+    }
+    return parts.get(parts.len() - 1)
+}
+
+// 获取目录路径 (不含文件名)
+string get_directory(string path) {
+    var parts = split(path, "/")
+    if parts.len() <= 1 {
+        return ""
+    }
+    // 移除最后一个部分
+    var result = ""
+    var i = 0
+    while i < parts.len() - 1 {
+        if i > 0 {
+            result = result + "/"
+        }
+        result = result + parts.get(i)
+        i = i + 1
+    }
+    return result
+}
+
+// 拼接路径
+string join_path(string base, string path) {
+    if len(base) == 0 {
+        return path
+    }
+    if len(path) == 0 {
+        return base
+    }
+    // 检查 base 是否以 / 结尾
+    var base_len = len(base)
+    var last_char = base[base_len - 1]
+    if last_char == 47 {  // '/'
+        return base + path
+    }
+    return base + "/" + path
+}
 
 // ============== 已实现的内置函数 (供参考) ==============
 //

@@ -1,0 +1,78 @@
+// Sprint 13: HashMap 基本功能测试 - 直接使用 extern 函数
+
+int main() {
+    print("HashMap Test\n")
+
+    // 1. 创建 HashMap (返回 int，内部是指针)
+    var map = hashmap_int_new()
+    print("Created HashMap\n")
+
+    // 2. 插入元素
+    hashmap_int_insert(map, 1, 100)
+    hashmap_int_insert(map, 2, 200)
+    hashmap_int_insert(map, 3, 300)
+    print("Inserted 3 elements\n")
+
+    // 3. 获取元素
+    var v1 = hashmap_int_get(map, 1)
+    var v2 = hashmap_int_get(map, 2)
+    var v3 = hashmap_int_get(map, 3)
+
+    if v1 != 100 {
+        print("FAIL: get(1) should be 100\n")
+        return 1
+    }
+    if v2 != 200 {
+        print("FAIL: get(2) should be 200\n")
+        return 1
+    }
+    if v3 != 300 {
+        print("FAIL: get(3) should be 300\n")
+        return 1
+    }
+    print("Get values passed\n")
+
+    // 4. 检查 contains
+    if !hashmap_int_contains(map, 1) {
+        print("FAIL: should contain key 1\n")
+        return 1
+    }
+    if hashmap_int_contains(map, 999) {
+        print("FAIL: should not contain key 999\n")
+        return 1
+    }
+    print("Contains passed\n")
+
+    // 5. 检查 len
+    if hashmap_int_len(map) != 3 {
+        print("FAIL: len should be 3\n")
+        return 1
+    }
+    print("Len passed\n")
+
+    // 6. 更新元素
+    hashmap_int_insert(map, 1, 999)
+    if hashmap_int_get(map, 1) != 999 {
+        print("FAIL: update failed\n")
+        return 1
+    }
+    print("Update passed\n")
+
+    // 7. 删除元素
+    if !hashmap_int_remove(map, 2) {
+        print("FAIL: remove(2) should return true\n")
+        return 1
+    }
+    if hashmap_int_contains(map, 2) {
+        print("FAIL: should not contain key 2 after remove\n")
+        return 1
+    }
+    if hashmap_int_len(map) != 2 {
+        print("FAIL: len should be 2 after remove\n")
+        return 1
+    }
+    print("Remove passed\n")
+
+    print("All HashMap tests passed!\n")
+    return 0
+}

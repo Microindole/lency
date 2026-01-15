@@ -1,10 +1,12 @@
 //! Lency Runtime Library
 //!
-//! 提供 Lency 语言的运行时支持，包括动态数组、文件 I/O 和字符串处理
+//! 提供 Lency 语言的运行时支持，包括动态数组、哈希表、文件 I/O 和字符串处理
 
 pub mod file;
+pub mod hashmap;
 pub mod string;
 use std::alloc::{alloc, dealloc, realloc, Layout};
+use std::ffi::{CStr, CString};
 
 /// Lency 动态数组
 #[repr(C)]
@@ -201,6 +203,117 @@ pub unsafe extern "C" fn lency_vec_free(vec: *mut LencyVec) {
         unsafe {
             let _ = Box::from_raw(vec);
         }
+    }
+}
+
+// ============== Type Conversion FFI ==============
+
+/// Convert int to string
+/// Returns a newly allocated C string that must be freed
+#[no_mangle]
+pub extern "C" fn lency_int_to_string(n: i64) -> *mut i8 {
+    let s = n.to_string();
+    match CString::new(s) {
+        Ok(cs) => cs.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Convert float to string
+#[no_mangle]
+pub extern "C" fn lency_float_to_string(f: f64) -> *mut i8 {
+    let s = format!("{}", f);
+    match CString::new(s) {
+        Ok(cs) => cs.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Parse int from string, returns 0 on error
+/// Sets is_ok to 1 on success, 0 on failure
+///
+/// # Safety
+/// `s` must be a valid null-terminated C string
+#[no_mangle]
+pub unsafe extern "C" fn lency_parse_int(s: *const i8, is_ok: *mut i32) -> i64 {
+    if s.is_null() {
+        if !is_ok.is_null() {
+            *is_ok = 0;
+        }
+        return 0;
+    }
+
+    let c_str = CStr::from_ptr(s);
+    match c_str.to_str() {
+        Ok(str_slice) => match str_slice.trim().parse::<i64>() {
+            Ok(n) => {
+                if !is_ok.is_null() {
+                    *is_ok = 1;
+                }
+                n
+            }
+            Err(_) => {
+                if !is_ok.is_null() {
+                    *is_ok = 0;
+                }
+                0
+            }
+        },
+        Err(_) => {
+            if !is_ok.is_null() {
+                *is_ok = 0;
+            }
+            0
+        }
+    }
+}
+
+/// Parse float from string, returns 0.0 on error
+///
+/// # Safety
+/// `s` must be a valid null-terminated C string
+#[no_mangle]
+pub unsafe extern "C" fn lency_parse_float(s: *const i8, is_ok: *mut i32) -> f64 {
+    if s.is_null() {
+        if !is_ok.is_null() {
+            *is_ok = 0;
+        }
+        return 0.0;
+    }
+
+    let c_str = CStr::from_ptr(s);
+    match c_str.to_str() {
+        Ok(str_slice) => match str_slice.trim().parse::<f64>() {
+            Ok(f) => {
+                if !is_ok.is_null() {
+                    *is_ok = 1;
+                }
+                f
+            }
+            Err(_) => {
+                if !is_ok.is_null() {
+                    *is_ok = 0;
+                }
+                0.0
+            }
+        },
+        Err(_) => {
+            if !is_ok.is_null() {
+                *is_ok = 0;
+            }
+            0.0
+        }
+    }
+}
+
+/// Free a string allocated by lency_int_to_string or lency_float_to_string
+///
+/// # Safety
+/// `s` must be a valid pointer returned by one of the above functions
+#[no_mangle]
+pub unsafe extern "C" fn lency_free_string(s: *mut i8) {
+    if !s.is_null() {
+        let _ = CString::from_raw(s);
     }
 }
 

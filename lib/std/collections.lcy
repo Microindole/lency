@@ -2,14 +2,7 @@
 // 提供集合类型和泛型操作
 //
 // Vec<T> 是编译时内置类型，基本操作由运行时提供。
-// 本文件提供更高级的集合操作。
-
-// ============== Option 类型 (未来规划) ==============
-// TODO: 需要 enum 的泛型支持
-// enum Option<T> {
-//     Some(T),
-//     None
-// }
+// 本文件提供更高级的集合操作和 HashMap。
 
 // ============== Pair 类型 ==============
 
@@ -52,19 +45,30 @@ Box<T> box<T>(T value) {
 // 注意: 这些函数假设 Vec 已有 len/get/set 方法支持
 
 // 查找元素的索引 (返回 -1 表示未找到)
-// TODO: 需要泛型相等比较支持
-// int find_index<T>(Vec<T> v, T target) {
-//     var i = 0
-//     while i < v.len() {
-//         if v.get(i) == target {
-//             return i
-//         }
-//         i = i + 1
-//     }
-//     return -1
-// }
+// 使用 Eq trait 进行比较
+int find_index_int(Vec<int> v, int target) {
+    var i = 0
+    while i < v.len() {
+        if v.get(i) == target {
+            return i
+        }
+        i = i + 1
+    }
+    return -1
+}
 
-// 反转 Vec
+// 查找字符串元素的索引
+int find_index_string(Vec<string> v, string target) {
+    var i = 0
+    while i < v.len() {
+        if v.get(i) == target {
+            return i
+        }
+        i = i + 1
+    }
+    return -1
+}
+
 // 反转 Vec
 void reverse<T>(Vec<T> v) {
     var left = 0
@@ -78,6 +82,11 @@ void reverse<T>(Vec<T> v) {
     }
 }
 
+// 获取 Vec 的最后一个元素
+T last<T>(Vec<T> v) {
+    return v.get(v.len() - 1)
+}
+
 // ============== 运行时 Vec FFI (供参考) ==============
 //
 // lency_vec_new(capacity)          -> *mut LencyVec
@@ -88,16 +97,54 @@ void reverse<T>(Vec<T> v) {
 // lency_vec_set(vec, index, value) -> void
 // lency_vec_free(vec)              -> void
 
-// ============== HashMap (未来规划) ==============
-// TODO: Sprint 13+ 添加 HashMap 支持
-//
-// struct HashMap<K, V> {
-//     // 使用开放寻址或链表法实现
+// ============== HashMap ==============
+// HashMap 使用运行时 FFI 实现，支持 int 和 string 作为键
+// 
+// 注意：extern 函数直接在代码生成器中处理
+// HashMap 方法通过 hashmap_int_* 函数名来识别
+
+// FIXME: HashMapIntInt 包装暂时不可用
+// 原因：返回 struct 的函数在 codegen 中有问题
+// 请直接使用 hashmap_int_* 函数：
+//   var map = hashmap_int_new()
+//   hashmap_int_insert(map, key, value)
+//   var v = hashmap_int_get(map, key)
+//   var exists = hashmap_int_contains(map, key)
+//   var removed = hashmap_int_remove(map, key)
+//   var len = hashmap_int_len(map)
+
+// struct HashMapIntInt {
+//     int ptr  // 运行时指针
 // }
+
+// HashMapIntInt hashmap_new_int_int() {
+//     return HashMapIntInt { ptr: hashmap_int_new() }
+// }
+
+// impl HashMapIntInt {
+//     void insert(int key, int value) {
+//         hashmap_int_insert(this.ptr, key, value)
+//     }
+//     int get(int key) {
+//         return hashmap_int_get(this.ptr, key)
+//     }
+//     bool contains(int key) {
+//         return hashmap_int_contains(this.ptr, key)
+//     }
+//     bool remove(int key) {
+//         return hashmap_int_remove(this.ptr, key)
+//     }
+//     int size() {
+//         return hashmap_int_len(this.ptr)
+//     }
+// }
+
+// ============== 运行时 HashMap FFI (供参考) ==============
 //
-// HashMap<K, V> hashmap_new<K, V>()
-// void hashmap_insert<K, V>(HashMap<K, V> map, K key, V value)
-// V? hashmap_get<K, V>(HashMap<K, V> map, K key)
-// bool hashmap_contains<K, V>(HashMap<K, V> map, K key)
-// void hashmap_remove<K, V>(HashMap<K, V> map, K key)
-// int hashmap_len<K, V>(HashMap<K, V> map)
+// lency_hashmap_new(capacity)              -> *mut LencyHashMap
+// lency_hashmap_insert(map, key, value)    -> void
+// lency_hashmap_get(map, key)              -> i64
+// lency_hashmap_contains(map, key)         -> bool
+// lency_hashmap_remove(map, key)           -> bool
+// lency_hashmap_len(map)                   -> i64
+// lency_hashmap_free(map)                  -> void

@@ -1,4 +1,4 @@
-// @expect-error: TODO - 泛型约束语法尚未完全支持
+// 泛型约束语法语法测试
 trait Display {
    void print_self();
 }
@@ -6,7 +6,7 @@ trait Display {
 // 泛型约束语法测试
 // T 必须实现 Display trait
 void print_it<T: Display>(T item) {
-    // item.print_self(); 
+    item.print_self(); 
 }
 
 struct Wrapper<T: Display> {
@@ -16,7 +16,7 @@ struct Wrapper<T: Display> {
 // impl 块的约束
 impl<T: Display> Wrapper<T> {
     void display() {
-        // this.value.print_self();
+        this.value.print_self();
     }
 }
 
@@ -32,7 +32,7 @@ impl Display for MyInt {
 
 void main() {
     var i = MyInt { val: 42 };
-    print_it<MyInt>(i);
+    print_it::<MyInt>(i);
     
     var w = Wrapper<MyInt> { value: i };
     w.display();

@@ -44,22 +44,24 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
                 .map(|p| GenericParamSymbol::new(p.name.clone(), p.bound.clone(), p.span.clone()))
                 .collect();
 
+            let normalized_params: Vec<_> = params
+                .iter()
+                .map(|p| {
+                    let mut ty = p.ty.clone();
+                    resolver.normalize_type_with_generics(&mut ty, &generic_param_symbols);
+                    (p.name.clone(), ty)
+                })
+                .collect();
+
+            let mut normalized_return_type = return_type.clone();
+            resolver
+                .normalize_type_with_generics(&mut normalized_return_type, &generic_param_symbols);
+
             let func_symbol = FunctionSymbol::new_generic(
                 name.clone(),
-                generic_param_symbols,
-                params
-                    .iter()
-                    .map(|p| {
-                        let mut ty = p.ty.clone();
-                        resolver.normalize_type(&mut ty);
-                        (p.name.clone(), ty)
-                    })
-                    .collect(),
-                {
-                    let mut rt = return_type.clone();
-                    resolver.normalize_type(&mut rt);
-                    rt
-                },
+                generic_param_symbols.clone(),
+                normalized_params,
+                normalized_return_type,
                 span.clone(),
             );
 
@@ -87,22 +89,24 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
             }
             let generic_param_symbols = gps;
 
+            let normalized_params: Vec<_> = params
+                .iter()
+                .map(|p| {
+                    let mut ty = p.ty.clone();
+                    resolver.normalize_type_with_generics(&mut ty, &generic_param_symbols);
+                    (p.name.clone(), ty)
+                })
+                .collect();
+
+            let mut normalized_return_type = return_type.clone();
+            resolver
+                .normalize_type_with_generics(&mut normalized_return_type, &generic_param_symbols);
+
             let func_symbol = FunctionSymbol::new_generic(
                 name.clone(),
-                generic_param_symbols,
-                params
-                    .iter()
-                    .map(|p| {
-                        let mut ty = p.ty.clone();
-                        resolver.normalize_type(&mut ty);
-                        (p.name.clone(), ty)
-                    })
-                    .collect(),
-                {
-                    let mut rt = return_type.clone();
-                    resolver.normalize_type(&mut rt);
-                    rt
-                },
+                generic_param_symbols.clone(),
+                normalized_params,
+                normalized_return_type,
                 span.clone(),
             );
 
@@ -128,12 +132,15 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
             }
             let generic_param_symbols = gps;
 
-            let mut struct_symbol =
-                StructSymbol::new_generic(name.clone(), generic_param_symbols, span.clone());
+            let mut struct_symbol = StructSymbol::new_generic(
+                name.clone(),
+                generic_param_symbols.clone(),
+                span.clone(),
+            );
 
             for field in fields {
                 let mut field_ty = field.ty.clone();
-                resolver.normalize_type(&mut field_ty);
+                resolver.normalize_type_with_generics(&mut field_ty, &generic_param_symbols);
                 struct_symbol.add_field(field.name.clone(), field_ty, span.clone());
             }
 
@@ -234,6 +241,7 @@ pub fn collect_impl_methods(resolver: &mut Resolver, decl: &Decl) {
     if let Decl::Impl {
         type_name,
         methods,
+        generic_params,
         span,
         ..
     } = decl
@@ -259,30 +267,55 @@ pub fn collect_impl_methods(resolver: &mut Resolver, decl: &Decl) {
             return;
         }
 
-        // 获取 StructSymbol 的可变引用
+        // Collect generic param symbols from Impl block
+        let generic_param_symbols: Vec<GenericParamSymbol> = generic_params
+            .iter()
+            .map(|p| GenericParamSymbol::new(p.name.clone(), p.bound.clone(), p.span.clone()))
+            .collect();
+
+        // 1. Pre-process methods (Normalize types using resolver)
+        // This requires mutable access to resolver, but NOT to struct_sym (scopes)
+        let mut methods_to_add = Vec::new();
+        for method in methods {
+            if let Decl::Function {
+                name,
+                params,
+                return_type,
+                span,
+                ..
+            } = method
+            {
+                let normalized_params: Vec<_> = params
+                    .iter()
+                    .map(|p| {
+                        let mut ty = p.ty.clone();
+                        resolver.normalize_type_with_generics(&mut ty, &generic_param_symbols);
+                        (p.name.clone(), ty)
+                    })
+                    .collect();
+
+                let mut normalized_return_type = return_type.clone();
+                resolver.normalize_type_with_generics(
+                    &mut normalized_return_type,
+                    &generic_param_symbols,
+                );
+
+                let func_symbol = FunctionSymbol::new(
+                    name.clone(),
+                    normalized_params,
+                    normalized_return_type,
+                    span.clone(),
+                );
+                methods_to_add.push((name.clone(), func_symbol));
+            }
+        }
+
+        // 2. Add to Struct Symbol (Requires mutable access to scopes)
+        // Now we can borrow resolver.scopes mutably without conflict
         let struct_id = struct_id.unwrap();
         if let Some(Symbol::Struct(struct_sym)) = resolver.scopes.get_symbol_mut(struct_id) {
-            // 为每个方法创建 FunctionSymbol 并注册
-            for method in methods {
-                if let Decl::Function {
-                    name,
-                    params,
-                    return_type,
-                    span,
-                    ..
-                } = method
-                {
-                    let func_symbol = FunctionSymbol::new(
-                        name.clone(),
-                        params
-                            .iter()
-                            .map(|p| (p.name.clone(), p.ty.clone()))
-                            .collect(),
-                        return_type.clone(),
-                        span.clone(),
-                    );
-                    struct_sym.add_method(name.clone(), func_symbol);
-                }
+            for (name, func_symbol) in methods_to_add {
+                struct_sym.add_method(name, func_symbol);
             }
         } else {
             resolver.errors.push(SemanticError::NotAStruct {

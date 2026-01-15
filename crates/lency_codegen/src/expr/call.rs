@@ -26,6 +26,11 @@ pub(super) fn gen_call<'ctx>(
         _ => return Err(CodegenError::UnsupportedExpression),
     };
 
+    // 检查是否为 hashmap extern 函数
+    if super::hashmap::is_hashmap_extern(func_name) {
+        return super::hashmap::gen_hashmap_extern_call(ctx, locals, func_name, args);
+    }
+
     // 生成参数
     let mut arg_values = Vec::new();
     for arg in args {

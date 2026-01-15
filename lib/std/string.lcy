@@ -100,15 +100,98 @@ string pad_left(string s, int target_len, string pad_char) {
 }
 
 // 替换第一个匹配项
-// TODO: 需要更复杂的实现
-// string replace_first(string s, string old, string new_str) {
-//     // 找到 old 的位置，然后拼接
-//     return s
-// }
+string replace_first(string s, string old, string new_str) {
+    var s_len = len(s)
+    var old_len = len(old)
+    
+    if old_len == 0 {
+        return s
+    }
+    if s_len < old_len {
+        return s
+    }
+    
+    // 找到 old 的第一个位置
+    var i = 0
+    while i <= s_len - old_len {
+        var candidate = substr(s, i, old_len)
+        if candidate == old {
+            // 找到了，拼接结果
+            var before = substr(s, 0, i)
+            var after = substr(s, i + old_len, s_len - i - old_len)
+            return before + new_str + after
+        }
+        i = i + 1
+    }
+    return s
+}
 
 // 替换所有匹配项
-// TODO: 需要更复杂的实现
-// string replace_all(string s, string old, string new_str) {
-//     var parts = split(s, old)
-//     return join(parts, new_str)
-// }
+string replace_all(string s, string old, string new_str) {
+    if len(old) == 0 {
+        return s
+    }
+    var parts = split(s, old)
+    return join(parts, new_str)
+}
+
+// 查找子串的位置 (返回 -1 表示未找到)
+int index_of(string s, string sub) {
+    var s_len = len(s)
+    var sub_len = len(sub)
+    
+    if sub_len == 0 {
+        return 0
+    }
+    if s_len < sub_len {
+        return -1
+    }
+    
+    var i = 0
+    while i <= s_len - sub_len {
+        var candidate = substr(s, i, sub_len)
+        if candidate == sub {
+            return i
+        }
+        i = i + 1
+    }
+    return -1
+}
+
+// 将字符串转为大写 (仅 ASCII)
+string to_upper(string s) {
+    var result = ""
+    var i = 0
+    while i < len(s) {
+        var c = s[i]
+        // a-z: 97-122
+        if c >= 97 {
+            if c <= 122 {
+                c = c - 32
+            }
+        }
+        // 需要 char_to_string intrinsic
+        // 暂时无法实现，返回原字符串
+        i = i + 1
+    }
+    return s  // FIXME: 需要 char_to_string intrinsic 支持
+}
+
+// 将字符串转为小写 (仅 ASCII)
+string to_lower(string s) {
+    var result = ""
+    var i = 0
+    while i < len(s) {
+        var c = s[i]
+        // A-Z: 65-90
+        if c >= 65 {
+            if c <= 90 {
+                c = c + 32
+            }
+        }
+        // 需要 char_to_string intrinsic
+        i = i + 1
+    }
+    return s  // FIXME: 需要 char_to_string intrinsic 支持
+}
+

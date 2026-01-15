@@ -103,7 +103,7 @@ impl Eq<string> for string {
 // min: 返回两个值中较小的
 // 注意: 目前 Lency 的 trait 约束需要在运行时验证 < 操作符
 // 简化版本：使用 int 特化
-T min<T>(T a, T b) {
+T min<T: Comparable>(T a, T b) {
     if a < b {
         return a
     }
@@ -111,7 +111,7 @@ T min<T>(T a, T b) {
 }
 
 // max: 返回两个值中较大的
-T max<T>(T a, T b) {
+T max<T: Comparable>(T a, T b) {
     if a > b {
         return a
     }
@@ -119,7 +119,7 @@ T max<T>(T a, T b) {
 }
 
 // clamp: 限制值在 [min_val, max_val] 范围内
-T clamp<T>(T value, T min_val, T max_val) {
+T clamp<T: Comparable>(T value, T min_val, T max_val) {
     if value < min_val {
         return min_val
     }
@@ -208,8 +208,68 @@ int diff(int a, int b) {
     return b - a
 }
 
-// ============== 类型转换 (TODO: 需要运行时支持) ==============
-// extern string int_to_string(int n)
-// extern string float_to_string(float f)
-// extern int! parse_int(string s)
-// extern float! parse_float(string s)
+// ============== 类型转换 ==============
+
+// 注意：类型转换 FFI 函数需要在代码生成器中特殊处理
+// 目前提供 Lency 层面的包装函数
+
+// int 转 string (简单实现)
+// FIXME: 需要 lency_int_to_string FFI
+
+// int 转 string
+string int_to_string(int n) {
+    // FIXME: 实际实现需要 FFI 支持
+    return "<int>"
+}
+
+// float 转 string
+string float_to_string(float f) {
+    // FIXME: 实际实现需要 FFI 支持
+    return "<float>"
+}
+
+// bool 转 string
+string bool_to_string(bool b) {
+    if b {
+        return "true"
+    }
+    return "false"
+}
+
+// 字符串解析为 int (简单版本，失败返回 0)
+int parse_int_or_default(string s, int default_val) {
+    // FIXME: 需要完整的 Result 支持
+    // 目前简单返回默认值，因为 FFI 返回的 is_ok 指针难以在纯 Lency 中处理
+    return default_val
+}
+
+// ============== Assert 工具 ==============
+
+void assert_true(bool condition) {
+    if !condition {
+        print("Assertion failed: expected true\n")
+    }
+}
+
+void assert_false(bool condition) {
+    if condition {
+        print("Assertion failed: expected false\n")
+    }
+}
+
+void assert_eq_int(int a, int b) {
+    if a != b {
+        print("Assertion failed: ")
+        print(a)
+        print(" != ")
+        print(b)
+        print("\n")
+    }
+}
+
+void assert_eq_string(string a, string b) {
+    if a != b {
+        print("Assertion failed: strings not equal\n")
+    }
+}
+

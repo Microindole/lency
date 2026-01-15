@@ -45,6 +45,55 @@ impl Resolver {
         define_builtin("string");
         define_builtin("float");
 
+        // Register hashmap extern functions (handled specially by codegen)
+        let define_extern_fn =
+            |scopes: &mut ScopeStack, name: &str, params: Vec<(&str, Type)>, return_type: Type| {
+                let param_vec: Vec<(String, Type)> = params
+                    .into_iter()
+                    .map(|(n, t)| (n.to_string(), t))
+                    .collect();
+                let sym = Symbol::Function(crate::symbol::FunctionSymbol::new(
+                    name.to_string(),
+                    param_vec,
+                    return_type,
+                    dummy_span.clone(),
+                ));
+                scopes.define(sym).ok();
+            };
+
+        // HashMap FFI functions
+        define_extern_fn(&mut scopes, "hashmap_int_new", vec![], Type::Int);
+        define_extern_fn(
+            &mut scopes,
+            "hashmap_int_insert",
+            vec![("map", Type::Int), ("key", Type::Int), ("value", Type::Int)],
+            Type::Void,
+        );
+        define_extern_fn(
+            &mut scopes,
+            "hashmap_int_get",
+            vec![("map", Type::Int), ("key", Type::Int)],
+            Type::Int,
+        );
+        define_extern_fn(
+            &mut scopes,
+            "hashmap_int_contains",
+            vec![("map", Type::Int), ("key", Type::Int)],
+            Type::Bool,
+        );
+        define_extern_fn(
+            &mut scopes,
+            "hashmap_int_remove",
+            vec![("map", Type::Int), ("key", Type::Int)],
+            Type::Bool,
+        );
+        define_extern_fn(
+            &mut scopes,
+            "hashmap_int_len",
+            vec![("map", Type::Int)],
+            Type::Int,
+        );
+
         Self {
             scopes,
             errors: Vec::new(),
@@ -97,6 +146,59 @@ impl Resolver {
             }
             Type::Array { element_type, .. } => {
                 self.normalize_type(element_type);
+            }
+            Type::Struct(name) => {
+                // Check if it's a Generic Param
+                if let Some(Symbol::GenericParam(_)) = self.scopes.lookup(name) {
+                    *ty = Type::GenericParam(name.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Normalize types with explicit list of known generic params
+    /// This is used in Pass 1 (collect_decl) where scope is not yet set up.
+    pub fn normalize_type_with_generics(
+        &mut self,
+        ty: &mut Type,
+        generics: &[crate::symbol::GenericParamSymbol],
+    ) {
+        match ty {
+            Type::Generic(name, args) if name == "Vec" => {
+                if args.len() != 1 {
+                    return;
+                }
+                let inner = args.remove(0);
+                *ty = Type::Vec(Box::new(inner));
+                if let Type::Vec(inner) = ty {
+                    self.normalize_type_with_generics(inner, generics);
+                }
+            }
+            Type::Generic(_, args) => {
+                for arg in args {
+                    self.normalize_type_with_generics(arg, generics);
+                }
+            }
+            Type::Nullable(inner) => {
+                self.normalize_type_with_generics(inner, generics);
+            }
+            Type::Vec(inner) => {
+                self.normalize_type_with_generics(inner, generics);
+            }
+            Type::Array { element_type, .. } => {
+                self.normalize_type_with_generics(element_type, generics);
+            }
+            Type::Struct(name) => {
+                // Check explicit generics list
+                if generics.iter().any(|gp| &gp.name == name) {
+                    *ty = Type::GenericParam(name.clone());
+                } else {
+                    // Fallback to scope lookup (e.g. for global generics or traits)
+                    if let Some(Symbol::GenericParam(_)) = self.scopes.lookup(name) {
+                        *ty = Type::GenericParam(name.clone());
+                    }
+                }
             }
             _ => {}
         }
@@ -407,6 +509,16 @@ impl Resolver {
                             });
                         }
                     }
+                    Some(Symbol::Trait(t)) => {
+                        if t.generic_params.len() != args.len() {
+                            self.errors.push(SemanticError::GenericArityMismatch {
+                                name: name.clone(),
+                                expected: t.generic_params.len(),
+                                found: args.len(),
+                                span: span.clone(),
+                            });
+                        }
+                    }
                     Some(_) => {
                         self.errors.push(SemanticError::NotAGenericType {
                             name: name.clone(),
@@ -441,6 +553,16 @@ impl Resolver {
                     }
                     Some(Symbol::GenericParam(_)) => {
                         // 引用泛型参数 (如 T)，合法
+                    }
+                    Some(Symbol::Trait(t)) => {
+                        if !t.generic_params.is_empty() {
+                            self.errors.push(SemanticError::GenericArityMismatch {
+                                name: name.clone(),
+                                expected: t.generic_params.len(),
+                                found: 0,
+                                span: span.clone(),
+                            });
+                        }
                     }
                     Some(Symbol::Enum(e)) => {
                         // 引用枚举类型
