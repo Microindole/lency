@@ -210,23 +210,12 @@ int diff(int a, int b) {
 
 // ============== 类型转换 ==============
 
-// 注意：类型转换 FFI 函数需要在代码生成器中特殊处理
-// 目前提供 Lency 层面的包装函数
-
-// int 转 string (简单实现)
-// FIXME: 需要 lency_int_to_string FFI
-
-// int 转 string
-string int_to_string(int n) {
-    // FIXME: 实际实现需要 FFI 支持
-    return "<int>"
-}
-
-// float 转 string
-string float_to_string(float f) {
-    // FIXME: 实际实现需要 FFI 支持
-    return "<float>"
-}
+// 注意：类型转换函数由代码生成器直接识别并调用 FFI
+// 这些函数在 resolver 中注册为 extern 函数，可以直接调用：
+//   int_to_string(n)
+//   float_to_string(f)
+//   parse_int(s)
+//   parse_float(s)
 
 // bool 转 string
 string bool_to_string(bool b) {

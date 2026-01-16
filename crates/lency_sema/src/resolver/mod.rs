@@ -3,6 +3,7 @@
 //! 名称解析 Pass，收集所有定义并解析标识符引用。
 //! 这是语义分析的第一步，为后续类型检查奠定基础。
 
+mod builtins;
 use crate::error::SemanticError;
 use crate::scope::ScopeStack;
 use crate::symbol::Symbol;
@@ -45,54 +46,8 @@ impl Resolver {
         define_builtin("string");
         define_builtin("float");
 
-        // Register hashmap extern functions (handled specially by codegen)
-        let define_extern_fn =
-            |scopes: &mut ScopeStack, name: &str, params: Vec<(&str, Type)>, return_type: Type| {
-                let param_vec: Vec<(String, Type)> = params
-                    .into_iter()
-                    .map(|(n, t)| (n.to_string(), t))
-                    .collect();
-                let sym = Symbol::Function(crate::symbol::FunctionSymbol::new(
-                    name.to_string(),
-                    param_vec,
-                    return_type,
-                    dummy_span.clone(),
-                ));
-                scopes.define(sym).ok();
-            };
-
-        // HashMap FFI functions
-        define_extern_fn(&mut scopes, "hashmap_int_new", vec![], Type::Int);
-        define_extern_fn(
-            &mut scopes,
-            "hashmap_int_insert",
-            vec![("map", Type::Int), ("key", Type::Int), ("value", Type::Int)],
-            Type::Void,
-        );
-        define_extern_fn(
-            &mut scopes,
-            "hashmap_int_get",
-            vec![("map", Type::Int), ("key", Type::Int)],
-            Type::Int,
-        );
-        define_extern_fn(
-            &mut scopes,
-            "hashmap_int_contains",
-            vec![("map", Type::Int), ("key", Type::Int)],
-            Type::Bool,
-        );
-        define_extern_fn(
-            &mut scopes,
-            "hashmap_int_remove",
-            vec![("map", Type::Int), ("key", Type::Int)],
-            Type::Bool,
-        );
-        define_extern_fn(
-            &mut scopes,
-            "hashmap_int_len",
-            vec![("map", Type::Int)],
-            Type::Int,
-        );
+        // Register built-in extern functions
+        builtins::register_builtins(&mut scopes);
 
         Self {
             scopes,

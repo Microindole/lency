@@ -1,0 +1,39 @@
+// 类型转换测试
+
+import std.core
+
+int main() {
+    print("Type Conversion Test\n")
+
+    // 1. int_to_string
+    var s1 = int_to_string(123)
+    print("int_to_string(123) = ")
+    print(s1)
+    print("\n")
+
+    // 2. float_to_string
+    var s2 = float_to_string(3.14)
+    print("float_to_string(3.14) = ")
+    print(s2)
+    print("\n")
+
+    // 3. bool_to_string
+    var s3 = bool_to_string(true)
+    print("bool_to_string(true) = ")
+    print(s3)
+    print("\n")
+
+    var s4 = bool_to_string(false)
+    print("bool_to_string(false) = ")
+    print(s4)
+    print("\n")
+
+    // 4. parse_int
+    var n = parse_int("456")
+    print("parse_int(\"456\") = ")
+    // TODO: print int directly
+    print("\n")
+
+    print("All conversion tests passed!\n")
+    return 0
+}

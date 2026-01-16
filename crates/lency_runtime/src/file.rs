@@ -162,6 +162,44 @@ pub unsafe extern "C" fn lency_file_is_valid(handle: *const LencyFile) -> i64 {
     }
 }
 
+/// Check if a file or directory exists
+///
+/// # Safety
+/// `path` must be a valid null-terminated C string
+#[no_mangle]
+pub unsafe extern "C" fn lency_file_exists(path: *const c_char) -> i64 {
+    if path.is_null() {
+        return 0;
+    }
+
+    let c_str = unsafe { CStr::from_ptr(path) };
+    if let Ok(path_str) = c_str.to_str() {
+        if std::path::Path::new(path_str).exists() {
+            return 1;
+        }
+    }
+    0
+}
+
+/// Check if a path is a directory
+///
+/// # Safety
+/// `path` must be a valid null-terminated C string
+#[no_mangle]
+pub unsafe extern "C" fn lency_file_is_dir(path: *const c_char) -> i64 {
+    if path.is_null() {
+        return 0;
+    }
+
+    let c_str = unsafe { CStr::from_ptr(path) };
+    if let Ok(path_str) = c_str.to_str() {
+        if std::path::Path::new(path_str).is_dir() {
+            return 1;
+        }
+    }
+    0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

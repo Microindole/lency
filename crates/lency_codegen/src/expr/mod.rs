@@ -6,6 +6,7 @@ mod array;
 mod binary;
 mod call;
 mod closure;
+pub mod conversion;
 mod file_io;
 pub mod hashmap;
 mod intrinsic;

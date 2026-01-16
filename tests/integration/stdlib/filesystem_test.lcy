@@ -1,0 +1,50 @@
+// 文件系统测试
+
+import std.core
+
+int main() {
+    print("Filesystem Test\n")
+
+    // 1. 测试 file_exists
+    var exists1 = file_exists("/tmp")
+    if !exists1 {
+        print("FAIL: /tmp should exist\n")
+        return 1
+    }
+    print("file_exists(/tmp) passed\n")
+
+    var exists2 = file_exists("/this/path/does/not/exist/hopefully")
+    if exists2 {
+        print("FAIL: non-existent path\n")
+        return 1
+    }
+    print("file_exists(non-existent) passed\n")
+
+    // 2. 测试 is_dir
+    var is_tmp_dir = is_dir("/tmp")
+    if !is_tmp_dir {
+        print("FAIL: /tmp should be a directory\n")
+        return 1
+    }
+    print("is_dir(/tmp) passed\n")
+
+    // 3. 测试文件 vs 目录
+    var test_file = "/tmp/lency_test_file.txt"
+    write_file(test_file, "test")
+    
+    var file_exist = file_exists(test_file)
+    if !file_exist {
+        print("FAIL: test file should exist\n")
+        return 1
+    }
+    
+    var is_file_dir = is_dir(test_file)
+    if is_file_dir {
+        print("FAIL: file should not be a directory\n")
+        return 1
+    }
+    print("is_dir(file) correctly returned false\n")
+
+    print("All filesystem tests passed!\n")
+    return 0
+}

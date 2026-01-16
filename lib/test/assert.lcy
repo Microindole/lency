@@ -1,0 +1,104 @@
+// Lency 测试框架 - 断言工具
+// 提供测试中使用的断言函数
+
+// ============== 基础断言 ==============
+
+// 断言条件为真
+void assert(bool condition, string message) {
+    if !condition {
+        print("Assertion failed: ")
+        print(message)
+        print("\n")
+        // FIXME: 无法终止程序，需要 panic 支持
+    }
+}
+
+// 断言两个整数相等
+void assert_eq_int(int actual, int expected, string message) {
+    if actual != expected {
+        print("Assertion failed: ")
+        print(message)
+        print(" (expected: ")
+        print(int_to_string(expected))
+        print(", got: ")
+        print(int_to_string(actual))
+        print(")\n")
+    }
+}
+
+// 断言两个字符串相等
+void assert_eq_string(string actual, string expected, string message) {
+    if actual != expected {
+        print("Assertion failed: ")
+        print(message)
+        print(" (expected: '")
+        print(expected)
+        print("', got: '")
+        print(actual)
+        print("')\n")
+    }
+}
+
+// 断言两个浮点数近似相等
+void assert_eq_float(float actual, float expected, float epsilon, string message) {
+    var diff = actual - expected
+    if diff < 0.0 {
+        diff = -diff
+    }
+    
+    if diff > epsilon {
+        print("Assertion failed: ")
+        print(message)
+        print(" (expected: ")
+        print(float_to_string(expected))
+        print(", got: ")
+        print(float_to_string(actual))
+        print(", diff: ")
+        print(float_to_string(diff))
+        print(")\n")
+    }
+}
+
+// 断言条件为真（true）
+void assert_true(bool condition, string message) {
+    if !condition {
+        print("Assertion failed: ")
+        print(message)
+        print(" (expected true)\n")
+    }
+}
+
+// 断言条件为假（false）
+void assert_false(bool condition, string message) {
+    if condition {
+        print("Assertion failed: ")
+        print(message)
+        print(" (expected false)\n")
+    }
+}
+
+// ============== 集合断言 ==============
+// 注意：由于泛型参数类型限制，暂时无法提供集合相关的断言函数
+// 可以手动检查集合属性
+// 示例：
+//   if my_vec.len() != expected_len {
+//       test_failed("vec length", "wrong size")
+//   }
+
+//============== 测试辅助函数 ==============
+
+// 打印测试通过消息
+void test_passed(string test_name) {
+    print("✓ ")
+    print(test_name)
+    print("\n")
+}
+
+// 打印测试失败消息
+void test_failed(string test_name, string reason) {
+    print("✗ ")
+    print(test_name)
+    print(": ")
+    print(reason)
+    print("\n")
+}

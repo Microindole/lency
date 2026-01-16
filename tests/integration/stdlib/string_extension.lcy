@@ -1,0 +1,36 @@
+// 字符串扩展功能测试
+// 注意：repeat, pad_left等函数在 string.lcy 中定义，暂时无法导入测试
+
+import std.core
+
+int main() {
+    print("String Basic Test\n")
+
+    // 1. len - 字符串长度
+    var s = "hello world"
+    if len(s) != 11 {
+        print("FAIL: len\n")
+        return 1
+    }
+    print("len passed\n")
+
+    // 2. trim - 去除空白
+    var s2 = "  test  "
+    var trimmed = trim(s2)
+    if trimmed != "test" {
+        print("FAIL: trim\n")
+        return 1
+    }
+    print("trim passed\n")
+
+    // 3. substr - 子串
+    var sub = substr(s, 0, 5)
+    if sub != "hello" {
+        print("FAIL: substr\n")
+        return 1
+    }
+    print("substr passed\n")
+
+    print("All string tests passed!\n")
+    return 0
+}

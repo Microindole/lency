@@ -195,3 +195,41 @@ string to_lower(string s) {
     return s  // FIXME: 需要 char_to_string intrinsic 支持
 }
 
+// 重复字符串 n 次
+string repeat(string s, int n) {
+    if n <= 0 {
+        return ""
+    }
+    var result = ""
+    var i = 0
+    while i < n {
+        result = result + s
+        i = i + 1
+    }
+    return result
+}
+
+// 左填充到指定长度
+string pad_left(string s, int total_len, string pad) {
+    var s_len = len(s)
+    if s_len >= total_len {
+        return s
+    }
+    var pad_len = total_len - s_len
+    var padding = repeat(pad, pad_len)
+    return substr(padding, 0, pad_len) + s
+}
+
+// 右填充到指定长度
+string pad_right(string s, int total_len, string pad) {
+    var s_len = len(s)
+    if s_len >= total_len {
+        return s
+    }
+    var pad_len = total_len - s_len
+    var padding = repeat(pad, pad_len)
+    return s + substr(padding, 0, pad_len)
+}
+
+// FIXME: reverse() 需要 char_to_string intrinsic
+// 目前无法实现字符串反转，因为无法从 int 转回 char

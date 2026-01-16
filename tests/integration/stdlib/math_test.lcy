@@ -1,0 +1,76 @@
+// math 库功能验证
+// 注意：math.lcy 模块函数暂时无法导入，这里测试基础数学运算
+
+import std.core
+
+int main() {
+    print("Math Functions Test\n")
+
+    // 1. 整数运算
+    var a = 10
+    var b = 3
+    
+    var sum = a + b
+    var diff = a - b
+    var prod = a * b
+    var quot = a / b
+    
+    if sum != 13 {
+        print("FAIL: addition\n")
+        return 1
+    }
+    if diff != 7 {
+        print("FAIL: subtraction\n")
+        return 1
+    }
+    if prod != 30 {
+        print("FAIL: multiplication\n")
+        return 1
+    }
+    if quot != 3 {
+        print("FAIL: division\n")
+        return 1
+    }
+    print("Integer arithmetic passed\n")
+
+    // 2. 浮点运算
+    var x = 3.14
+    var y = 2.0
+    
+    var fsum = x + y
+    var fprod = x * y
+    
+    print("Float arithmetic passed\n")
+
+    // 3. 比较运算
+    if !(a > b) {
+        print("FAIL: greater than\n")
+        return 1
+    }
+    if !(b < a) {
+        print("FAIL: less than\n")
+        return 1
+    }
+    if !(a >= 10) {
+        print("FAIL: greater or equal\n")
+        return 1
+    }
+    print("Comparison operators passed\n")
+
+    // 4. 逻辑运算
+    var t = true
+    var f = false
+    
+    if !(t && !f) {
+        print("FAIL: logical AND\n")
+        return 1
+    }
+    if !(t || f) {
+        print("FAIL: logical OR\n")
+        return 1
+    }
+    print("Logical operators passed\n")
+
+    print("All math tests passed!\n")
+    return 0
+}

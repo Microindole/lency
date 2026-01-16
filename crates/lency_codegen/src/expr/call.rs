@@ -31,6 +31,11 @@ pub(super) fn gen_call<'ctx>(
         return super::hashmap::gen_hashmap_extern_call(ctx, locals, func_name, args);
     }
 
+    // 检查是否为类型转换函数
+    if super::conversion::is_type_conversion_fn(func_name) {
+        return super::conversion::gen_type_conversion_call(ctx, locals, func_name, args);
+    }
+
     // 生成参数
     let mut arg_values = Vec::new();
     for arg in args {

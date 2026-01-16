@@ -1,0 +1,167 @@
+// Lency 标准库 - 数学模块 (math.lcy)
+// 提供基础数学函数和常量
+
+// ============== 数学常量（通过函数提供）==============
+
+// 圆周率
+float get_pi() {
+    return 3.14159265358979323846
+}
+
+// 自然对数的底数
+float get_e() {
+    return 2.71828182845904523536
+}
+
+// ============== 整数数学函数 ==============
+
+// 绝对值
+int abs_int(int x) {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+// 最大值
+int max_int(int a, int b) {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+// 最小值
+int min_int(int a, int b) {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+// 限制在范围内
+int clamp_int(int x, int min_val, int max_val) {
+    if x < min_val {
+        return min_val
+    }
+    if x > max_val {
+        return max_val
+    }
+    return x
+}
+
+// 符号函数 (-1, 0, 1)
+int sign_int(int x) {
+    if x < 0 {
+        return -1
+    }
+    if x > 0 {
+        return 1
+    }
+    return 0
+}
+
+// ============== 浮点数数学函数 ==============
+
+// 绝对值
+float abs_float(float x) {
+    if x < 0.0 {
+        return -x
+    }
+    return x
+}
+
+// 最大值
+float max_float(float a, float b) {
+    if a > b {
+        return a
+    }
+    return b
+}
+
+// 最小值
+float min_float(float a, float b) {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+// 限制在范围内
+float clamp_float(float x, float min_val, float max_val) {
+    if x < min_val {
+        return min_val
+    }
+    if x > max_val {
+        return max_val
+    }
+    return x
+}
+
+// 符号函数
+float sign_float(float x) {
+    if x < 0.0 {
+        return -1.0
+    }
+    if x > 0.0 {
+        return 1.0
+    }
+    return 0.0
+}
+
+// 整数幂（简单实现）
+float pow_int(float base, int exp) {
+    if exp == 0 {
+        return 1.0
+    }
+    
+    var result = 1.0
+    var positive_exp = exp
+    
+    if exp < 0 {
+        positive_exp = -exp
+    }
+    
+    var i = 0
+    while i < positive_exp {
+        result = result * base
+        i = i + 1
+    }
+    
+    if exp < 0 {
+        return 1.0 / result
+    }
+    return result
+}
+
+// 平方
+float square(float x) {
+    return x * x
+}
+
+// 立方
+float cube(float x) {
+    return x * x * x
+}
+
+// ============== 辅助函数 ==============
+
+// 判断是否接近（用于浮点数比较）
+bool is_close(float a, float b, float epsilon) {
+    var diff = a - b
+    if diff < 0.0 {
+        diff = -diff
+    }
+    return diff < epsilon
+}
+
+// 线性插值
+float lerp(float a, float b, float t) {
+    return a + (b - a) * t
+}
+
+// 将值映射到新范围
+float map_range(float value, float from_min, float from_max, float to_min, float to_max) {
+    var normalized = (value - from_min) / (from_max - from_min)
+    return to_min + normalized * (to_max - to_min)
+}
