@@ -4,6 +4,7 @@
 
 pub mod file;
 pub mod hashmap;
+pub mod hashmap_string;
 pub mod string;
 use std::alloc::{alloc, dealloc, realloc, Layout};
 use std::ffi::{CStr, CString};

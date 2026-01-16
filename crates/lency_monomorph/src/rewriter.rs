@@ -3,7 +3,7 @@
 //! 负责遍历 AST，将 `Type::Generic`（引用）替换为单态化后的具体名称 `Type::Struct`。
 //! 例如：`var b: Box<int>` -> `var b: Box__int`。
 
-use crate::monomorphize::mangling::mangle_type;
+use crate::mangling::mangle_type;
 use lency_syntax::ast::*;
 
 pub struct Rewriter;

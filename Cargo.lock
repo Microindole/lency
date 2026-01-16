@@ -286,6 +286,7 @@ name = "lency_codegen"
 version = "0.1.0"
 dependencies = [
  "inkwell",
+ "lency_monomorph",
  "lency_sema",
  "lency_syntax",
  "thiserror",
@@ -306,6 +307,7 @@ version = "0.1.0"
 dependencies = [
  "chumsky",
  "lency_codegen",
+ "lency_monomorph",
  "lency_sema",
  "lency_syntax",
  "logos",
@@ -315,6 +317,9 @@ dependencies = [
 [[package]]
 name = "lency_monomorph"
 version = "0.1.0"
+dependencies = [
+ "lency_syntax",
+]
 
 [[package]]
 name = "lency_runtime"

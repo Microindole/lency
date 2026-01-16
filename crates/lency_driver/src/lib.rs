@@ -64,7 +64,7 @@ pub fn compile(source: &str) -> CompileResult<CompilationOutput> {
     let _analysis_result = analyze(&mut ast).map_err(CompileError::SemanticErrors)?;
 
     // 3. 单态化 (Generic Monomorphization)
-    let mut monomorphizer = lency_sema::monomorphize::Monomorphizer::new();
+    let mut monomorphizer = lency_monomorph::Monomorphizer::new();
     let monomorphized_ast = monomorphizer.process(ast);
 
     // 4. 代码生成

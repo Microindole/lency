@@ -333,8 +333,7 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         {
                             // 生成 mangled 名称：StructName_methodName
                             // Use mangling to handle generics/primitives correctly
-                            let type_str =
-                                lency_sema::monomorphize::mangling::mangle_type(type_name);
+                            let type_str = lency_monomorph::mangling::mangle_type(type_name);
                             let mangled_name = format!("{}_{}", type_str, name);
 
                             // 构建带 this 指针的参数列表
@@ -450,8 +449,7 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     // 生成所有方法的函数体
                     for method in methods {
                         if let Decl::Function { name, .. } = method {
-                            let type_str =
-                                lency_sema::monomorphize::mangling::mangle_type(type_name);
+                            let type_str = lency_monomorph::mangling::mangle_type(type_name);
                             let mangled_name = format!("{}_{}", type_str, name);
                             func_gen.generate(method, Some(&mangled_name), Some(&type_str))?;
                         }

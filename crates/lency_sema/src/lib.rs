@@ -17,7 +17,6 @@
 //! - 核心数据结构稳定不变
 
 pub mod error;
-pub mod monomorphize;
 pub mod null_safety;
 pub mod operators;
 pub mod resolver;

@@ -24,3 +24,6 @@ tmp/
 
 # 7. Python
 __pycache__/
+
+# 8. commit 消息
+COMMIT_MSG.txt

@@ -1,0 +1,43 @@
+// 简单的HashMap<String, Int>测试
+
+extern int hashmap_string_new();
+extern void hashmap_string_insert(int map, string key, int value);
+extern int hashmap_string_get(int map, string key);
+extern bool hashmap_string_contains(int map, string key);
+extern bool hashmap_string_remove(int map, string key);
+extern int hashmap_string_len(int map);
+
+int main() {
+    print("=== HashMap String Test ===")
+    
+    var map = hashmap_string_new()
+    print("Created map")
+    
+    hashmap_string_insert(map, "x", 42)
+    hashmap_string_insert(map, "y", 100)
+    
+    var v1 = hashmap_string_get(map, "x")
+    print(v1)
+    
+    var v2 = hashmap_string_get(map, "y")
+    print(v2)
+    
+    var size = hashmap_string_len(map)
+    print(size)
+    
+    var has_x = hashmap_string_contains(map, "x")
+    if has_x {
+        print("Has x")
+    }
+    
+    var removed = hashmap_string_remove(map, "x")
+    if removed {
+        print("Removed x")
+    }
+    
+    var new_size = hashmap_string_len(map)
+    print(new_size)
+    
+    print("=== Test Complete ===")
+    return 0
+}

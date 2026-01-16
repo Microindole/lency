@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 lency_syntax = { workspace = true }
 lency_sema = { path = "../lency_sema" }
+lency_monomorph = { workspace = true }
 lency_codegen = { path = "../lency_codegen" }
 thiserror = { workspace = true }
 logos = { workspace = true }

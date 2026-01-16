@@ -3,8 +3,6 @@
 
 [env]
 LLVM_SYS_150_PREFIX = "/usr/lib/llvm-15"
-
-# 增加测试线程栈大小
+# 增加测试线程栈大小 (8MB)
 # Parser组合子在深度递归时需要更大的栈
-[test]
-min-stack-size = 8388608  # 8MB
+RUST_MIN_STACK = "8388608"

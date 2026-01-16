@@ -1,0 +1,44 @@
+// HashMap<String, Int> test
+
+extern int hashmap_string_new();
+extern void hashmap_string_insert(int map, string key, int value);
+extern int hashmap_string_get(int map, string key);
+extern bool hashmap_string_contains(int map, string key);
+extern bool hashmap_string_remove(int map, string key);
+extern int hashmap_string_len(int map);
+
+int main() {
+    print("Testing HashMap<String, Int>")
+    
+    var map = hashmap_string_new()
+    print("Created")
+    
+    hashmap_string_insert(map, "hello", 42)
+    hashmap_string_insert(map, "world", 100)
+    print("Inserted")
+    
+    var val1 = hashmap_string_get(map, "hello")
+    print(val1)
+    
+    var val2 = hashmap_string_get(map, "world")
+    print(val2)
+    
+    var exists = hashmap_string_contains(map, "hello")
+    if exists {
+        print("Found")
+    }
+    
+    var mapsize = hashmap_string_len(map)
+    print(mapsize)
+    
+    var removed = hashmap_string_remove(map, "world")
+    if removed {
+        print("Removed")
+    }
+    
+    var newsize = hashmap_string_len(map)
+    print(newsize)
+    
+    print("Done")
+    return 0
+}

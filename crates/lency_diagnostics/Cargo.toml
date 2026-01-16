@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ariadne = { workspace = true }
-thiserror = { workspace = true }
 colored = { workspace = true }
+thiserror = { workspace = true }
+ariadne = { workspace = true }
