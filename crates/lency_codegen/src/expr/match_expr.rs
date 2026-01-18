@@ -371,10 +371,22 @@ fn gen_pattern_check<'ctx>(
             };
 
             // Look up variants info to find index
-            let variants_info = ctx
-                .enum_variants
-                .get(enum_name)
-                .ok_or(CodegenError::UndefinedStructType(enum_name.clone()))?;
+            // Sprint 15: Special handling for Result<T,E>
+            let variants_info = if enum_name == "Result" {
+                // Result.Ok and Result.Err are compiler built-ins
+                // Ok has index 0 with one field of type T (GenericParam)
+                // Err has index 1 with one field of type E (GenericParam)
+                // We need to provide the variant info dynamically
+                vec![
+                    ("Ok".to_string(), vec![Type::GenericParam("T".to_string())]),
+                    ("Err".to_string(), vec![Type::GenericParam("E".to_string())]),
+                ]
+            } else {
+                ctx.enum_variants
+                    .get(enum_name)
+                    .ok_or(CodegenError::UndefinedStructType(enum_name.clone()))?
+                    .clone()
+            };
 
             let (tag_idx, (_, field_types_ast)) = variants_info
                 .iter()
@@ -383,10 +395,29 @@ fn gen_pattern_check<'ctx>(
                 .ok_or(CodegenError::TypeMismatch)?; // Variant not found?
 
             // GEP Tag (element 0)
-            let enum_struct_type = ctx.struct_types.get(enum_name).unwrap();
+            // Sprint 15: Result struct type special handling
+            let enum_struct_type = if enum_name == "Result" {
+                // Result enum type is { i64 (tag), [max_size x i8] (payload) }
+                // We need to ensure it exists in ctx.struct_types
+                if let Some(st) = ctx.struct_types.get(enum_name) {
+                    *st
+                } else {
+                    // Create Result struct type dynamically
+                    // tag: i64, payload: arbitrary size array (use i64 for simplicity)
+                    ctx.context.struct_type(
+                        &[
+                            ctx.context.i64_type().into(), // tag
+                            ctx.context.i64_type().into(), // payload (simplified)
+                        ],
+                        false,
+                    )
+                }
+            } else {
+                *ctx.struct_types.get(enum_name).unwrap()
+            };
             let tag_ptr = ctx
                 .builder
-                .build_struct_gep(*enum_struct_type, subject_ptr, 0, "tag_ptr")
+                .build_struct_gep(enum_struct_type, subject_ptr, 0, "tag_ptr")
                 .unwrap();
 
             let tag_val = ctx
@@ -419,19 +450,36 @@ fn gen_pattern_check<'ctx>(
                 // Bitcast payload (element 1) to variant struct layout
                 let payload_arr_ptr = ctx
                     .builder
-                    .build_struct_gep(*enum_struct_type, subject_ptr, 1, "payload_arr")
+                    .build_struct_gep(enum_struct_type, subject_ptr, 1, "payload_arr")
                     .unwrap();
 
                 // Construct Variant Body Type { field1, field2... }
                 // We need LLVM types for fields.
 
-                // Helper to get concrete types for generic fields if needed?
-                // For now assume non-generic or monomorphized.
-                // Phase 4.1 assumes basic Enums.
+                // Sprint 15: For Result<T,E>, substitute GenericParam with concrete types
+                let field_types_concrete = if enum_name == "Result" && !field_types_ast.is_empty() {
+                    // Extract concrete types from subject_type (Result<ok_type, err_type>)
+                    match subject_type {
+                        Type::Result { ok_type, err_type } => {
+                            // Substitute T -> ok_type, E -> err_type
+                            field_types_ast
+                                .iter()
+                                .map(|ty| match ty {
+                                    Type::GenericParam(name) if name == "T" => (**ok_type).clone(),
+                                    Type::GenericParam(name) if name == "E" => (**err_type).clone(),
+                                    _ => ty.clone(),
+                                })
+                                .collect()
+                        }
+                        _ => field_types_ast.clone(),
+                    }
+                } else {
+                    field_types_ast.clone()
+                };
 
                 use crate::types::ToLLVMType;
                 let mut variant_llvm_types = Vec::new();
-                for ty in field_types_ast {
+                for ty in &field_types_concrete {
                     variant_llvm_types.push(ty.to_llvm_type(ctx)?);
                 }
                 let variant_struct_type = ctx.context.struct_type(&variant_llvm_types, false);
@@ -458,7 +506,7 @@ fn gen_pattern_check<'ctx>(
                             "field_ptr",
                         )
                         .unwrap();
-                    let field_type = &field_types_ast[i];
+                    let field_type = &field_types_concrete[i]; // Use concrete types with GenericParam replaced
 
                     gen_pattern_check(
                         ctx,

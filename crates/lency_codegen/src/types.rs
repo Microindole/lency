@@ -75,9 +75,16 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                 "generics not yet supported".to_string(),
             )),
 
-            // Result 类型: 使用匿名结构体 { i1, ok_value?, err_value? }
-            // 指针语义: 返回 StructType*
+            // Result 类型: 使用命名结构体 Result__ok_err
+            // Sprint 15: 为Result创建opaque struct type使用mangled name
             Type::Result { ok_type, err_type } => {
+                // Use mangle_type for consistent naming
+                let result_ty = Type::Result {
+                    ok_type: ok_type.clone(),
+                    err_type: err_type.clone(),
+                };
+                let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
+
                 let mut field_types: Vec<BasicTypeEnum> = Vec::new();
 
                 // 1. is_ok 标志位 (i1)
@@ -93,10 +100,11 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                     field_types.push(err_type.to_llvm_type(context)?);
                 }
 
-                // 创建匿名结构体 (packed=false)
-                let struct_type = context.context.struct_type(&field_types, false);
+                // 创建命名结构体 (使用mangled name)
+                let struct_type = context.context.opaque_struct_type(&mangled_name);
+                struct_type.set_body(&field_types, false);
 
-                // 返回结构体指针
+                // Result使用指针语义传递
                 Ok(struct_type
                     .ptr_type(AddressSpace::default())
                     .as_basic_type_enum())

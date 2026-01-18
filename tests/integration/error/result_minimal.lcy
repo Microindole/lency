@@ -1,0 +1,20 @@
+//! Minimal Result test - just construction, no methods
+
+struct Error {
+    int code
+}
+
+// Using int! syntax sugar for Result<int, Error>
+int! divide(int a, int b) {
+    if b == 0 {
+        return Err(Error { code: 1 })
+    }
+    return Ok(a / b)
+}
+
+int main() {
+    var res1 = divide(10, 2)
+    print("Created Result\n")
+    
+    return 0
+}

@@ -101,6 +101,31 @@ impl<'a> TypeInferer<'a> {
                         return Ok(Type::Struct(obj_name));
                     }
                 } else {
+                    // Sprint 15: Special handling for Result.Ok and Result.Err (compiler built-ins)
+                    if obj_name == "Result" && (name == "Ok" || name == "Err") {
+                        // Allow Result.Ok and Result.Err access even though not in variants HashMap
+                        if !args.is_empty() {
+                            if enum_sym.generic_params.len() != args.len() {
+                                return Err(SemanticError::GenericArityMismatch {
+                                    name: obj_name.clone(),
+                                    expected: enum_sym.generic_params.len(),
+                                    found: args.len(),
+                                    span: span.clone(),
+                                });
+                            }
+                            return Ok(Type::Generic(obj_name, args));
+                        } else {
+                            if !enum_sym.generic_params.is_empty() {
+                                return Err(SemanticError::GenericArityMismatch {
+                                    name: obj_name.clone(),
+                                    expected: enum_sym.generic_params.len(),
+                                    found: 0,
+                                    span: span.clone(),
+                                });
+                            }
+                            return Ok(Type::Struct(obj_name));
+                        }
+                    }
                     return Err(SemanticError::UndefinedField {
                         class: enum_sym.name.clone(),
                         field: name.to_string(),

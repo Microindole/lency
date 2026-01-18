@@ -159,8 +159,19 @@ impl<'a> TypeInferer<'a> {
                 // Lookup Enum and Variant Info (Clone to avoid holding borrow)
                 let (enum_generic_params, variant_field_types) =
                     if let Some(Symbol::Enum(e)) = self.lookup(enum_name) {
+                        // Sprint 15: Special handling for Result.Ok and Result.Err
                         if let Some(types) = e.get_variant(name) {
                             (e.generic_params.clone(), types.clone())
+                        } else if enum_name == "Result" && (name == "Ok" || name == "Err") {
+                            // Result.Ok and Result.Err are compiler built-ins
+                            // They each have one field of the appropriate generic type
+                            // Ok has field of type T, Err has field of type E
+                            let field_type = if name == "Ok" {
+                                Type::GenericParam("T".to_string())
+                            } else {
+                                Type::GenericParam("E".to_string())
+                            };
+                            (e.generic_params.clone(), vec![field_type])
                         } else {
                             return Err(SemanticError::UndefinedField {
                                 class: enum_name.clone(),

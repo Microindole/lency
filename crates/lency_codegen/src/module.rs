@@ -322,6 +322,39 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 Decl::Impl {
                     type_name, methods, ..
                 } => {
+                    // Sprint 15: For Result<T,E> impl, register struct type first
+                    if let lency_syntax::ast::Type::Generic(name, args) = type_name {
+                        if name == "Result" && args.len() == 2 {
+                            let result_ty = lency_syntax::ast::Type::Result {
+                                ok_type: Box::new(args[0].clone()),
+                                err_type: Box::new(args[1].clone()),
+                            };
+                            let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
+
+                            // Register Result struct type if not exists
+                            if !self.ctx.struct_types.contains_key(&mangled_name) {
+                                use crate::types::ToLLVMType;
+
+                                // Create fields
+                                let mut field_types = vec![
+                                    self.ctx.context.bool_type().into(), // is_ok flag
+                                ];
+
+                                if !matches!(args[0], lency_syntax::ast::Type::Void) {
+                                    field_types.push(args[0].to_llvm_type(&*self.ctx)?);
+                                }
+                                if !matches!(args[1], lency_syntax::ast::Type::Void) {
+                                    field_types.push(args[1].to_llvm_type(&*self.ctx)?);
+                                }
+
+                                let struct_type =
+                                    self.ctx.context.opaque_struct_type(&mangled_name);
+                                struct_type.set_body(&field_types, false);
+                                self.ctx.struct_types.insert(mangled_name, struct_type);
+                            }
+                        }
+                    }
+
                     // 声明所有方法（添加隐式 this 参数）
                     for method in methods {
                         if let Decl::Function {
@@ -337,7 +370,19 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                             let mangled_name = format!("{}_{}", type_str, name);
 
                             // 构建带 this 指针的参数列表
-                            let this_type = type_name.clone();
+                            // Sprint 15: For Result<T,E>, type_name is Type::Generic("Result", [T, E])
+                            // but to_llvm_type needs Type::Result { ok_type, err_type }
+                            let this_type = match type_name {
+                                lency_syntax::ast::Type::Generic(name, args)
+                                    if name == "Result" && args.len() == 2 =>
+                                {
+                                    lency_syntax::ast::Type::Result {
+                                        ok_type: Box::new(args[0].clone()),
+                                        err_type: Box::new(args[1].clone()),
+                                    }
+                                }
+                                _ => type_name.clone(),
+                            };
                             let this_param = lency_syntax::ast::Param {
                                 name: "this".to_string(),
                                 ty: this_type,

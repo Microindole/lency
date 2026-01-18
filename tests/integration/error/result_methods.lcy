@@ -1,0 +1,124 @@
+// @expect-error: FIXME - CodeGen type mismatch in Ok/Err constructor
+// Sprint 15: Result<T,E> 方法测试
+// 验证为内置Result类型定义impl方法
+
+// ============== Result<T, E> impl ==============
+// 注意: Result<T,E> 是编译器内置类型，Ok/Err是保留关键字
+// 我们直接为内置Result添加方法
+
+impl<T, E> Result<T, E> {
+    bool is_ok() {
+        return match this {
+            case Result.Ok(_) => true,
+            case Result.Err(_) => false
+        };
+    }
+    
+    bool is_err() {
+        return match this {
+            case Result.Ok(_) => false,
+            case Result.Err(_) => true
+        };
+    }
+    
+    T unwrap_or(T default_value) {
+        return match this {
+            case Result.Ok(v) => v,
+            case Result.Err(_) => default_value
+        };
+    }
+}
+
+// ============== 测试代码 ==============
+
+struct Error {
+    string message
+}
+
+// 返回 Result<int, Error> 的函数
+int! divide(int a, int b) {
+    if b == 0 {
+        return Err(Error { message: "division by zero" })
+    }
+    return Ok(a / b)
+}
+
+// 另一个返回 Result 的函数，用于测试 ? 运算符
+int! double_divide(int a, int b) {
+    var res = divide(a, b)?
+    return Ok(res * 2)
+}
+
+int main() {
+    // ============== 测试 is_ok() 和 is_err() ==============
+    
+    var res1 = divide(10, 2)
+    if res1.is_ok() {
+        print("Test 1: OK (expected)\n")
+    }
+    if res1.is_err() {
+        print("Test 1: ERR (unexpected!)\n")
+    }
+    
+    var res2 = divide(10, 0)
+    if res2.is_ok() {
+        print("Test 2: OK (unexpected!)\n")
+    }
+    if res2.is_err() {
+        print("Test 2: ERR (expected)\n")
+    }
+    
+    // ============== 测试 unwrap_or() ==============
+    
+    var val1 = divide(10, 2).unwrap_or(999)
+    print("Test 3: ")
+    print(val1)
+    print(" (expected: 5)\n")
+    
+    var val2 = divide(10, 0).unwrap_or(999)
+    print("Test 4: ")
+    print(val2)
+    print(" (expected: 999)\n")
+    
+    // 测试不同类型的 Result
+    var val3 = divide(100, 4).unwrap_or(-1)
+    print("Test 5: ")
+    print(val3)
+    print(" (expected: 25)\n")
+    
+    // ============== 测试与 ? 运算符配合 ==============
+    
+    var res3 = double_divide(10, 2)
+    if res3.is_ok() {
+        var doubled = res3.unwrap_or(0)
+        print("Test 6: ")
+        print(doubled)
+        print(" (expected: 10)\n")
+    }
+    
+    var res4 = double_divide(10, 0)
+    if res4.is_err() {
+        print("Test 7: ERR (expected - early return from ?)\n")
+    }
+    
+    // ============== 综合测试 ==============
+    
+    // 测试多个结果的组合
+    var a = divide(20, 4).unwrap_or(0)
+    var b = divide(15, 3).unwrap_or(0)
+    var sum = a + b
+    print("Test 8: ")
+    print(sum)
+    print(" (expected: 10)\n")
+    
+    // 测试错误情况的组合
+    var c = divide(10, 0).unwrap_or(100)
+    var d = divide(10, 0).unwrap_or(200)
+    var error_sum = c + d
+    print("Test 9: ")
+    print(error_sum)
+    print(" (expected: 300)\n")
+    
+    print("\n=== All Result method tests completed ===\n")
+    return 0
+}

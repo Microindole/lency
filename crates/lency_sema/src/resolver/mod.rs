@@ -46,6 +46,19 @@ impl Resolver {
         define_builtin("string");
         define_builtin("float");
 
+        // Sprint 15: Register Result<T, E> as built-in enum to allow impl definitions
+        let result_symbol = Symbol::Enum(crate::symbol::EnumSymbol {
+            name: "Result".to_string(),
+            generic_params: vec![
+                crate::symbol::GenericParamSymbol::new("T".to_string(), None, dummy_span.clone()),
+                crate::symbol::GenericParamSymbol::new("E".to_string(), None, dummy_span.clone()),
+            ],
+            variants: std::collections::HashMap::new(), // Ok and Err are handled by compiler
+            methods: std::collections::HashMap::new(),  // Will be populated by user impl
+            span: dummy_span.clone(),
+        });
+        scopes.define(result_symbol).ok();
+
         // Register built-in extern functions
         builtins::register_builtins(&mut scopes);
 

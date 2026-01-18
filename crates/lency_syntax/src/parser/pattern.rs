@@ -1,5 +1,5 @@
 use super::expr::literal::literal_value_parser;
-use super::helpers::ident_parser;
+// Note: ident_parser removed as we now use select! for Ok/Err support
 use crate::ast::MatchPattern;
 use crate::lexer::Token;
 use chumsky::prelude::*;
@@ -14,17 +14,20 @@ pub fn pattern_parser() -> impl Parser<Token, MatchPattern, Error = ParserError>
         // Wildcard Pattern
         let wildcard = just(Token::Underscore).to(MatchPattern::Wildcard);
 
-        // Identifier Pattern (Variable or Variant)
-        // Name
-        // Name(Pat, Pat...)
-        // Identifier Pattern (Variable or Variant)
-        // Name
-        // Name.Variant
-        // Name(Pat, Pat...)
-        // Name.Variant(Pat, Pat...)
+        // Sprint 15: Helper parser for identifiers or Ok/Err keywords (for Result pattern matching)
+        #[allow(clippy::result_large_err)] // Macro-generated code, unavoidable
+        let ident_or_result_variant = select! {
+            Token::Ident(ident) => ident,
+            Token::Ok => "Ok".to_string(),  // Allow Ok as variant name
+            Token::Err => "Err".to_string(), // Allow Err as variant name
+        };
 
-        let qualified_ident =
-            ident_parser().then(just(Token::Dot).ignore_then(ident_parser()).or_not());
+        // Qualified identifier pattern (Name or Name.Variant or Ok/Err)
+        let qualified_ident = ident_or_result_variant.then(
+            just(Token::Dot)
+                .ignore_then(ident_or_result_variant)
+                .or_not(),
+        );
 
         let ident_pat = qualified_ident
             .then(

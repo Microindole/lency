@@ -104,7 +104,11 @@ impl<'a> TypeInferer<'a> {
 
                 if let Some((enum_name, args)) = enum_access {
                     if let Some(Symbol::Enum(enum_sym)) = self.lookup(&enum_name) {
-                        if enum_sym.get_variant(name).is_some() {
+                        // Sprint 15: Special handling for Result.Ok and Result.Err
+                        let is_result_builtin =
+                            enum_name == "Result" && (name == "Ok" || name == "Err");
+
+                        if enum_sym.get_variant(name).is_some() || is_result_builtin {
                             // Check Generic Arity
                             if !args.is_empty() {
                                 if enum_sym.generic_params.len() != args.len() {
@@ -133,13 +137,15 @@ impl<'a> TypeInferer<'a> {
 
                 // 2. Check Method Call: obj.method(...)
                 let obj_ty = self.infer(object)?;
-                // Check if it's a type that supports method lookup via name (Structs or Primitives)
+                // Check if it's a type that supports method lookup via name (Structs, Enums, or Primitives)
                 let type_name_opt = match &obj_ty {
                     Type::Struct(n) => Some(n.clone()),
                     Type::Int => Some("int".to_string()),
                     Type::Bool => Some("bool".to_string()),
                     Type::String => Some("string".to_string()),
                     Type::Float => Some("float".to_string()),
+                    // Sprint 15: Support Result<T,E> method calls
+                    Type::Result { .. } => Some("Result".to_string()),
                     // 泛型实例化类型：使用基础名称查找方法
                     Type::Generic(base_name, _) => Some(base_name.clone()),
                     _ => None,
@@ -155,6 +161,37 @@ impl<'a> TypeInferer<'a> {
                                     let mut map = std::collections::HashMap::new();
                                     for (param, arg_ty) in
                                         struct_sym.generic_params.iter().zip(type_args.iter())
+                                    {
+                                        map.insert(param.name.clone(), arg_ty.clone());
+                                    }
+                                    crate::type_infer::substitute_type(&method.return_type, &map)
+                                } else {
+                                    method.return_type.clone()
+                                };
+                                Ok(return_type)
+                            } else {
+                                Err(SemanticError::UndefinedMethod {
+                                    class: type_name.clone(),
+                                    method: name.clone(),
+                                    span: span.clone(),
+                                })
+                            }
+                        }
+                        // Sprint 15: Support method calls on Enum types (e.g., Result<T,E>)
+                        Some(Symbol::Enum(enum_sym)) => {
+                            if let Some(method) = enum_sym.methods.get(name) {
+                                // 对于泛型Result<T,E>，替换返回类型中的泛型参数
+                                let return_type = if let Type::Result { ok_type, err_type } =
+                                    &obj_ty
+                                {
+                                    let mut map = std::collections::HashMap::new();
+                                    map.insert("T".to_string(), (**ok_type).clone());
+                                    map.insert("E".to_string(), (**err_type).clone());
+                                    crate::type_infer::substitute_type(&method.return_type, &map)
+                                } else if let Type::Generic(_, type_args) = &obj_ty {
+                                    let mut map = std::collections::HashMap::new();
+                                    for (param, arg_ty) in
+                                        enum_sym.generic_params.iter().zip(type_args.iter())
                                     {
                                         map.insert(param.name.clone(), arg_ty.clone());
                                     }

@@ -1,0 +1,32 @@
+// @expect-error: FIXME - CodeGen type mismatch in Ok/Err constructor
+//! Test Result method calls - add is_ok() method
+
+struct Error {
+    int code
+}
+
+impl Result<int, Error> {
+    bool is_ok() {
+        return match this {
+            case Result.Ok(_) => true,
+            case Result.Err(_) => false
+        };
+    }
+}
+
+int! divide(int a, int b) {
+    if b == 0 {
+        return Err(Error { code: 1 })
+    }
+    return Ok(a / b)
+}
+
+int main() {
+    var res1 = divide(10, 2)
+    
+    if res1.is_ok() {
+        print("Test: is_ok works!\n")
+    }
+    
+    return 0
+}

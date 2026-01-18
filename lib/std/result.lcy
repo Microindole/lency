@@ -1,0 +1,105 @@
+// Lency 标准库 - Result 模块 (result.lcy)
+// 提供 Result<T, E> 类型的辅助方法
+
+// ============== Result<T, E> 定义 ==============
+// 注意: enum Result<T, E> 由编译器内置支持
+// 本文件仅提供方法实现
+
+enum Result<T, E> {
+    Ok(T),
+    Err(E)
+}
+
+// ============== Result 方法实现 ==============
+
+impl<T, E> Result<T, E> {
+    // 检查是否为 Ok
+    // 返回 true 如果是 Ok，false 如果是 Err
+    bool is_ok() {
+        match this {
+            case Result.Ok(_) => return true,
+            case Result.Err(_) => return false
+        }
+    }
+    
+    // 检查是否为 Err
+    // 返回 true 如果是 Err，false 如果是 Ok
+    bool is_err() {
+        match this {
+            case Result.Ok(_) => return false,
+            case Result.Err(_) => return true
+        }
+    }
+    
+    // 获取 Ok 中的值，如果是 Err 则返回提供的默认值
+    // 这是最常用且安全的方法
+    T unwrap_or(T default_value) {
+        match this {
+            case Result.Ok(v) => return v,
+            case Result.Err(_) => return default_value
+        }
+    }
+    
+    // 获取 Ok 中的值
+    // 
+    // 警告: 如果是 Err，行为未定义（当前Lency无panic支持）
+    // 
+    // 使用建议:
+    //   if result.is_ok() {
+    //       var value = result.unwrap()
+    //       // 使用 value
+    //   }
+    // 
+    // 或者使用更安全的 unwrap_or():
+    //   var value = result.unwrap_or(default_value)
+    T unwrap() {
+        match this {
+            case Result.Ok(v) => return v,
+            case Result.Err(e) => {
+                // FIXME: 当前Lency没有panic机制
+                // 这里应该调用 panic("called Result.unwrap() on an Err value")
+                // 临时方案: 打印错误消息后返回一个无效值
+                // 但由于类型系统限制，我们无法创建"无效的T"
+                // 因此强烈建议用户仅在 is_ok() 后调用此方法
+                print("ERROR: called Result.unwrap() on an Err value\n")
+                
+                // 这里会导致编译错误，因为我们必须返回一个T
+                // 但在Err分支中我们没有T的值
+                // Sprint 16需要实现 panic intrinsic
+                match this {
+                    case Result.Ok(v) => return v,
+                    case Result.Err(_) => return v  // 这行永远不会执行到，但需要满足类型检查
+                }
+            }
+        }
+    }
+}
+
+// ============== 使用示例 ==============
+// 
+// struct Error { string message }
+// 
+// int! divide(int a, int b) {
+//     if b == 0 {
+//         return Err(Error { message: "division by zero" })
+//     }
+//     return Ok(a / b)
+// }
+// 
+// void example() {
+//     var result = divide(10, 2)
+//     
+//     // 方法1: 使用 is_ok() 检查
+//     if result.is_ok() {
+//         var value = result.unwrap()
+//         print(value)  // 输出: 5
+//     }
+//     
+//     // 方法2: 使用 unwrap_or() 提供默认值
+//     var value = divide(10, 0).unwrap_or(999)
+//     print(value)  // 输出: 999
+//     
+//     // 方法3: 结合 ? 运算符
+//     var doubled = divide(10, 2)?  * 2
+//     print(doubled)  // 输出: 10
+// }

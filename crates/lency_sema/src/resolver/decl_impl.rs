@@ -102,6 +102,7 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
             Type::Bool => "bool".to_string(),
             Type::String => "string".to_string(),
             Type::Float => "float".to_string(),
+            Type::Result { .. } => "Result".to_string(), // Sprint 15: 支持为Result<T,E>定义impl
             _ => "unknown".to_string(),
         };
 
@@ -115,10 +116,12 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
         }
 
         let struct_id = struct_id.unwrap();
-        if !matches!(
+        // Sprint 15: Allow impl for both Struct and Enum (e.g., Result<T,E>)
+        let is_valid_target = matches!(
             resolver.scopes.get_symbol(struct_id),
-            Some(Symbol::Struct(_))
-        ) {
+            Some(Symbol::Struct(_)) | Some(Symbol::Enum(_))
+        );
+        if !is_valid_target {
             resolver.errors.push(SemanticError::NotAStruct {
                 name: target_name.clone(),
                 span: span.clone(),
@@ -292,10 +295,15 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                                 method_span.clone(),
                             );
 
-                            if let Some(Symbol::Struct(ref mut struct_sym)) =
-                                resolver.scopes.get_symbol_mut(struct_id)
-                            {
-                                struct_sym.add_method(method_name.clone(), func_sym);
+                            // Sprint 15: Support adding methods to both Struct and Enum
+                            match resolver.scopes.get_symbol_mut(struct_id) {
+                                Some(Symbol::Struct(ref mut struct_sym)) => {
+                                    struct_sym.add_method(method_name.clone(), func_sym);
+                                }
+                                Some(Symbol::Enum(ref mut enum_sym)) => {
+                                    enum_sym.methods.insert(method_name.clone(), func_sym);
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -346,10 +354,15 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
                         method_span.clone(),
                     );
 
-                    if let Some(Symbol::Struct(ref mut struct_sym)) =
-                        resolver.scopes.get_symbol_mut(struct_id)
-                    {
-                        struct_sym.add_method(method_name.clone(), func_sym);
+                    // Sprint 15: Support adding methods to both Struct and Enum
+                    match resolver.scopes.get_symbol_mut(struct_id) {
+                        Some(Symbol::Struct(ref mut struct_sym)) => {
+                            struct_sym.add_method(method_name.clone(), func_sym);
+                        }
+                        Some(Symbol::Enum(ref mut enum_sym)) => {
+                            enum_sym.methods.insert(method_name.clone(), func_sym);
+                        }
+                        _ => {}
                     }
                 }
             }
