@@ -68,6 +68,9 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     env:
       LLVM_SYS_150_PREFIX: /opt/homebrew/opt/llvm@15
+      # Fix for "Assertion failed: (name.size() <= maxLength)" in Apple linker
+      # See: https://github.com/rust-lang/rust/issues/113350
+      RUSTFLAGS: "-C split-debuginfo=off"
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
@@ -89,7 +92,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
-        run: choco install llvm --version 15.0.0 -y
+        # Force install specific version even if newer exists
+        run: choco install llvm --version 15.0.0 -y --allow-downgrade --force
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build & Test
