@@ -2,7 +2,6 @@ use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 use crate::expr::{generate_expr, CodegenValue};
 use crate::types::ToLLVMType;
-use inkwell::types::BasicType;
 use lency_syntax::ast::{Expr, Type};
 use std::collections::HashMap;
 
@@ -23,30 +22,15 @@ pub fn gen_ok<'ctx>(
         err_type: Box::new(Type::Struct("Error".to_string())),
     };
 
-    // 3. 获取 LLVM 结构体类型
-    // to_llvm_type 返回的是 PointerType (因为我们在 types.rs 中定义 Result 为 ptr)
-    let result_ptr_type = result_ty.to_llvm_type(ctx)?.into_pointer_type();
-    // 获取元素类型 (StructType)
-    // 在 opaque pointers 下，getElementType 可能不可用或返回 void。
-    // 我们需要重新构建 struct type 还是信任 types.rs 的逻辑？
-    // types.rs 中：
-    // let struct_type = context.context.struct_type(&[i1, ok_ty, err_ty], false);
-    // return struct_type.ptr_type(...)
+    // 3. 获取已注册的 Result struct type
+    let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
+    let struct_type = *ctx
+        .struct_types
+        .get(&mangled_name)
+        .ok_or_else(|| crate::error::CodegenError::UndefinedStructType(mangled_name.clone()))?;
 
-    // 我们可以手动重建这个 struct type，或者修改 to_llvm_type 返回 struct type 而非 ptr。
-    // 由于 types.rs 返回的是 ptr，我们这里假设知道布局：{i1, ok_val, err_val}
-    // 注意：如果 ok_val 是 void，则布局是 {i1, err_val}。
-
-    let mut field_types = vec![ctx.context.bool_type().as_basic_type_enum()];
-    if !matches!(ok_ty, Type::Void) {
-        field_types.push(ok_val.get_type());
-    }
-    // Error 类型
-    let err_ty = Type::Struct("Error".to_string());
-    let err_llvm_ty = err_ty.to_llvm_type(ctx)?; // Pointer to Error
-    field_types.push(err_llvm_ty);
-
-    let struct_type = ctx.context.struct_type(&field_types, false);
+    // 获取 Result pointer type
+    let result_ptr_type = struct_type.ptr_type(inkwell::AddressSpace::default());
 
     // 4. Malloc
     let size = struct_type.size_of().ok_or(CodegenError::LLVMBuildError(
@@ -72,8 +56,6 @@ pub fn gen_ok<'ctx>(
         .into_pointer_value();
 
     // 5. Cast and Store
-    // Cast i8* to { ... }* (Result*)
-    // Opaque pointers: no cast needed for instruction operands usually, but for type clarity:
     let result_ptr = ctx
         .builder
         .build_pointer_cast(raw_ptr, result_ptr_type, "result_ptr")
@@ -122,10 +104,15 @@ pub fn gen_err<'ctx>(
         err_type: Box::new(Type::Struct("Error".to_string())),
     };
 
-    // 3. Layout: { i1, err_val } (No ok_val because void)
-    let err_llvm_ty = val_wrapper.ty.to_llvm_type(ctx)?;
-    let field_types = vec![ctx.context.bool_type().as_basic_type_enum(), err_llvm_ty];
-    let struct_type = ctx.context.struct_type(&field_types, false);
+    // 3. 获取已注册的 Result struct type
+    let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
+    let struct_type = *ctx
+        .struct_types
+        .get(&mangled_name)
+        .ok_or_else(|| crate::error::CodegenError::UndefinedStructType(mangled_name.clone()))?;
+
+    // 获取 Result pointer type
+    let result_ptr_type = struct_type.ptr_type(inkwell::AddressSpace::default());
 
     // 4. Malloc
     let size = struct_type.size_of().ok_or(CodegenError::LLVMBuildError(
@@ -149,7 +136,6 @@ pub fn gen_err<'ctx>(
         .into_pointer_value();
 
     // 5. Store
-    let result_ptr_type = result_ty.to_llvm_type(ctx)?.into_pointer_type();
     let result_ptr = ctx
         .builder
         .build_pointer_cast(raw_ptr, result_ptr_type, "result_err_ptr")
@@ -195,19 +181,12 @@ pub fn gen_try<'ctx>(
         _ => return Err(CodegenError::TypeMismatch),
     };
 
-    // 2. 检查 is_ok
-    // 重建 struct type 来做 GEP
-    // 注意：这里使用的是 inner expr 的类型，不是函数返回类型
-    let _struct_type_enum = val_wrapper.ty.to_llvm_type(ctx)?;
-    // to_llvm_type 返回 PointerType，我们需要 ElementType (StructType)
-    // 假设是 opaque pointer，我们无法从 ptr type 获取 element type。
-    // 必须重建。
-    let mut field_types = vec![ctx.context.bool_type().as_basic_type_enum()];
-    if !matches!(ok_type, Type::Void) {
-        field_types.push(ok_type.to_llvm_type(ctx)?);
-    }
-    field_types.push(Type::Struct("Error".to_string()).to_llvm_type(ctx)?);
-    let struct_type = ctx.context.struct_type(&field_types, false);
+    // 2. 获取已注册的 Result struct type
+    let mangled_name = lency_monomorph::mangling::mangle_type(&val_wrapper.ty);
+    let struct_type = *ctx
+        .struct_types
+        .get(&mangled_name)
+        .ok_or_else(|| crate::error::CodegenError::UndefinedStructType(mangled_name.clone()))?;
 
     let is_ok_ptr = ctx
         .builder
@@ -272,14 +251,11 @@ pub fn gen_try<'ctx>(
         ..
     } = func_ret_type
     {
-        // 构建 target Result struct type
-        let err_ptr_type = Type::Struct("Error".to_string()).to_llvm_type(ctx)?;
-        let mut ret_field_types = vec![ctx.context.bool_type().as_basic_type_enum()];
-        if !matches!(**ret_ok_type, Type::Void) {
-            ret_field_types.push(ret_ok_type.to_llvm_type(ctx)?);
-        }
-        ret_field_types.push(err_ptr_type);
-        let ret_struct_type = ctx.context.struct_type(&ret_field_types, false);
+        // 获取返回类型的 Result struct type
+        let ret_mangled_name = lency_monomorph::mangling::mangle_type(func_ret_type);
+        let ret_struct_type = *ctx.struct_types.get(&ret_mangled_name).ok_or_else(|| {
+            crate::error::CodegenError::UndefinedStructType(ret_mangled_name.clone())
+        })?;
 
         // Malloc
         let size = ret_struct_type

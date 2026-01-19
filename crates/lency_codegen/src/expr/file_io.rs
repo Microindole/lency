@@ -6,7 +6,6 @@ use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 use crate::expr::{generate_expr, CodegenValue};
 use crate::types::ToLLVMType;
-use inkwell::types::BasicType;
 use inkwell::AddressSpace;
 use lency_syntax::ast::{Expr, Type};
 use std::collections::HashMap;
@@ -131,18 +130,18 @@ pub fn gen_read_file<'ctx>(
         .build_call(file_close_fn, &[file_handle.into()], "")
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
-    // 构造 Ok(string) Result
+    // 构造 Ok(string) Result - 使用已注册的类型
     let result_ty = Type::Result {
         ok_type: Box::new(Type::String),
         err_type: Box::new(Type::Struct("Error".to_string())),
     };
-    let err_ptr_type = Type::Struct("Error".to_string()).to_llvm_type(ctx)?;
-    let field_types = vec![
-        ctx.context.bool_type().as_basic_type_enum(),
-        i8_ptr_type.as_basic_type_enum(),
-        err_ptr_type,
-    ];
-    let struct_type = ctx.context.struct_type(&field_types, false);
+
+    // 获取已注册的 Result struct type
+    let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
+    let struct_type = *ctx
+        .struct_types
+        .get(&mangled_name)
+        .ok_or_else(|| CodegenError::UndefinedStructType(mangled_name.clone()))?;
 
     let result_size = struct_type.size_of().ok_or(CodegenError::LLVMBuildError(
         "Failed to get Result size".to_string(),
@@ -337,14 +336,18 @@ pub fn gen_write_file<'ctx>(
         .build_call(file_close_fn, &[file_handle.into()], "")
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
-    // 构造 Ok(void) Result
+    // 构造 Ok(void) Result - 使用已注册的类型
     let result_ty = Type::Result {
         ok_type: Box::new(Type::Void),
         err_type: Box::new(Type::Struct("Error".to_string())),
     };
-    let err_ptr_type = Type::Struct("Error".to_string()).to_llvm_type(ctx)?;
-    let field_types = vec![ctx.context.bool_type().as_basic_type_enum(), err_ptr_type];
-    let struct_type = ctx.context.struct_type(&field_types, false);
+
+    // 获取已注册的 Result struct type
+    let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
+    let struct_type = *ctx
+        .struct_types
+        .get(&mangled_name)
+        .ok_or_else(|| CodegenError::UndefinedStructType(mangled_name.clone()))?;
 
     let malloc_fn = ctx
         .module

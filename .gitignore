@@ -8,6 +8,7 @@ target/
 *.iml
 *.swp
 .DS_Store
+.claude/
 
 # 3. 依赖锁文件 (库项目通常提交，但作为 Workspace 应用，建议提交)
 # Cargo.lock

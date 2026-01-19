@@ -1,4 +1,5 @@
-// @expect-error: FIXME - CodeGen type mismatch in Ok/Err constructor
+// @expect-error: TODO - Result当前实现为struct，不支持match语法
+// Sprint 16: 需将Result重构为enum类型以支持模式匹配
 //! Test Result method calls - add is_ok() method
 
 struct Error {

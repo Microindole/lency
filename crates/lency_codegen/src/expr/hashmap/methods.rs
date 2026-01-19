@@ -2,6 +2,8 @@
 //!
 //! HashMap 方法调用的代码生成
 
+//! HashMap 具体方法实现
+
 use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 use crate::expr::{generate_expr, CodegenValue};
@@ -9,106 +11,7 @@ use inkwell::AddressSpace;
 use lency_syntax::ast::{Expr, Type};
 use std::collections::HashMap;
 
-/// Get or declare lency_hashmap_new function
-fn get_or_declare_hashmap_new<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> CodegenResult<inkwell::values::FunctionValue<'ctx>> {
-    if let Some(func) = ctx.module.get_function("lency_hashmap_new") {
-        return Ok(func);
-    }
-
-    let i64_type = ctx.context.i64_type();
-    let ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let fn_type = ptr_type.fn_type(&[i64_type.into()], false);
-
-    Ok(ctx.module.add_function("lency_hashmap_new", fn_type, None))
-}
-
-/// Get or declare lency_hashmap_insert function
-fn get_or_declare_hashmap_insert<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> CodegenResult<inkwell::values::FunctionValue<'ctx>> {
-    if let Some(func) = ctx.module.get_function("lency_hashmap_insert") {
-        return Ok(func);
-    }
-
-    let i64_type = ctx.context.i64_type();
-    let ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let fn_type = ctx
-        .context
-        .void_type()
-        .fn_type(&[ptr_type.into(), i64_type.into(), i64_type.into()], false);
-
-    Ok(ctx
-        .module
-        .add_function("lency_hashmap_insert", fn_type, None))
-}
-
-/// Get or declare lency_hashmap_get function
-fn get_or_declare_hashmap_get<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> CodegenResult<inkwell::values::FunctionValue<'ctx>> {
-    if let Some(func) = ctx.module.get_function("lency_hashmap_get") {
-        return Ok(func);
-    }
-
-    let i64_type = ctx.context.i64_type();
-    let ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let fn_type = i64_type.fn_type(&[ptr_type.into(), i64_type.into()], false);
-
-    Ok(ctx.module.add_function("lency_hashmap_get", fn_type, None))
-}
-
-/// Get or declare lency_hashmap_contains function
-fn get_or_declare_hashmap_contains<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> CodegenResult<inkwell::values::FunctionValue<'ctx>> {
-    if let Some(func) = ctx.module.get_function("lency_hashmap_contains") {
-        return Ok(func);
-    }
-
-    let i64_type = ctx.context.i64_type();
-    let bool_type = ctx.context.bool_type();
-    let ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let fn_type = bool_type.fn_type(&[ptr_type.into(), i64_type.into()], false);
-
-    Ok(ctx
-        .module
-        .add_function("lency_hashmap_contains", fn_type, None))
-}
-
-/// Get or declare lency_hashmap_remove function
-fn get_or_declare_hashmap_remove<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> CodegenResult<inkwell::values::FunctionValue<'ctx>> {
-    if let Some(func) = ctx.module.get_function("lency_hashmap_remove") {
-        return Ok(func);
-    }
-
-    let i64_type = ctx.context.i64_type();
-    let bool_type = ctx.context.bool_type();
-    let ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let fn_type = bool_type.fn_type(&[ptr_type.into(), i64_type.into()], false);
-
-    Ok(ctx
-        .module
-        .add_function("lency_hashmap_remove", fn_type, None))
-}
-
-/// Get or declare lency_hashmap_len function
-fn get_or_declare_hashmap_len<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> CodegenResult<inkwell::values::FunctionValue<'ctx>> {
-    if let Some(func) = ctx.module.get_function("lency_hashmap_len") {
-        return Ok(func);
-    }
-
-    let i64_type = ctx.context.i64_type();
-    let ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let fn_type = i64_type.fn_type(&[ptr_type.into()], false);
-
-    Ok(ctx.module.add_function("lency_hashmap_len", fn_type, None))
-}
+use super::ffi::*;
 
 /// Generate code for hashmap_int_new() intrinsic
 pub fn gen_hashmap_new_call<'ctx>(ctx: &CodegenContext<'ctx>) -> CodegenResult<CodegenValue<'ctx>> {
@@ -508,24 +411,4 @@ pub fn gen_hashmap_extern_call<'ctx>(
         }
         _ => Err(CodegenError::FunctionNotFound(func_name.to_string())),
     }
-}
-
-/// Check if function name is a hashmap extern function
-pub fn is_hashmap_extern(name: &str) -> bool {
-    matches!(
-        name,
-        "hashmap_int_new"
-            | "hashmap_int_insert"
-            | "hashmap_int_get"
-            | "hashmap_int_contains"
-            | "hashmap_int_remove"
-            | "hashmap_int_len"
-            | "hashmap_int_free"
-            | "hashmap_string_new"
-            | "hashmap_string_insert"
-            | "hashmap_string_get"
-            | "hashmap_string_contains"
-            | "hashmap_string_remove"
-            | "hashmap_string_len"
-    )
 }
