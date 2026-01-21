@@ -1,4 +1,3 @@
-// @expect-error:FIXME VecIterator codegen 返回类型问题
 import std.core
 import std.collections
 

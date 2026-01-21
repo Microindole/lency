@@ -237,8 +237,9 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         llvm_param_types.push(llvm_ty.into()); // BasicTypeEnum -> BasicMetadataTypeEnum
                     }
 
-                    // Constructor Function Type
-                    let fn_type = enum_type.fn_type(&llvm_param_types, false);
+                    // Constructor Function Type - 返回指针类型
+                    let ret_ptr_type = enum_type.ptr_type(inkwell::AddressSpace::default());
+                    let fn_type = ret_ptr_type.fn_type(&llvm_param_types, false);
 
                     let function = self.ctx.module.add_function(&ctor_name, fn_type, None);
 
@@ -246,18 +247,31 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     let basic_block = self.ctx.context.append_basic_block(function, "entry");
                     self.ctx.builder.position_at_end(basic_block);
 
-                    // 1. Alloca Enum (Local)
-                    let alloca = self
+                    // 1. Malloc Enum (Heap) 而不是 Alloca，以便返回指针
+                    let size = enum_type.size_of().unwrap();
+                    let malloc = self.ctx.module.get_function("malloc").unwrap();
+                    let malloc_call = self
                         .ctx
                         .builder
-                        .build_alloca(enum_type, "enum_instance")
+                        .build_call(malloc, &[size.into()], "malloc_enum")
                         .unwrap();
+                    let raw_ptr = malloc_call
+                        .try_as_basic_value()
+                        .left()
+                        .unwrap()
+                        .into_pointer_value();
+                    let enum_ptr = self
+                        .ctx
+                        .builder
+                        .build_bitcast(raw_ptr, ret_ptr_type, "enum_ptr")
+                        .unwrap()
+                        .into_pointer_value();
 
                     // 2. Store Tag
                     let tag_ptr = self
                         .ctx
                         .builder
-                        .build_struct_gep(enum_type, alloca, 0, "tag_ptr")
+                        .build_struct_gep(enum_type, enum_ptr, 0, "tag_ptr")
                         .unwrap();
                     let tag_val = self.ctx.context.i64_type().const_int(tag_idx as u64, false);
                     self.ctx.builder.build_store(tag_ptr, tag_val).unwrap();
@@ -268,7 +282,7 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         let payload_arr_ptr = self
                             .ctx
                             .builder
-                            .build_struct_gep(enum_type, alloca, 1, "payload_arr_ptr")
+                            .build_struct_gep(enum_type, enum_ptr, 1, "payload_arr_ptr")
                             .unwrap();
 
                         // Create Variant Struct Type for casting
@@ -307,13 +321,8 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         }
                     }
 
-                    // 4. Load and Return
-                    let ret_val = self
-                        .ctx
-                        .builder
-                        .build_load(enum_type, alloca, "ret_val")
-                        .unwrap();
-                    self.ctx.builder.build_return(Some(&ret_val)).unwrap();
+                    // 4. Return Pointer (不再 load)
+                    self.ctx.builder.build_return(Some(&enum_ptr)).unwrap();
                 }
             }
         }

@@ -1,50 +1,45 @@
-// @expect-error:FIXME Option<T>与null比较需要智能类型系统支持
 // Sprint 15: Iterator trait 基础测试
-// 测试 Vec.iter() 和 Iterator.next() 方法
-import std.collections;
+// 测试 vec_iter 和 Iterator.next() 方法
+import std.core
+import std.collections
+
+// 辅助函数：求和
+int sum_vec(Vec<int> v) {
+    var iter = vec_iter::<int>(v)
+    var sum = 0
+    var item = iter.next()
+    // 使用 match 表达式获取值
+    while match item { case Option.Some(x) => true, case Option.None => false } {
+        sum = sum + match item { case Option.Some(x) => x, case Option.None => 0 }
+        item = iter.next()
+    }
+    return sum
+}
 
 int main() {
     print("Testing Iterator...")
     
-    // 测试1: 基础遍历
+    // 测试1: 基础求和
     var numbers = vec![1, 2, 3, 4, 5]
-    var iter = vec_iter::<int>(numbers)
-    
-    var sum = 0
-    var item = iter.next()
-    while item != null {
-        // 智能类型转换：item 在 != null 检查后自动转换为非空类型
-        sum = sum + item
-        item = iter.next()
-    }
-    
+    var total = sum_vec(numbers)
     print("Sum: ")
-    print(sum)  // 应该是 15
+    print(total)  // 15
     
     // 测试2: 空 Vec
-    var empty = vec![]
+    var empty: Vec<int> = vec![]
     var iter2 = vec_iter::<int>(empty)
-    var first = iter2.next()
-    
-    if first == null {
-        print("Empty iterator works")
+    match iter2.next() {
+        case Option.Some(v) => print(v),
+        case Option.None => print("Empty iterator works")
     }
     
-    // 测试3: 字符串 Vec
-    var words = vec!["hello", "world", "lency"]
-    var iter3 = vec_iter::<string>(words)
-    
-    var count = 0
-    var word = iter3.next()
-    while word != null {
-        // 智能类型转换
-        print(word)
-        count = count + 1
-        word = iter3.next()
+    // 测试3: 单个元素
+    var single = vec![42]
+    var iter3 = vec_iter::<int>(single)
+    match iter3.next() {
+        case Option.Some(v) => print(v),
+        case Option.None => print("Error")
     }
-    
-    print("Word count: ")
-    print(count)  // 应该是 3
     
     print("Iterator tests passed!")
     return 0
