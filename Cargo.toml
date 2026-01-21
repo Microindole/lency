@@ -15,6 +15,7 @@ members = [
 
 # 【关键】统一依赖版本管理
 # 子 crate 使用时只需要写 dependencies.xxx = { workspace = true }
+
 [workspace.dependencies]
 # --- 1. 命令行与工具 ---
 clap = { version = "4.5", features = ["derive"] }  # 命令行参数解析
@@ -43,3 +44,13 @@ lency_sema = { path = "crates/lency_sema" }
 lency_monomorph = { path = "crates/lency_monomorph" }
 lency_codegen = { path = "crates/lency_codegen" }
 lency_runtime = { path = "crates/lency_runtime" }
+
+# 解决 macOS 链接器符号名过长问题
+[profile.dev]
+debug = 1  # 只保留行号信息，大幅减少符号长度
+split-debuginfo = "unpacked"
+opt-level = 0  # 保持快速编译
+
+[profile.test]
+debug = 1  # 测试时也使用相同设置
+split-debuginfo = "unpacked"
