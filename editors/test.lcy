@@ -1,0 +1,36 @@
+// Premium V3 高亮与缩进测试文件 (.lcy)
+
+// #region Core System
+struct Box<T> {
+    T value
+}
+
+trait Hash {
+    int hash()
+}
+
+impl<T> Box<T> {
+    T get() {
+        return this.value
+    }
+}
+// #endregion
+
+void main() {
+    var count = 10
+    var message = "Hello\nLency\u0021" // 转义字符测试
+
+    // 测试自动缩进：
+    // 如果你在下面这个大括号后面按回车，它应该会自动增加缩进。
+    if count > 5 {
+        print(message)
+        // 在这里按回车，也会保持缩进。
+    }
+
+    // 泛型调用测试
+    var b = Box<int> { value: 42 }
+    var val = b.get()
+
+    // 成员访问高亮测试
+    print(int_to_string(b.value))
+}

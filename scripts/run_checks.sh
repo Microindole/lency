@@ -32,6 +32,7 @@ RUN_TEST=true
 RUN_LCY_TEST=true
 RUN_FILE_SIZE=true
 RUN_TODO=true
+RUN_EDITOR=true
 
 # Parse Arguments
 while [[ "$#" -gt 0 ]]; do
@@ -150,6 +151,17 @@ else
    print_error "Quality check"
    echo -e "${YELLOW}Please remove banned patterns (unwrap/println) or add exemptions.${NC}"
    exit 1
+fi
+
+# 8. Editor Extension Check
+if [ "$RUN_EDITOR" = true ]; then
+    print_step "Checking Editor Extension"
+    if bash scripts/check_editor.sh; then
+        print_success "Editor extension check"
+    else
+        print_error "Editor extension check"
+        exit 1
+    fi
 fi
 
 echo -e "\n${BLUE}===================================${NC}"

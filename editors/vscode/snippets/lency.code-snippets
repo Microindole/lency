@@ -1,0 +1,83 @@
+{
+    "Main Function": {
+        "prefix": "main",
+        "body": [
+            "void main() {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "Lency main function"
+    },
+    "If Statement": {
+        "prefix": "if",
+        "body": [
+            "if ${1:condition} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "If statement"
+    },
+    "If-Else Statement": {
+        "prefix": "else",
+        "body": [
+            "else {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "Else block"
+    },
+    "While Loop": {
+        "prefix": "while",
+        "body": [
+            "while ${1:condition} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "While loop"
+    },
+    "For Loop": {
+        "prefix": "for",
+        "body": [
+            "for ${1:i} in ${2:0..10} {",
+            "    ${0}",
+            "}"
+        ],
+        "description": "For loop"
+    },
+    "Struct Definition": {
+        "prefix": "struct",
+        "body": [
+            "struct ${1:Name} {",
+            "    ${2:field}: ${3:type}",
+            "}"
+        ],
+        "description": "Struct definition"
+    },
+    "Impl Block": {
+        "prefix": "impl",
+        "body": [
+            "impl ${1:Name} {",
+            "    ${2:void} ${3:method}() {",
+            "        ${0}",
+            "    }",
+            "}"
+        ],
+        "description": "Implementation block"
+    },
+    "Trait Definition": {
+        "prefix": "trait",
+        "body": [
+            "trait ${1:Name} {",
+            "    ${2:void} ${3:method}()",
+            "}"
+        ],
+        "description": "Trait definition"
+    },
+    "Print": {
+        "prefix": "print",
+        "body": [
+            "print(${1:\"message\"})"
+        ],
+        "description": "Print to console"
+    }
+}

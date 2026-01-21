@@ -1,0 +1,11 @@
+# VS Code 扩展开发忽略文件
+node_modules/
+out/
+dist/
+*.vsix
+.DS_Store
+*.log
+
+# 保留开发用的 IDE 配置
+!.vscode/launch.json
+!.vscode/tasks.json

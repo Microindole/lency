@@ -1,0 +1,217 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Lency",
+    "scopeName": "source.lcy",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#definitions"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#operators"
+        },
+        {
+            "include": "#member_access"
+        },
+        {
+            "include": "#generics"
+        },
+        {
+            "include": "#functions"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.lcy",
+                    "begin": "//",
+                    "end": "$"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.lcy",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.lcy",
+                            "match": "\\\\([\"\\\\bnfrt]|u[a-fA-F0-9]{4}|0)"
+                        }
+                    ]
+                }
+            ]
+        },
+        "definitions": {
+            "patterns": [
+                {
+                    "match": "\\b(struct|trait|enum|impl)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.other.lcy"
+                        },
+                        "2": {
+                            "name": "entity.name.type.lcy"
+                        }
+                    }
+                },
+                {
+                    "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+                    "captures": {
+                        "1": {
+                            "name": "support.type.primitive.lcy"
+                        },
+                        "2": {
+                            "name": "entity.name.function.lcy"
+                        }
+                    },
+                    "comment": "C-style function definition: type name()"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.lcy",
+                    "match": "\\b(if|else|while|for|in|break|continue|return|import|extern|match|case|as)\\b"
+                },
+                {
+                    "name": "keyword.other.lcy",
+                    "match": "\\b(var|const|struct|impl|trait|enum|vec)\\b"
+                },
+                {
+                    "name": "constant.language.lcy",
+                    "match": "\\b(true|false|null|Ok|Err)\\b"
+                },
+                {
+                    "name": "variable.language.this.lcy",
+                    "match": "\\bthis\\b"
+                },
+                {
+                    "name": "support.function.lcy",
+                    "match": "\\b(print|read_file|write_file|len|trim|split|join|substr|char_to_string|assert|assert_eq|assert_true|int_to_string|parse_int)\\b"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "name": "support.type.primitive.lcy",
+                    "match": "\\b(int|float|bool|string|void)\\b"
+                },
+                {
+                    "name": "entity.name.type.lcy",
+                    "match": "\\b[A-Z][a-zA-Z0-9_]*\\b",
+                    "comment": "Capitalized names are likely types/structs"
+                }
+            ]
+        },
+        "generics": {
+            "begin": "<",
+            "end": ">",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.parameters.begin.lcy"
+                }
+            },
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.parameters.end.lcy"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#types"
+                },
+                {
+                    "match": ",",
+                    "name": "punctuation.separator.lcy"
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.float.lcy",
+                    "match": "\\b-?[0-9]+\\.[0-9]+\\b"
+                },
+                {
+                    "name": "constant.numeric.integer.lcy",
+                    "match": "\\b-?[0-9]+\\b"
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.logical.lcy",
+                    "match": "(&&|\\|\\||!)"
+                },
+                {
+                    "name": "keyword.operator.comparison.lcy",
+                    "match": "(==|!=|<=|>=|<|>)"
+                },
+                {
+                    "name": "keyword.operator.assignment.lcy",
+                    "match": "="
+                },
+                {
+                    "name": "keyword.operator.arithmetic.lcy",
+                    "match": "(\\+|\\-|\\*|/|%)"
+                },
+                {
+                    "name": "keyword.operator.null-safety.lcy",
+                    "match": "(\\?\\.|\\?\\?|\\?)"
+                },
+                {
+                    "name": "keyword.operator.control.lcy",
+                    "match": "(=>|\\.\\.)"
+                }
+            ]
+        },
+        "member_access": {
+            "patterns": [
+                {
+                    "match": "(\\.)([a-zA-Z_][a-zA-Z0-9_]*)",
+                    "captures": {
+                        "1": {
+                            "name": "punctuation.accessor.lcy"
+                        },
+                        "2": {
+                            "name": "variable.other.member.lcy"
+                        }
+                    }
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*\\(",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.function.lcy"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

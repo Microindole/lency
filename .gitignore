@@ -5,6 +5,7 @@ target/
 # 2. IDE 配置
 .idea/
 .vscode/
+!editors/vscode/.vscode/
 *.iml
 *.swp
 .DS_Store
