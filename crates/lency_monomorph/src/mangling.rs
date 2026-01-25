@@ -8,7 +8,29 @@
 
 use lency_syntax::ast::Type;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 pub fn mangle_type(ty: &Type) -> String {
+    let mangled = mangle_type_internal(ty);
+
+    // macOS ld64 has strict symbol name length limits. Using aggressive 32 char threshold
+    // with 16 char prefix ensures final name (~32 chars) leaves ample room for method names.
+    if mangled.len() > 32 {
+        let mut hasher = DefaultHasher::new();
+        mangled.hash(&mut hasher);
+        let hash = hasher.finish();
+
+        // Take first 16 chars to keep some readability
+        let prefix: String = mangled.chars().take(16).collect();
+
+        format!("{}_{:x}", prefix, hash)
+    } else {
+        mangled
+    }
+}
+
+fn mangle_type_internal(ty: &Type) -> String {
     match ty {
         Type::Int => "int".to_string(),
         Type::Float => "float".to_string(),
@@ -58,5 +80,50 @@ pub fn mangle_type(ty: &Type) -> String {
         }
 
         Type::Error => "Error".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mangle_basic() {
+        assert_eq!(mangle_type(&Type::Int), "int");
+        assert_eq!(mangle_type(&Type::Struct("MyStruct".into())), "MyStruct");
+    }
+
+    #[test]
+    fn test_mangle_nested_short() {
+        let ty = Type::Generic("Box".into(), vec![Type::Int]);
+        assert_eq!(mangle_type(&ty), "Box__int");
+    }
+
+    #[test]
+    fn test_mangle_long_truncation() {
+        // Construct a deeply nested type to produce a long string
+        let mut ty = Type::Int;
+        for _ in 0..20 {
+            ty = Type::Vec(Box::new(ty));
+        }
+        // Original without hash would be Vec__Vec__....__int
+        // "Vec__".len() is 5. 20 times is 100 chars. > 48.
+
+        let mangled = mangle_type(&ty);
+        // 16 (prefix) + 1 ("_") + 16 (hex) = 33 chars max
+        assert!(mangled.len() <= 34);
+        assert!(mangled.contains("_"));
+    }
+
+    #[test]
+    fn test_mangle_deterministic() {
+        let mut ty = Type::Int;
+        for _ in 0..20 {
+            ty = Type::Vec(Box::new(ty));
+        }
+
+        let m1 = mangle_type(&ty);
+        let m2 = mangle_type(&ty);
+        assert_eq!(m1, m2);
     }
 }

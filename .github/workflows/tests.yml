@@ -71,6 +71,8 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     env:
       LLVM_SYS_150_PREFIX: /opt/homebrew/opt/llvm@15
+      # Use Rust v0 symbol mangling to avoid macOS ld64 symbol name length bug
+      RUSTFLAGS: "-C symbol-mangling-version=v0"
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
@@ -80,35 +82,19 @@ jobs:
       - name: Build & Test
         run: cargo test --verbose
 
-  # 5. Windows Check
-  windows-check:
-    name: Windows Test
-    runs-on: windows-latest
-    continue-on-error: true
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install LLVM
-        run: |
-          choco install llvm --version=15.0.7 -y --force
-          echo "LLVM_SYS_150_PREFIX=C:\Program Files\LLVM" >> $env:GITHUB_ENV
-        shell: pwsh
-      
-      - uses: dtolnay/rust-toolchain@stable
-      
-      - uses: Swatinem/rust-cache@v2
-      
-      - name: Verify LLVM Installation
-        run: |
-          echo "LLVM_SYS_150_PREFIX=$env:LLVM_SYS_150_PREFIX"
-          if (Test-Path "$env:LLVM_SYS_150_PREFIX\bin\llvm-config.exe") {
-            & "$env:LLVM_SYS_150_PREFIX\bin\llvm-config.exe" --version
-          } else {
-            echo "Warning: llvm-config.exe not found"
-          }
-        shell: pwsh
-      
-      - name: Build & Test
-        run: cargo test --verbose
-        shell: pwsh
+  # 5. Windows Check (暂时禁用 - llvm-sys 在 Windows 上配置复杂)
+  # windows-check:
+  #   name: Windows Test
+  #   runs-on: windows-latest
+  #   continue-on-error: true
+  #   if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+  #   env:
+  #     LLVM_SYS_150_PREFIX: C:\Program Files\LLVM
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Install LLVM via Chocolatey
+  #       run: choco install llvm --version=15.0.7 --force -y
+  #     - uses: dtolnay/rust-toolchain@stable
+  #     - uses: Swatinem/rust-cache@v2
+  #     - name: Build & Test
+  #       run: cargo test --verbose

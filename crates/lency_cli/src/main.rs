@@ -18,8 +18,8 @@ enum Commands {
         /// 输入文件
         input: String,
 
-        /// 输出文件 (默认: a.ll)
-        #[arg(short, long, default_value = "a.ll")]
+        /// 输出文件 (默认: lencyTemp.ll)
+        #[arg(short, long, default_value = "lencyTemp.ll")]
         output: String,
     },
 
@@ -40,8 +40,8 @@ enum Commands {
         /// 输入文件
         input: String,
 
-        /// 输出文件 (默认: a.out)
-        #[arg(short, long, default_value = "a.out")]
+        /// 输出文件 (默认: lencyTemp.out)
+        #[arg(short, long, default_value = "lencyTemp.out")]
         output: String,
     },
 }
