@@ -18,8 +18,10 @@ target/
 tmp/
 *.log
 
-# 5. LLVM
-*.ll
+# 5. Root Temporary Files
+/*.rs
+/*.lcy
+/*.ll
 
 # 6. test
 

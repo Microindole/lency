@@ -37,6 +37,8 @@ pub struct Diagnostic {
     pub level: DiagnosticLevel,
     /// 主要消息
     pub message: String,
+    /// 源文件路径（可选）
+    pub file_path: Option<String>,
     /// 源码位置（可选）
     pub span: Option<Span>,
     /// 补充注释
@@ -51,6 +53,7 @@ impl Diagnostic {
         Self {
             level,
             message: message.into(),
+            file_path: None,
             span: None,
             notes: Vec::new(),
             suggestions: Vec::new(),
@@ -75,6 +78,12 @@ impl Diagnostic {
     /// 创建注释诊断
     pub fn note(message: impl Into<String>) -> Self {
         Self::new(DiagnosticLevel::Note, message)
+    }
+
+    /// 设置文件路径
+    pub fn with_file(mut self, path: impl Into<String>) -> Self {
+        self.file_path = Some(path.into());
+        self
     }
 
     /// 设置位置信息

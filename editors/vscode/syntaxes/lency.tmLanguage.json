@@ -98,7 +98,7 @@
                 },
                 {
                     "name": "constant.language.lcy",
-                    "match": "\\b(true|false|null|Ok|Err)\\b"
+                    "match": "\\b(true|false|null|Ok|Err|Result|Option)\\b"
                 },
                 {
                     "name": "variable.language.this.lcy",

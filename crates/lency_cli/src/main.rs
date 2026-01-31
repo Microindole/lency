@@ -63,7 +63,14 @@ fn main() -> Result<()> {
 fn cmd_compile(input: &str, output: &str) -> Result<()> {
     println!("📦 编译 {} ...", input);
 
-    let result = compile_file(input)?;
+    let source = fs::read_to_string(input)?;
+    let result = match lency_driver::compile(&source) {
+        Ok(res) => res,
+        Err(e) => {
+            e.emit(Some(input), Some(&source));
+            std::process::exit(1);
+        }
+    };
 
     fs::write(output, result.ir)?;
     println!("✅ 成功生成 {}", output);
@@ -133,13 +140,14 @@ fn cmd_run(input: &str) -> Result<()> {
 fn cmd_check(input: &str) -> Result<()> {
     println!("🔍 检查 {} ...", input);
 
-    match compile_file(input) {
+    let source = fs::read_to_string(input)?;
+    match lency_driver::compile(&source) {
         Ok(_) => {
             println!("✅ 无错误");
             Ok(())
         }
         Err(e) => {
-            eprintln!("❌ 发现错误:\n{}", e);
+            e.emit(Some(input), Some(&source));
             std::process::exit(1);
         }
     }

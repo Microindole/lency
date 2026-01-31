@@ -34,5 +34,11 @@ description: 项目节奏控制与质量门禁。
 - [ ] 所有新增加的 `.lcy` 测试是否已在 `run_lcy_tests.sh` 中注册或扫描？
 - [ ] `FIXME` 数量是否通过代码提交有所减少？
 
+## 6. 自我演进协议 (Self-Evolution)
+作为 Agent，你拥有**持续优化此技能系统**的义务：
+- **坑位捕获**: 发现新的技术陷阱或 Bug 根源时，立即更新对应 Crate 的 `Pitfalls`。
+- **模式提取**: 成功执行复杂任务后，将其抽象为可复用的 `Recipe` (菜谱)。
+- **规范修正**: 若发现现有规范与最新自举进度冲突，报请用户批准后更新。
+
 ---
 [Sprint 计划](./resources/plan_15.md) | [进度表](./resources/status.md)

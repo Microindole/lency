@@ -149,7 +149,7 @@ impl<'a> TypeInferer<'a> {
                         // 检查是否为内置方法
                         match name.as_str() {
                             "is_ok" | "is_err" => return Ok(Type::Bool),
-                            "unwrap_or" => return Ok((**ok_type).clone()),
+                            "unwrap" | "expect" | "unwrap_or" => return Ok((**ok_type).clone()),
                             _ => Some("Result".to_string()),
                         }
                     }

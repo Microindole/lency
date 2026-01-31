@@ -1,4 +1,12 @@
 import * as vscode from 'vscode';
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    ServerOptions,
+    TransportKind
+} from 'vscode-languageclient/node';
+
+let client: LanguageClient;
 
 /**
  * Lency 语言内置文档定义
@@ -23,6 +31,29 @@ const BUILTIN_DOCS: { [key: string]: string } = {
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Lency Professional V6+ extension is now active!');
+
+    // LSP Server 设置
+    const serverPath = context.asAbsolutePath('../../target/debug/lency_ls');
+    const serverOptions: ServerOptions = {
+        run: { command: serverPath, transport: TransportKind.stdio },
+        debug: { command: serverPath, transport: TransportKind.stdio }
+    };
+
+    const clientOptions: LanguageClientOptions = {
+        documentSelector: [{ scheme: 'file', language: 'lency' }],
+        synchronize: {
+            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.lcy')
+        }
+    };
+
+    client = new LanguageClient(
+        'lencyLanguageServer',
+        'Lency Language Server',
+        serverOptions,
+        clientOptions
+    );
+
+    client.start();
 
     const selector: vscode.DocumentSelector = { language: 'lency' };
 
@@ -292,4 +323,9 @@ class LencyRenameProvider implements vscode.RenameProvider {
     }
 }
 
-export function deactivate() { }
+export function deactivate(): Thenable<void> | undefined {
+    if (!client) {
+        return undefined;
+    }
+    return client.stop();
+}

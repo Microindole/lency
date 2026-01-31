@@ -16,27 +16,29 @@
 - **无分号**：使用 `{}` 结构，行尾无 `;`。
 - **显式优先**：禁止隐式类型转换和复杂的推理。
 
-## 目录结构
-```bash
-crates/          # Rust 编译器组件 (Syntax, Sema, Codegen, Runtime)
-prompt/          # Agent 职能与技能中心 (Skill Hub)
-  skills/        # 模块化技能定义 (Architect, Management, Compiler, Tooling)
-assets/          # 语言蓝图与设计规范 (Blueprints)
+crates/          # 编译器内核 (Rust)
+prompt/          # Agent 职能中心
+  context.md     # 🚀 入口：项目地图与注意力协议
+  sprint/        # 🏃 战术层：当前状态与计划 (status.md)
+  skills/        # 🛠️ 工具层：模块化 SOP (Surgical Skills)
+assets/          # 🏛️ 战略层：语言规范与设计哲学 (规范、蓝图)
 lib/             # Lency 标准库 (.lcy)
 tests/           # 集成测试集
 scripts/         # 自动化检查与开发工具
 editors/         # IDE 插件与工具链
 ```
 
-## 关键工作流
-1. **开发**：遵循对应项目的 `SKILL.md` 规范。
-2. **验证**：运行 `./scripts/run_checks.sh --fast`。
-3. **交付**：及时更新 `prompt/skills/management/resources/status.md`。
+1. **启动**：优先阅读 `prompt/context.md` 获取地图。
+2. **同步**：阅读 `prompt/sprint/status.md` 确定当前战术目标。
+3. **执行**：按需加载 `prompt/skills/` 下的子技能。
+4. **验证**：运行 `./scripts/run_checks.sh --fast`。
+5. **交付**：及时更新 `prompt/sprint/status.md`。
 
 ## 当前编译器状态
 - ✅ 基础语法、泛型、Null安全、Enum、Vec、HashMap、Iterator
 - ✅ 统一诊断系统 (lency_diagnostics)
-- ⚠️ Result/Option 方法（正在补全）、panic 机制（待实现）
+- ✅ Result/Option 方法全量支持 (is_ok, unwrap, unwrap_or, expect等)
+- ⚠️ panic 机制（待强化，目前支持基础 exit(1)）
 
 ---
 详细设计参考: [design_spec.md](../assets/design_spec.md), [Lency.txt](../assets/Lency.txt)

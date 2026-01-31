@@ -33,35 +33,49 @@ pub enum CompileError {
 
 impl CompileError {
     /// 转换为诊断列表并收集到 DiagnosticSink
-    pub fn collect_to_sink(&self, sink: &mut DiagnosticSink) {
+    pub fn collect_to_sink(&self, sink: &mut DiagnosticSink, file_path: Option<&str>) {
+        let mut add_diag = |diag: Diagnostic| {
+            if let Some(path) = file_path {
+                sink.add(diag.with_file(path));
+            } else {
+                sink.add(diag);
+            }
+        };
+
         match self {
             CompileError::LexError(msg) => {
-                sink.add(Diagnostic::error(format!("Lexical error: {}", msg)));
+                add_diag(Diagnostic::error(format!("Lexical error: {}", msg)));
             }
             CompileError::ParseError(msg) => {
-                sink.add(Diagnostic::error(format!("Parse error: {}", msg)));
+                add_diag(Diagnostic::error(format!("Parse error: {}", msg)));
             }
             CompileError::SemanticErrors(errors) => {
                 for err in errors {
-                    sink.add(err.to_diagnostic());
+                    add_diag(err.to_diagnostic());
                 }
             }
             CompileError::CodegenError(err) => {
-                sink.add(err.to_diagnostic());
+                add_diag(err.to_diagnostic());
             }
             CompileError::IoError(err) => {
-                sink.add(Diagnostic::error(format!("IO error: {}", err)));
+                add_diag(Diagnostic::error(format!("IO error: {}", err)));
             }
         }
     }
 
     /// 使用统一诊断系统输出错误
-    pub fn emit(&self) {
+    pub fn emit(&self, file_path: Option<&str>, source: Option<&str>) {
         let mut sink = DiagnosticSink::new();
-        self.collect_to_sink(&mut sink);
+        self.collect_to_sink(&mut sink, file_path);
 
         let emitter = Emitter::new();
-        emitter.emit_all(sink.diagnostics());
+        if let Some(src) = source {
+            for diag in sink.diagnostics() {
+                emitter.emit_with_source(diag, src);
+            }
+        } else {
+            emitter.emit_all(sink.diagnostics());
+        }
     }
 }
 

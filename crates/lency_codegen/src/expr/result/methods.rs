@@ -115,6 +115,91 @@ pub fn gen_result_builtin_method<'ctx>(
                 ty: ok_type.clone(),
             }))
         }
+        "unwrap" | "expect" => {
+            if method_name == "unwrap" && !args.is_empty() {
+                return Ok(None);
+            }
+            if method_name == "expect" && args.len() != 1 {
+                return Ok(None);
+            }
+
+            // 1. 读取 is_ok
+            let is_ok_ptr = ctx
+                .builder
+                .build_struct_gep(struct_type, result_ptr, 0, "is_ok_ptr")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            let is_ok = ctx
+                .builder
+                .build_load(ctx.context.bool_type(), is_ok_ptr, "is_ok")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?
+                .into_int_value();
+
+            // 2. 基本块分支
+            let func = ctx
+                .builder
+                .get_insert_block()
+                .unwrap()
+                .get_parent()
+                .unwrap();
+            let success_bb = ctx
+                .context
+                .append_basic_block(func, "result_unwrap_success");
+            let error_bb = ctx.context.append_basic_block(func, "result_unwrap_error");
+            let merge_bb = ctx.context.append_basic_block(func, "result_unwrap_merge");
+
+            ctx.builder
+                .build_conditional_branch(is_ok, success_bb, error_bb)
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+            // 3. Success 分支：加载 ok_value
+            ctx.builder.position_at_end(success_bb);
+            let ok_llvm_type = crate::types::ToLLVMType::to_llvm_type(ok_type, ctx)?;
+            let ok_val_ptr = ctx
+                .builder
+                .build_struct_gep(struct_type, result_ptr, 1, "ok_val_ptr")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            let ok_val = ctx
+                .builder
+                .build_load(ok_llvm_type, ok_val_ptr, "ok_val")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            ctx.builder
+                .build_unconditional_branch(merge_bb)
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+
+            // 4. Error 分支：Panic
+            ctx.builder.position_at_end(error_bb);
+            if let Some(panic_func) = ctx.panic_func {
+                let panic_msg = if method_name == "expect" {
+                    // let _msg_expr = generate_expr(ctx, locals, &args[0])?;
+                    "Result::expect failed"
+                } else {
+                    "Result::unwrap called on an Err value"
+                };
+
+                crate::runtime::gen_panic(
+                    ctx.context,
+                    &ctx.builder,
+                    panic_func,
+                    panic_msg,
+                    0, // 暂时不传 line
+                );
+            } else {
+                ctx.builder.build_unreachable().unwrap();
+            }
+
+            // 5. Merge 分支：Phi
+            ctx.builder.position_at_end(merge_bb);
+            let phi = ctx
+                .builder
+                .build_phi(ok_llvm_type, "unwrap_res")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            phi.add_incoming(&[(&ok_val, success_bb)]);
+
+            Ok(Some(CodegenValue {
+                value: phi.as_basic_value(),
+                ty: ok_type.clone(),
+            }))
+        }
         _ => Ok(None), // 未知方法，fallback 到编译方法
     }
 }

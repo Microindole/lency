@@ -1,20 +1,7 @@
-// Sprint 15: Result<T,E> 方法测试 (简化版)
-// 测试为内置Result添加方法
-
+// Sprint 15: Result<T,E> 方法测试
 struct Error {
     string message
 }
-
-// 定义 Result 方法 (假设 Result<T,E> 已经是内置类型)
-// TODO: 这个方法需要在标准库或编译器中内置支持
-//  impl<T, E> Result<T, E> {
-//     bool is_ok() {
-//         match this {
-//             case Result.Ok(_) => return true,
-//             case Result.Err(_) => return false
-//         }
-//     }
-//  }
 
 // 返回 Result<int, Error> 的函数
 int! divide(int a, int b) {
@@ -25,17 +12,26 @@ int! divide(int a, int b) {
 }
 
 int main() {
-    // 基础测试：验证Result类型工作
     var res1 = divide(10, 2)
     var res2 = divide(10, 0)
-    
-    // TODO: 当Result方法可用时，添加这些测试：
-    // if res1.is_ok() {
-    //     print("Test 1: OK (expected)\n")
-    // }
-    // var val1 = res1.unwrap_or(999)
-    // print(val1)
-    
-    print("Basic Result type test passed\n")
+
+    if res1.is_ok() {
+        print("Test 1: OK (expected)\n")
+    }
+    if res2.is_err() {
+        print("Test 2: Err (expected)\n")
+    }
+
+    var val1 = res1.unwrap()
+    if val1 == 5 {
+        print("Test 3: unwrap(ok) passed\n")
+    }
+
+    var val2 = res2.unwrap_or(999)
+    if val2 == 999 {
+        print("Test 4: unwrap_or(err) passed\n")
+    }
+
+    print("All Result method tests passed\n")
     return 0
 }

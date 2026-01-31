@@ -16,41 +16,34 @@
 - [x] `char_to_string` intrinsic
 - [x] 修复 Struct/Enum 返回类型 codegen 问题
 - [x] `to_upper`/`to_lower`/`reverse` 字符串函数
+- [x] Result<T,E> 方法 (`is_ok`, `is_err`, `unwrap`, `unwrap_or`, `expect`)
+- [x] Option<T> 方法 (`is_some`, `is_none`, `unwrap`, `unwrap_or`)
 
 ### 待完成
-- [ ] Result<T,E> 方法 (`is_ok`, `is_err`, `unwrap`, `unwrap_or`)
-- [ ] panic 机制
+- [ ] panic 机制强化 (当前仅基础 exit)
 - [ ] String 格式化
 
 ---
 
 ## 下一步计划
 
-### 优先级 1: Result 方法支持
-**目标**: 实现 `Result.is_ok()`, `Result.unwrap()` 等方法
-**涉及文件**:
-- `lib/std/result.lcy` — 添加方法定义
-- `lib/std/io.lcy` — 使用 Result 方法
-- 可能需要编译器支持方法调用
-
-### 优先级 2: panic 机制
-**目标**: 实现程序终止机制
+### 优先级 1: panic 强化
+**目标**: 实现更友好的 `panic` 信息打印
 **方案**:
-- 添加 `panic(string)` intrinsic
-- 调用 C runtime `exit(1)`
+- 完善 `gen_panic` 以支持动态消息
+- 将 `expect` 的消息传递给运行时
 
-### 优先级 3: 代码质量
-- 移除 `lib.rs:218` 的 `println!`
-- 重构超过 300 行的文件
+### 优先级 2: String 格式化
+**目标**: 实现 `print("{}: {}", name, value)`
 
 ---
 
 ## 统计
 | 指标 | 值 |
 |------|-----|
-| 测试通过 | 57 |
-| FIXME | 7 |
-| TODO | 11 |
-| 自举准备度 | ~60% |
+| 测试通过 | 58 |
+| FIXME | 3 |
+| TODO | 12 |
+| 自举准备度 | ~65% |
 
-*更新时间: 2026-01-21*
+*更新时间: 2026-01-31*

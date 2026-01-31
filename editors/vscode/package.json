@@ -15,6 +15,9 @@
     "categories": [
         "Programming Languages"
     ],
+    "dependencies": {
+        "vscode-languageclient": "^8.0.2"
+    },
     "devDependencies": {
         "@types/vscode": "^1.75.0",
         "@types/node": "^16.0.0",
@@ -56,11 +59,11 @@
                     "${workspaceFolder}"
                 ],
                 "pattern": {
-                    "regexp": "^(?:error|warning):\\s+(.*):(\\d+):(\\d+):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "message": 4
+                    "regexp": "^(error|warning):\\s+(.*):(\\d+):(\\d+):\\s+(.*)$",
+                    "file": 2,
+                    "line": 3,
+                    "column": 4,
+                    "message": 5
                 }
             }
         ]

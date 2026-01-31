@@ -31,9 +31,18 @@ impl Emitter {
     /// 输出单个诊断
     pub fn emit(&self, diagnostic: &Diagnostic) {
         if self.use_colors {
-            self.emit_colored(diagnostic);
+            self.emit_colored(diagnostic, None);
         } else {
-            self.emit_plain(diagnostic);
+            self.emit_plain(diagnostic, None);
+        }
+    }
+
+    /// 输出带源文件的诊断（支持 line:col）
+    pub fn emit_with_source(&self, diagnostic: &Diagnostic, source: &str) {
+        if self.use_colors {
+            self.emit_colored(diagnostic, Some(source));
+        } else {
+            self.emit_plain(diagnostic, Some(source));
         }
     }
 
@@ -46,7 +55,7 @@ impl Emitter {
     }
 
     /// 输出带颜色的诊断
-    fn emit_colored(&self, diagnostic: &Diagnostic) {
+    fn emit_colored(&self, diagnostic: &Diagnostic, source: Option<&str>) {
         // 级别和消息
         println!(
             "{}: {}",
@@ -56,7 +65,19 @@ impl Emitter {
 
         // 位置信息（如果有）
         if let Some(span) = &diagnostic.span {
-            println!("  {} {:?}", "-->".blue().bold(), span);
+            if let (Some(src), Some(file)) = (source, &diagnostic.file_path) {
+                let (line, col) = resolve_line_col(src, span.start);
+                println!(
+                    "  {} {}:{}:{}:{:?}",
+                    "-->".blue().bold(),
+                    file,
+                    line,
+                    col,
+                    span
+                );
+            } else {
+                println!("  {} {:?}", "-->".blue().bold(), span);
+            }
         }
 
         // 注释
@@ -82,11 +103,20 @@ impl Emitter {
     }
 
     /// 输出纯文本诊断
-    fn emit_plain(&self, diagnostic: &Diagnostic) {
-        // 级别和消息
-        println!("{}: {}", diagnostic.level, diagnostic.message);
+    fn emit_plain(&self, diagnostic: &Diagnostic, source: Option<&str>) {
+        // 标准格式: error: file:line:col: message
+        let pos = if let (Some(span), Some(src), Some(file)) =
+            (&diagnostic.span, source, &diagnostic.file_path)
+        {
+            let (line, col) = resolve_line_col(src, span.start);
+            format!(" {}:{}:{}:", file, line, col)
+        } else {
+            String::new()
+        };
 
-        // 位置信息（如果有）
+        println!("{}:{} {}", diagnostic.level, pos, diagnostic.message);
+
+        // 详细位置信息
         if let Some(span) = &diagnostic.span {
             println!("  --> {:?}", span);
         }
@@ -104,6 +134,24 @@ impl Emitter {
             }
         }
     }
+}
+
+/// 解析行列
+fn resolve_line_col(source: &str, offset: usize) -> (usize, usize) {
+    let mut line = 1;
+    let mut col = 1;
+    for (i, c) in source.char_indices() {
+        if i >= offset {
+            break;
+        }
+        if c == '\n' {
+            line += 1;
+            col = 1;
+        } else {
+            col += 1;
+        }
+    }
+    (line, col)
 }
 
 #[cfg(test)]

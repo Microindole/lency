@@ -10,7 +10,7 @@ members = [
     "crates/lency_sema",
     "crates/lency_monomorph",
     "crates/lency_codegen",
-    "crates/lency_runtime",
+    "crates/lency_runtime", "crates/lency_ls",
 ]
 
 # 【关键】统一依赖版本管理
