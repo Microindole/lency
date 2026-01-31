@@ -224,5 +224,6 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
             extern_decl,
             func,
         ))
+        .boxed()
     })
 }

@@ -84,6 +84,6 @@ pub fn pattern_parser() -> impl Parser<Token, MatchPattern, Error = ParserError>
                 }
             });
 
-        choice((wildcard, literal, ident_pat))
+        choice((wildcard, literal, ident_pat)).boxed()
     })
 }

@@ -4,9 +4,9 @@ use chumsky::prelude::*;
 
 use super::ParserError;
 
-pub fn parser(
-    unary: impl Parser<Token, Expr, Error = ParserError> + Clone,
-) -> impl Parser<Token, Expr, Error = ParserError> + Clone {
+pub fn parser<'a>(
+    unary: impl Parser<Token, Expr, Error = ParserError> + Clone + 'a,
+) -> impl Parser<Token, Expr, Error = ParserError> + Clone + 'a {
     // Product: *, /, %
     let product = unary
         .clone()
@@ -24,7 +24,8 @@ pub fn parser(
                 kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
                 span,
             }
-        });
+        })
+        .boxed();
 
     // Sum: +, -
     let sum = product
@@ -42,7 +43,8 @@ pub fn parser(
                 kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
                 span,
             }
-        });
+        })
+        .boxed();
 
     // Comparison: <, >, <=, >=, ==, !=
     let comparison = sum
@@ -64,7 +66,8 @@ pub fn parser(
                 kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
                 span,
             }
-        });
+        })
+        .boxed();
 
     // Logical And: &&
     let logical_and = comparison
@@ -81,7 +84,8 @@ pub fn parser(
                 kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
                 span,
             }
-        });
+        })
+        .boxed();
 
     // Logical Or: ||
     let logical_or = logical_and
@@ -98,7 +102,8 @@ pub fn parser(
                 kind: ExprKind::Binary(Box::new(lhs), op, Box::new(rhs)),
                 span,
             }
-        });
+        })
+        .boxed();
 
     // Elvis: ?? (Right associative)
     logical_or
@@ -113,4 +118,5 @@ pub fn parser(
                 span,
             }
         })
+        .boxed()
 }

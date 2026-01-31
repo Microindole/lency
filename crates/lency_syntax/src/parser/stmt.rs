@@ -176,5 +176,6 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParserError> + Clone {
             .or(continue_stmt)
             // 必须放在最后，作为兜底
             .or(expr_based_stmt)
+            .boxed()
     })
 }
