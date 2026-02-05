@@ -18,10 +18,10 @@
 
 crates/          # 编译器内核 (Rust)
 prompt/          # Agent 职能中心
-  context.md     # 🚀 入口：项目地图与注意力协议
-  sprint/        # 🏃 战术层：当前状态与计划 (status.md)
-  skills/        # 🛠️ 工具层：模块化 SOP (Surgical Skills)
-assets/          # 🏛️ 战略层：语言规范与设计哲学 (规范、蓝图)
+  context.md     # 入口：项目地图与注意力协议
+  sprint/        # 战术层：当前状态与计划 (status.md)
+  skills/        # 工具层：模块化 SOP (Surgical Skills)
+assets/          # 战略层：语言规范与设计哲学 (规范、蓝图)
 lib/             # Lency 标准库 (.lcy)
 tests/           # 集成测试集
 scripts/         # 自动化检查与开发工具

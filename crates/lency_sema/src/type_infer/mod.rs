@@ -147,7 +147,7 @@ pub fn is_compatible(expected: &Type, actual: &Type) -> bool {
             }
         }
 
-        // Result 兼容性
+        // Result 兼容性 (Built-in)
         (
             Type::Result {
                 ok_type: expected_ok,
@@ -159,11 +159,66 @@ pub fn is_compatible(expected: &Type, actual: &Type) -> bool {
             },
         ) => {
             // 如果 actual_ok 是 Void (来自 Err 构造器)，视为兼容
-            if matches!(**actual_ok, Type::Void) {
-                is_compatible(expected_err, actual_err)
+            let ok_compat =
+                matches!(**actual_ok, Type::Void) || is_compatible(expected_ok, actual_ok);
+            // 如果 actual_err 是 Void (来自 Ok 构造器)，视为兼容
+            let err_compat =
+                matches!(**actual_err, Type::Void) || is_compatible(expected_err, actual_err);
+            ok_compat && err_compat
+        }
+
+        // Result 兼容性 (Generic "Result")
+        (Type::Generic(name1, args1), Type::Generic(name2, args2))
+            if name1 == "Result" && name2 == "Result" =>
+        {
+            if args1.len() == 2 && args2.len() == 2 {
+                let expected_ok = &args1[0];
+                let expected_err = &args1[1];
+                let actual_ok = &args2[0];
+                let actual_err = &args2[1];
+
+                let ok_compat =
+                    matches!(actual_ok, Type::Void) || is_compatible(expected_ok, actual_ok);
+                let err_compat =
+                    matches!(actual_err, Type::Void) || is_compatible(expected_err, actual_err);
+                ok_compat && err_compat
             } else {
-                is_compatible(expected_ok, actual_ok) && is_compatible(expected_err, actual_err)
+                false
             }
+        }
+
+        // Result 兼容性 (Generic vs Built-in)
+        (
+            Type::Generic(name, args),
+            Type::Result {
+                ok_type: actual_ok,
+                err_type: actual_err,
+            },
+        ) if name == "Result" && args.len() == 2 => {
+            let expected_ok = &args[0];
+            let expected_err = &args[1];
+
+            let ok_compat =
+                matches!(**actual_ok, Type::Void) || is_compatible(expected_ok, actual_ok);
+            let err_compat =
+                matches!(**actual_err, Type::Void) || is_compatible(expected_err, actual_err);
+            ok_compat && err_compat
+        }
+        (
+            Type::Result {
+                ok_type: expected_ok,
+                err_type: expected_err,
+            },
+            Type::Generic(name, args),
+        ) if name == "Result" && args.len() == 2 => {
+            let actual_ok = &args[0];
+            let actual_err = &args[1];
+
+            let ok_compat =
+                matches!(actual_ok, Type::Void) || is_compatible(expected_ok, actual_ok);
+            let err_compat =
+                matches!(actual_err, Type::Void) || is_compatible(expected_err, actual_err);
+            ok_compat && err_compat
         }
 
         // Error 类型用于错误恢复，总是兼容

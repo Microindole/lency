@@ -162,7 +162,20 @@ impl<'a> TypeInferer<'a> {
                                 if args.len() == 1 {
                                     return Ok(args[0].clone());
                                 } else {
-                                    // Should not happen if well-typed
+                                    return Ok(Type::Error);
+                                }
+                            }
+                            _ => Some(base_name.clone()),
+                        }
+                    }
+                    // Sprint 15: Support Result<T, E> method calls (Generic)
+                    Type::Generic(base_name, args) if base_name == "Result" => {
+                        match name.as_str() {
+                            "is_ok" | "is_err" => return Ok(Type::Bool),
+                            "unwrap" | "expect" | "unwrap_or" => {
+                                if args.len() == 2 {
+                                    return Ok(args[0].clone()); // Return T
+                                } else {
                                     return Ok(Type::Error);
                                 }
                             }

@@ -178,3 +178,18 @@ pub fn gen_panic<'ctx>(
         .unwrap();
     builder.build_unreachable().unwrap();
 }
+
+/// 生成 panic 调用 (动态消息)
+pub fn gen_panic_val<'ctx>(
+    context: &'ctx Context,
+    builder: &inkwell::builder::Builder<'ctx>,
+    panic_func: FunctionValue<'ctx>,
+    msg_val: inkwell::values::BasicValueEnum<'ctx>,
+    line: u32,
+) {
+    let line_val = context.i32_type().const_int(line as u64, false);
+    builder
+        .build_call(panic_func, &[msg_val.into(), line_val.into()], "")
+        .unwrap();
+    builder.build_unreachable().unwrap();
+}

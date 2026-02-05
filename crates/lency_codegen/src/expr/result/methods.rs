@@ -12,6 +12,7 @@ use std::collections::HashMap;
 ///   index 0: is_ok (bool)
 ///   index 1: ok_value (T)  [如果 T != void]
 ///   index 2: err_value (E) [或 index 1 如果 T == void]
+#[allow(clippy::too_many_arguments)]
 pub fn gen_result_builtin_method<'ctx>(
     ctx: &CodegenContext<'ctx>,
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)>,
@@ -20,6 +21,7 @@ pub fn gen_result_builtin_method<'ctx>(
     args: &[Expr],
     ok_type: &Type,
     _err_type: &Type,
+    line: u32,
 ) -> CodegenResult<Option<CodegenValue<'ctx>>> {
     // 获取 Result struct type
     let result_ty = Type::Result {
@@ -169,20 +171,27 @@ pub fn gen_result_builtin_method<'ctx>(
             // 4. Error 分支：Panic
             ctx.builder.position_at_end(error_bb);
             if let Some(panic_func) = ctx.panic_func {
-                let panic_msg = if method_name == "expect" {
-                    // let _msg_expr = generate_expr(ctx, locals, &args[0])?;
-                    "Result::expect failed"
-                } else {
-                    "Result::unwrap called on an Err value"
-                };
+                if method_name == "expect" {
+                    let msg_expr = &args[0];
+                    let msg_val = generate_expr(ctx, locals, msg_expr)?;
 
-                crate::runtime::gen_panic(
-                    ctx.context,
-                    &ctx.builder,
-                    panic_func,
-                    panic_msg,
-                    0, // 暂时不传 line
-                );
+                    crate::runtime::gen_panic_val(
+                        ctx.context,
+                        &ctx.builder,
+                        panic_func,
+                        msg_val.value,
+                        line,
+                    );
+                } else {
+                    let panic_msg = "Result::unwrap called on an Err value";
+                    crate::runtime::gen_panic(
+                        ctx.context,
+                        &ctx.builder,
+                        panic_func,
+                        panic_msg,
+                        line,
+                    );
+                };
             } else {
                 ctx.builder.build_unreachable().unwrap();
             }

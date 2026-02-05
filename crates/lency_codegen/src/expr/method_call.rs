@@ -195,6 +195,52 @@ pub fn gen_method_call<'ctx>(
                 }
             }
 
+            // Sprint 15: Result 内置方法支持 (Monomorphized)
+            if let Some(suffix) = struct_name.strip_prefix("Result__") {
+                // Try to parse T and E from "Result__{T}_{E}"
+                // Use simplified heuristic: split at last "_" assuming E is "Error" or simple type
+
+                // Heuristic: Split at last underscore
+                // E.g. int_Error -> ok=int, err=Error
+                // Vec_int_Error -> ok=Vec_int, err=Error (Assuming mangling preserves underscores)
+                // Note: This is fragile if T ends with _ or E has _.
+                // But generally E is "Error" in Lency std or simple.
+                // If parsing fails or is ambiguous, we might have issues with unwrap return type.
+
+                let (ok_part, err_part) = if let Some(idx) = suffix.rfind('_') {
+                    (&suffix[..idx], &suffix[idx + 1..])
+                } else {
+                    (suffix, "Error") // Fallback
+                };
+
+                let ok_type = match ok_part {
+                    "int" => Type::Int,
+                    "bool" => Type::Bool,
+                    "string" => Type::String,
+                    "float" => Type::Float,
+                    "void" => Type::Void,
+                    x => Type::Struct(x.to_string()),
+                };
+
+                let err_type = match err_part {
+                    "Error" => Type::Struct("Error".to_string()),
+                    x => Type::Struct(x.to_string()),
+                };
+
+                if let Some(res) = crate::expr::result::gen_result_builtin_method(
+                    ctx,
+                    locals,
+                    this_ptr,
+                    method_name,
+                    args,
+                    &ok_type,
+                    &err_type,
+                    line,
+                )? {
+                    return Ok(res);
+                }
+            }
+
             // 构建 mangled name
             let mangled_name = format!("{}_{}", struct_name, method_name);
 
@@ -264,6 +310,7 @@ pub fn gen_method_call<'ctx>(
                 args,
                 &ok_type,
                 &err_type,
+                line,
             )? {
                 return Ok(result);
             }

@@ -1,0 +1,13 @@
+struct Error {
+    string message
+}
+
+Result<int, Error> make_err() {
+    return Err(Error { message: "msg" })
+}
+
+void main() {
+    print("About to panic...\n")
+    var res = make_err()
+    res.expect("CUSTOM PANIC: Expect failed as expected!")
+}
