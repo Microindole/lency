@@ -1,0 +1,34 @@
+// String Match Test
+
+import std.core
+
+int main() {
+    print("Testing String Match...\n")
+
+    var keyword = "if"
+    
+    // Case 1: Match "if"
+    match keyword {
+        case "if" => print("PASS: Matched if\n"),
+        case "else" => print("FAIL: Matched else\n"),
+        case _ => print("FAIL: Matched nothing\n")
+    }
+
+    // Case 2: Match "else"
+    keyword = "else"
+    match keyword {
+        case "if" => print("FAIL: Matched if\n"),
+        case "else" => print("PASS: Matched else\n"),
+        case _ => print("FAIL: Matched nothing\n")
+    }
+
+    // Case 3: Match default
+    keyword = "while"
+    match keyword {
+        case "if" => print("FAIL: Matched if\n"),
+        case "else" => print("FAIL: Matched else\n"),
+        case _ => print("PASS: Matched default (wildcard)\n")
+    }
+
+    return 0
+}

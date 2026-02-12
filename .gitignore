@@ -23,6 +23,7 @@ tmp/
 /*.rs
 /*.lcy
 /*.ll
+/*.out
 
 # 6. test
 

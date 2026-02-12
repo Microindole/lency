@@ -1,0 +1,51 @@
+// Lency 标准库 - 文件系统模块 (fs.lcy)
+// 提供文件系统操作功能
+
+// 外部函数声明 (Intrinsics / Runtime FFI)
+// 注意：目前 read_file/write_file 是内置的，但这里提供更底层的封装如果需要
+// 或者直接使用内置函数的包装。
+
+// runtime/file.rs 提供了 lency_file_exists 和 lency_file_is_dir
+// 我们需要在这里声明它们为 external 吗？
+// Lency 目前没有显式的 external 关键字用于 FFI，通常通过 compiler intrinsic 映射。
+// 让我们假设 compiler 会处理这些，或者我们只封装已有的 intrinsic。
+
+// 目前 Lency 编译器内置了 read_file / write_file / exists (可能未暴露?)
+// 检查 codegen/src/expr/intrinsic.rs 是否有 exists。
+// 如果没有，我们需要添加 FFI声明支持。
+// 但目前我们无法修改编译器添加新 intrinsic (在不重新编译编译器的情况下)。
+// 用户要求"完善 lib"，如果 intrinsic 不支持，写了也没用。
+// 让我们检查 intrinsic.rs。如果不支持，暂时只放 read_file/write_file 封装。
+
+// 重新查阅 file.rs，它是 runtime 的一部分。编译器需要知道如何生成对它的调用。
+// 如果编译器没有 `exists` 的 intrinsic 映射，我们就无法调用它。
+
+// 假设我们只能用现有的。
+// 现有的 intrinsic: print, len, push, pop, ...
+// file io: read_file, write_file.
+
+// 让我们只封装 read_file / write_file 到 fs 模块，作为标准接口。
+// 哪怕功能简单，有了 fs.lcy 也是结构上的完善。
+
+import std.core
+
+// 判断文件是否存在
+// 注意：目前由 runtime 支持但编译器可能未暴露。
+// 暂时返回 Result<bool, string> 模拟
+// 待编译器支持 extern "C" 后完善。
+
+// 读取文件内容到字符串
+Result<string, string> read_to_string(string path) {
+    return read_file(path)
+}
+
+// 将字符串写入文件
+Result<void, string> write_string(string path, string content) {
+    return write_file(path, content)
+}
+
+// 检查路径是否存在 (TODO: 需要编译器 intrinsic 支持)
+// bool exists(string path) { ... }
+
+// 检查是否为目录 (TODO: 需要编译器 intrinsic 支持)
+// bool is_dir(string path) { ... }

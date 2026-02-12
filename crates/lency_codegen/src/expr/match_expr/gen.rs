@@ -27,21 +27,13 @@ pub fn gen_match<'ctx>(
     // So subject_val.value SHOULD be a PointerValue to the struct/enum.
     // For primitive Int/Bool, it is an IntValue.
 
-    let subject_ptr = if subject_val.value.is_pointer_value() {
+    let subject_ptr = if subject_val.value.is_pointer_value()
+        && !matches!(subject_val.ty, Type::String | Type::Vec(_))
+    {
         subject_val.value.into_pointer_value()
     } else {
-        // Primitive type (Int/Bool/Float).
-        // Create a temporary alloca to store it, so we can treat it uniformly via pointer?
-        // Or just handle primitives separately.
-        // For primitives, we can just compare values.
-        // But for consistency let's store it so gen_pattern_check can be uniform?
-        // Actually gen_pattern_check matches Lency AST MatchPattern.
-        // If pattern is Literal, we compare value.
-        // If pattern is Variable, we need to bind.
-        // If pattern is Variant, we need GEP. This implies it MUST be a pointer (Enum).
-
-        // Let's create a temp alloca for primitives so we can "bind" them to variables if needed (by pointer).
-        // Variable binding needs a pointer in `locals`.
+        // Primitive type (Int/Bool/Float) OR String/Vec (which are pointers but treated as values).
+        // Create a temporary alloca to store it.
 
         // Inline create_entry_block_alloca logic:
         let builder = ctx.context.create_builder();

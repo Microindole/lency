@@ -1,0 +1,29 @@
+// Lency 标准库 - Prelude (prelude.lcy)
+// 重新导出常用的标准库模块，方便用户一键引入
+// 用法: import std.prelude
+
+// 核心类型和函数
+import std.core
+
+// I/O 操作
+import std.io
+import std.fs
+
+// 字符串操作
+import std.string
+
+// 集合类型
+import std.collections
+
+// 字符处理
+import std.char
+
+// 数学函数
+import std.math
+
+// 断言工具
+import std.assert
+
+// 常用工具
+import std.result
+import std.iterator

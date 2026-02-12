@@ -1,0 +1,46 @@
+// Lency 标准库 - 字符处理模块 (char.lcy)
+// 提供字符判断函数 (输入为 int/ASCII)
+
+import std.core
+
+// 判断是否为数字字符 ('0'-'9')
+bool is_digit(int c) {
+    return c >= 48 && c <= 57
+}
+
+// 判断是否为小写字母 ('a'-'z')
+bool is_lower(int c) {
+    return c >= 97 && c <= 122
+}
+
+// 判断是否为大写字母 ('A'-'Z')
+bool is_upper(int c) {
+    return c >= 65 && c <= 90
+}
+
+// 判断是否为字母
+bool is_alpha(int c) {
+    return is_lower(c) || is_upper(c)
+}
+
+// 判断是否为字母或数字
+bool is_alphanumeric(int c) {
+    return is_alpha(c) || is_digit(c)
+}
+
+// 判断是否为空白字符 (空格, 制表符, 换行符, 回车符)
+bool is_whitespace(int c) {
+    if c == 32 { return true } // ' '
+    if c == 9 { return true }  // '\t'
+    if c == 10 { return true } // '\n'
+    if c == 13 { return true } // '\r'
+    return false
+}
+
+// 判断是否为十六进制数字 (0-9, a-f, A-F)
+bool is_hex_digit(int c) {
+    if is_digit(c) { return true }
+    if c >= 97 && c <= 102 { return true } // a-f
+    if c >= 65 && c <= 70 { return true } // A-F
+    return false
+}

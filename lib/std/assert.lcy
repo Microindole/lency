@@ -1,0 +1,35 @@
+// Lency 标准库 - 断言模块 (assert.lcy)
+// 提供测试和调试用的断言函数
+
+import std.core
+import std.string
+
+// 断言条件为真，否则 panic
+void assert(bool condition, string message) {
+    if !condition {
+        panic("Assertion failed: " + message)
+    }
+}
+
+// 断言两个整数相等
+void assert_eq(int left, int right, string message) {
+    if left != right {
+        panic("Assertion failed: " + message + " (left=" + int_to_string(left) + ", right=" + int_to_string(right) + ")")
+    }
+}
+
+// 断言两个字符串相等
+void assert_eq_str(string left, string right, string message) {
+    if left != right {
+        panic("Assertion failed: " + message + " (left='" + left + "', right='" + right + "')")
+    }
+}
+
+// 断言两个浮点数近似相等
+void assert_approx_eq(float left, float right, float epsilon, string message) {
+    var diff = left - right
+    if diff < 0.0 { diff = -diff }
+    if diff > epsilon {
+        panic("Assertion failed: " + message + " (diff=" + float_to_string(diff) + ")")
+    }
+}

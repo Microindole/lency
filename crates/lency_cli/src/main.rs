@@ -173,14 +173,58 @@ fn cmd_build(input: &str, output: &str) -> Result<()> {
         anyhow::bail!("llc 编译失败");
     }
 
-    // 3. 使用 gcc 链接
+    // 3. 查找运行时库
+    let mut runtime_path = None;
+    if let Ok(cwd) = std::env::current_dir() {
+        let dirs = ["target/debug", "target/release"];
+        // Check for static lib first, then dynamic
+        // Note: lency_runtime might be compiled as rlib (static) or dylib
+        // Rust produces liblency_runtime.rlib usually.
+        // But for FFI usage, we might need cdylib (liblency_runtime.so) or staticlib (liblency_runtime.a)
+        // Let's assume .so/.dylib/.a exist if they were built.
+        // Based on cmd_run, we look for shared libs. GCC can link against them.
+
+        let libs = [
+            "liblency_runtime.so",
+            "liblency_runtime.dylib",
+            "liblency_runtime.a",
+        ];
+
+        for dir in dirs {
+            for lib in libs {
+                let path = cwd.join(dir).join(lib);
+                if path.exists() {
+                    runtime_path = Some(cwd.join(dir));
+                    break;
+                }
+            }
+            if runtime_path.is_some() {
+                break;
+            }
+        }
+    }
+
+    if runtime_path.is_none() {
+        eprintln!("⚠️ Warning: lency_runtime library not found in target dir. Linking might fail.");
+    }
+
+    // 4. 使用 gcc 链接
     println!("  🔗 链接可执行文件...");
-    let gcc_status = std::process::Command::new("gcc")
-        .args([temp_obj, "-o", output, "-no-pie"])
-        .status()?;
+
+    let mut gcc_cmd = std::process::Command::new("gcc");
+    gcc_cmd.args([temp_obj, "-o", output, "-no-pie"]);
+
+    if let Some(path) = runtime_path {
+        gcc_cmd.arg(format!("-L{}", path.display()));
+        gcc_cmd.arg("-llency_runtime");
+        // Add rpath so the binary can find the shared library at runtime
+        gcc_cmd.arg(format!("-Wl,-rpath,{}", path.display()));
+    }
+
+    let gcc_status = gcc_cmd.status()?;
 
     if !gcc_status.success() {
-        anyhow::bail!("链接失败");
+        anyhow::bail!("链接失败 - 请确保 lency_runtime 已编译");
     }
 
     println!("✅ 成功生成可执行文件: {}", output);

@@ -1,10 +1,27 @@
-# TODO/FIXME 清理
+# Sprint 16 Tasks: Bootstrap - Lexer
 
-## 可直接清理 (5个)
-- [ ] `tests/integration/error/basic.lcy` -- unwrap 已实现，补断言
-- [ ] `tests/integration/stdlib/conversion_test.lcy` -- print int 已支持，补全测试
-- [ ] `crates/lency_codegen/src/expr/vec.rs` -- 删除过时 TODO 和 dead_code allow
-- [ ] `crates/lency_monomorph/src/lib.rs` -- 改为 unreachable
-- [ ] `crates/lency_sema/src/type_infer/control.rs` -- 删除过时 TODO 注释
-- [ ] 运行 `./scripts/run_checks.sh`
-- [ ] 更新 `status.md` 统计数据
+- [ ] **Token 定义**
+    - [ ] `TokenType` enum
+    - [ ] `Token` struct
+    - [ ] `to_string` 方法
+
+- [ ] **String Helper** (如果标准库缺少)
+    - [ ] `is_digit(char)`
+    - [ ] `is_alpha(char)`
+    - [ ] `is_alphanumeric(char)`
+
+- [ ] **Lexer 结构**
+    - [ ] `struct Lexer`
+    - [ ] `advance()`, `peek()`
+    - [ ] `skip_whitespace()`
+
+- [ ] **Scanner 逻辑**
+    - [ ] 单字符符号
+    - [ ] 运算符 (`==`, `!=` 等)
+    - [ ] 字符串 (`"`)
+    - [ ] 数字 (int/float)
+    - [ ] 标识符 & 关键字
+
+- [ ] **验证**
+    - [ ] 编写 `tests/integration/bootstrap/lexer_test.lcy`
+    - [ ] 运行 `./scripts/run_checks.sh`

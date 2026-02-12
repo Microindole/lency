@@ -32,12 +32,89 @@ pub(crate) fn gen_pattern_check<'ctx>(
             Ok(())
         }
         MatchPattern::Literal(lit) => {
-            // Check equality.
+            // String Matching
+            if matches!(subject_type, Type::String) {
+                if let lency_syntax::ast::Literal::String(s) = lit {
+                    // 1. Load Subject (i8**) -> i8*
+                    let str_ptr = ctx
+                        .builder
+                        .build_load(
+                            ctx.context
+                                .i8_type()
+                                .ptr_type(inkwell::AddressSpace::default()),
+                            subject_ptr,
+                            "str_load",
+                        )
+                        .unwrap()
+                        .into_pointer_value();
+
+                    // 2. Global String Literal
+                    let lit_ptr = ctx
+                        .builder
+                        .build_global_string_ptr(s, "str_lit")
+                        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?
+                        .as_pointer_value();
+
+                    // 3. Strcmp
+                    let strcmp_fn = ctx.module.get_function("strcmp").unwrap_or_else(|| {
+                        let i32_type = ctx.context.i32_type();
+                        let i8_ptr_type = ctx
+                            .context
+                            .i8_type()
+                            .ptr_type(inkwell::AddressSpace::default());
+                        let fn_type =
+                            i32_type.fn_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false);
+                        ctx.module.add_function(
+                            "strcmp",
+                            fn_type,
+                            Some(inkwell::module::Linkage::External),
+                        )
+                    });
+
+                    let call = ctx
+                        .builder
+                        .build_call(
+                            strcmp_fn,
+                            &[str_ptr.into(), lit_ptr.into()],
+                            "strcmp_result",
+                        )
+                        .unwrap();
+
+                    let strcmp_result = call.try_as_basic_value().left().unwrap().into_int_value();
+                    let zero = ctx.context.i32_type().const_int(0, false);
+                    let cmp = ctx
+                        .builder
+                        .build_int_compare(
+                            inkwell::IntPredicate::EQ,
+                            strcmp_result,
+                            zero,
+                            "streqtmp",
+                        )
+                        .unwrap();
+
+                    let success_bb = ctx.context.append_basic_block(
+                        ctx.builder
+                            .get_insert_block()
+                            .unwrap()
+                            .get_parent()
+                            .unwrap(),
+                        "str_match_success",
+                    );
+
+                    ctx.builder
+                        .build_conditional_branch(cmp, success_bb, mismatch_bb)
+                        .unwrap();
+                    ctx.builder.position_at_end(success_bb);
+                    return Ok(());
+                } else {
+                    return Err(CodegenError::TypeMismatch);
+                }
+            }
+
+            // Primitive Matching (Int/Bool)
             // Load value from pointer (unless subject is already loaded? No we standardized on ptr).
             // For primitive types (Int/Float/Bool), we load and compare.
-            // String?
-
-            // Assuming subject_type matches literal type (Sema checked).
+            // String? -> Handled above.
 
             // 1. Load Subject
             // (Assuming int for now based on previous impl, but need to support others)
@@ -60,10 +137,7 @@ pub(crate) fn gen_pattern_check<'ctx>(
                     // ...
                     return Err(CodegenError::UnsupportedFeature("Float matching".into()));
                 }
-                Type::String => {
-                    // Call strcmp?
-                    return Err(CodegenError::UnsupportedFeature("String matching".into()));
-                }
+                Type::String => unreachable!("String handled above"),
                 _ => return Err(CodegenError::TypeMismatch),
             };
 

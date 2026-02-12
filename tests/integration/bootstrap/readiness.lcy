@@ -1,0 +1,40 @@
+// 自举准备度检查 - 最终验证
+// 验证 Lexer/Parser 自举所需的语言特性
+
+import std.core
+import std.char
+
+struct Token {
+    int type
+    string lexeme
+}
+
+int main() {
+    print("Checking Bootstrap Readiness...\n")
+
+    // 1. String Match (已修复)
+    var keyword = "if"
+    match keyword {
+        case "if" => print("✅ String Match: Matched 'if'\n"),
+        case "else" => print("❌ String Match: Matched 'else' (Error)\n"),
+        case _ => print("❌ String Match: Matched nothing (Error)\n")
+    }
+
+    // 2. Generic HashMap (仍未完全支持，但可用 Vec 替代或特化)
+    // var map = HashMap<string, Token>.new()
+    print("⚠️ Generic HashMap: Not fully supported yet (Skipped)\n")
+    
+    // 3. Char Helpers (已添加 std.char)
+    var c = 65 // 'A'
+    if is_alpha(c) {
+        print("✅ Char Helpers: is_alpha('A') passed\n")
+    } else {
+        print("❌ Char Helpers: is_alpha('A') failed\n")
+    }
+
+    if is_digit(49) { // '1'
+        print("✅ Char Helpers: is_digit('1') passed\n")
+    }
+
+    return 0
+}
