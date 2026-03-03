@@ -15,6 +15,7 @@ struct Parser {
     Token current
     Token previous
     bool has_error
+    int loop_depth
 }
 
 Parser make_parser(string source) {
@@ -23,7 +24,8 @@ Parser make_parser(string source) {
         lexer: lexer,
         current: make_token(0, "", 0, 0),
         previous: make_token(0, "", 0, 0),
-        has_error: false
+        has_error: false,
+        loop_depth: 0
     }
 }
 

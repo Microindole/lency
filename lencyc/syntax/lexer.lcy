@@ -129,6 +129,9 @@ impl Lexer {
         if text == "int" { kind = T_INT(); }
         if text == "string" { kind = T_STRING(); }
         if text == "bool" { kind = T_BOOL(); }
+        if text == "break" { kind = T_BREAK(); }
+        if text == "continue" { kind = T_CONTINUE(); }
+        if text == "for" { kind = T_FOR(); }
         
         return this.make_token_from(kind);
     }

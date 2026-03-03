@@ -30,6 +30,10 @@ impl Parser {
         if this.match_token(T_WHILE()) {
             return this.while_statement()
         }
+
+        if this.match_token(T_FOR()) {
+            return this.for_statement()
+        }
         
         return this.statement()
     }

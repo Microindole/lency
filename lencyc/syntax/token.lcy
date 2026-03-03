@@ -49,6 +49,9 @@ int T_VOID()   { return 35; }
 int T_INT()    { return 36; }
 int T_STRING() { return 37; }
 int T_BOOL()   { return 38; }
+int T_BREAK()  { return 39; }
+int T_CONTINUE() { return 40; }
+int T_FOR()    { return 41; }
 
 struct Token {
     int kind

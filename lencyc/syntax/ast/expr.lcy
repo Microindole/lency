@@ -1,0 +1,79 @@
+// lencyc/syntax/ast/expr.lcy
+// Expression kinds and constructors.
+
+import std.core
+import lencyc.syntax.token
+import lencyc.syntax.ast
+
+int EXPR_LITERAL() { return 1; }
+int EXPR_BINARY()  { return 2; }
+int EXPR_VARIABLE() { return 3; }
+int EXPR_GROUPING() { return 4; }
+int EXPR_UNARY()    { return 5; }
+int EXPR_ASSIGN()   { return 6; }
+int EXPR_LOGICAL()  { return 7; }
+
+Expr make_expr_literal(Token v) {
+    return Expr {
+        kind: EXPR_LITERAL(),
+        literal_value: v,
+        operator: make_token(0, "", 0, 0),
+        children: vec![]
+    }
+}
+
+Expr make_expr_binary(Expr left, Token op, Expr right) {
+    var children = vec![left, right]
+    return Expr {
+        kind: EXPR_BINARY(),
+        literal_value: make_token(0, "", 0, 0),
+        operator: op,
+        children: children
+    }
+}
+
+Expr make_expr_variable(Token name) {
+    return Expr {
+        kind: EXPR_VARIABLE(),
+        literal_value: name,
+        operator: make_token(0, "", 0, 0),
+        children: vec![]
+    }
+}
+
+Expr make_expr_grouping(Expr expression) {
+    return Expr {
+        kind: EXPR_GROUPING(),
+        literal_value: make_token(0, "", 0, 0),
+        operator: make_token(0, "", 0, 0),
+        children: vec![expression]
+    }
+}
+
+Expr make_expr_unary(Token op, Expr right) {
+    return Expr {
+        kind: EXPR_UNARY(),
+        literal_value: make_token(0, "", 0, 0),
+        operator: op,
+        children: vec![right]
+    }
+}
+
+Expr make_expr_assign(Token name, Expr value) {
+    return Expr {
+        kind: EXPR_ASSIGN(),
+        literal_value: name,
+        operator: make_token(0, "", 0, 0),
+        children: vec![value]
+    }
+}
+
+Expr make_expr_logical(Expr left, Token op, Expr right) {
+    var children = vec![left, right]
+    return Expr {
+        kind: EXPR_LOGICAL(),
+        literal_value: make_token(0, "", 0, 0),
+        operator: op,
+        children: children
+    }
+}

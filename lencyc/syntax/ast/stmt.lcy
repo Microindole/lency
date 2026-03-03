@@ -1,0 +1,114 @@
+// lencyc/syntax/ast/stmt.lcy
+// Statement kinds and constructors.
+
+import std.core
+import lencyc.syntax.token
+import lencyc.syntax.ast
+
+int STMT_EXPR()      { return 1; }
+int STMT_VAR_DECL()  { return 2; }
+int STMT_IF()        { return 3; }
+int STMT_BLOCK()     { return 4; }
+int STMT_WHILE()     { return 5; }
+int STMT_RETURN()    { return 6; }
+int STMT_RETURN_VOID() { return 7; }
+int STMT_BREAK()     { return 8; }
+int STMT_CONTINUE()  { return 9; }
+
+Stmt make_stmt_expr(Expr expr) {
+    return Stmt {
+        kind: STMT_EXPR(),
+        name: make_token(0, "", 0, 0),
+        expr: expr,
+        has_expr: true,
+        body: vec![]
+    }
+}
+
+Stmt make_stmt_var_decl(Token name, Expr initializer) {
+    return Stmt {
+        kind: STMT_VAR_DECL(),
+        name: name,
+        expr: initializer,
+        has_expr: true,
+        body: vec![],
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_if(Expr condition, Vec<Stmt> then_branch, Vec<Stmt> else_branch) {
+    return Stmt {
+        kind: STMT_IF(),
+        name: make_token(0, "", 0, 0),
+        expr: condition,
+        has_expr: true,
+        body: then_branch,
+        else_body: else_branch
+    }
+}
+
+Stmt make_stmt_block(Vec<Stmt> statements) {
+    return Stmt {
+        kind: STMT_BLOCK(),
+        name: make_token(0, "", 0, 0),
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        body: statements,
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_while(Expr condition, Vec<Stmt> body) {
+    return Stmt {
+        kind: STMT_WHILE(),
+        name: make_token(0, "", 0, 0),
+        expr: condition,
+        has_expr: true,
+        body: body,
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_return(Expr value) {
+    return Stmt {
+        kind: STMT_RETURN(),
+        name: make_token(0, "", 0, 0),
+        expr: value,
+        has_expr: true,
+        body: vec![],
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_return_void() {
+    return Stmt {
+        kind: STMT_RETURN_VOID(),
+        name: make_token(0, "", 0, 0),
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        body: vec![],
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_break() {
+    return Stmt {
+        kind: STMT_BREAK(),
+        name: make_token(0, "", 0, 0),
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        body: vec![],
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_continue() {
+    return Stmt {
+        kind: STMT_CONTINUE(),
+        name: make_token(0, "", 0, 0),
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        body: vec![],
+        else_body: vec![]
+    }
+}

@@ -46,8 +46,50 @@ impl Parser {
     Stmt while_statement() {
         var condition = this.expression()
         this.consume(T_LEFT_BRACE(), "Expect '{' before while body.")
+        this.loop_depth = this.loop_depth + 1
         var body = this.block()
+        this.loop_depth = this.loop_depth - 1
         return make_stmt_while(condition, body)
+    }
+
+    Stmt for_statement() {
+        if !this.match_token(T_VAR()) {
+            this.error("Expect 'var' in for initializer.")
+            return make_stmt_block(vec![])
+        }
+
+        var initializer = this.var_declaration()
+        this.consume(T_SEMICOLON(), "Expect ';' after for initializer.")
+
+        var condition = this.expression()
+        this.consume(T_SEMICOLON(), "Expect ';' after for condition.")
+
+        var increment = this.expression()
+        this.consume(T_LEFT_BRACE(), "Expect '{' before for body.")
+
+        this.loop_depth = this.loop_depth + 1
+        var body = this.block()
+        this.loop_depth = this.loop_depth - 1
+
+        // FIXME: for->while 反糖下，continue 不会先执行 increment；需后续专门重写 continue 路径。
+        body.push(make_stmt_expr(increment))
+        var while_stmt = make_stmt_while(condition, body)
+
+        return make_stmt_block(vec![initializer, while_stmt])
+    }
+
+    Stmt break_statement() {
+        if this.loop_depth <= 0 {
+            this.error("'break' can only be used inside a while block.")
+        }
+        return make_stmt_break()
+    }
+
+    Stmt continue_statement() {
+        if this.loop_depth <= 0 {
+            this.error("'continue' can only be used inside a while block.")
+        }
+        return make_stmt_continue()
     }
 
     Stmt return_statement() {
@@ -64,6 +106,12 @@ impl Parser {
         }
         if this.match_token(T_RETURN()) {
             return this.return_statement()
+        }
+        if this.match_token(T_BREAK()) {
+            return this.break_statement()
+        }
+        if this.match_token(T_CONTINUE()) {
+            return this.continue_statement()
         }
         
         // Expression statement

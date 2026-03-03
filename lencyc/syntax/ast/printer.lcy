@@ -1,0 +1,84 @@
+// lencyc/syntax/ast/printer.lcy
+// AST debug string printers.
+
+import std.core
+import lencyc.syntax.ast
+
+string expr_to_string(Expr expr) {
+    if expr.kind == EXPR_LITERAL() {
+        return expr.literal_value.lexeme
+    }
+    if expr.kind == EXPR_VARIABLE() {
+        return expr.literal_value.lexeme
+    }
+    if expr.kind == EXPR_GROUPING() {
+        if expr.children.len() > 0 {
+            return "(group " + expr_to_string(expr.children[0]) + ")"
+        }
+        return "(group)"
+    }
+    if expr.kind == EXPR_UNARY() {
+        if expr.children.len() > 0 {
+            return "(" + expr.operator.lexeme + " " + expr_to_string(expr.children[0]) + ")"
+        }
+        return "(" + expr.operator.lexeme + " ?)"
+    }
+    if expr.kind == EXPR_ASSIGN() {
+        if expr.children.len() > 0 {
+            return "(assign " + expr.literal_value.lexeme + " " + expr_to_string(expr.children[0]) + ")"
+        }
+        return "(assign " + expr.literal_value.lexeme + " ?)"
+    }
+    if expr.kind == EXPR_BINARY() || expr.kind == EXPR_LOGICAL() {
+        if expr.children.len() >= 2 {
+            return "(" + expr.operator.lexeme + " " + expr_to_string(expr.children[0]) + " " + expr_to_string(expr.children[1]) + ")"
+        }
+        return "(" + expr.operator.lexeme + " ? ?)"
+    }
+    return "(expr_unknown)"
+}
+
+string stmt_list_to_string(Vec<Stmt> statements) {
+    var out = "["
+    var i = 0
+    while i < statements.len() {
+        out = out + stmt_to_string(statements[i])
+        if i + 1 < statements.len() {
+            out = out + ", "
+        }
+        i = i + 1
+    }
+    out = out + "]"
+    return out
+}
+
+string stmt_to_string(Stmt stmt) {
+    if stmt.kind == STMT_EXPR() {
+        return "(expr " + expr_to_string(stmt.expr) + ")"
+    }
+    if stmt.kind == STMT_VAR_DECL() {
+        return "(var " + stmt.name.lexeme + " = " + expr_to_string(stmt.expr) + ")"
+    }
+    if stmt.kind == STMT_RETURN() {
+        return "(return " + expr_to_string(stmt.expr) + ")"
+    }
+    if stmt.kind == STMT_RETURN_VOID() {
+        return "(return)"
+    }
+    if stmt.kind == STMT_BREAK() {
+        return "(break)"
+    }
+    if stmt.kind == STMT_CONTINUE() {
+        return "(continue)"
+    }
+    if stmt.kind == STMT_BLOCK() {
+        return "(block " + stmt_list_to_string(stmt.body) + ")"
+    }
+    if stmt.kind == STMT_WHILE() {
+        return "(while " + expr_to_string(stmt.expr) + " " + stmt_list_to_string(stmt.body) + ")"
+    }
+    if stmt.kind == STMT_IF() {
+        return "(if " + expr_to_string(stmt.expr) + " then " + stmt_list_to_string(stmt.body) + " else " + stmt_list_to_string(stmt.else_body) + ")"
+    }
+    return "(stmt_unknown)"
+}

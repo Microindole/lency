@@ -11,9 +11,10 @@
 - [ ] AST 定义 (Enum/Struct) - `lencyc/syntax/ast.lcy`（已覆盖 Expr/Stmt 基础节点，含 `return`）
 - [x] Parser 基础架构 - `lencyc/syntax/parser.lcy`
 - [ ] Expression Parsing (优先级, Pratt/Recursive)（已支持 assignment/logical/comparison/arithmetic/unary/primary，含 `true/false` 字面量）
-- [ ] Statement/Declaration Parsing（已支持 var/if/while/block/return/return-void/expr）
+- [ ] Statement/Declaration Parsing（已支持 var/if/while/for/block/return/return-void/break/continue/expr）
 - [x] AST Printer (Debug验证)
 - [x] Parser 模块化拆分（D&D）：`lencyc/syntax/parser/{expr,stmt,decl}.lcy`
+- [x] AST 模块化拆分：`lencyc/syntax/ast/{expr,stmt,printer}.lcy`
 
 ---
 
@@ -60,3 +61,13 @@
 | 自举准备度 | ~98% |
 
 *更新时间: 2026-03-03*
+
+### 今日增量（2026-03-03）
+1. 自举 Parser 新增 `break` 语句：
+   - 词法：`break` 关键字映射到 `T_BREAK`
+   - AST：新增 `STMT_BREAK` 与构造函数
+   - 语法：新增 `break_statement`，并限制只能出现在 `while` 块内
+   - 调试打印：新增 `(break)` 输出
+2. `prompt/context.md` 已重构为“目录地图+职责说明”，移除逐条流水账。
+3. 自举 Parser 新增 `continue` 语句，并补充 `break/continue` 循环外非法位置负例测试。
+4. 自举 Parser 新增 C 风格 `for` 语句解析（先反糖为 `while` 路径）。
