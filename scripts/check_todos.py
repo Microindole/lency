@@ -9,6 +9,7 @@
 import os
 import sys
 import re
+import argparse
 from pathlib import Path
 from typing import List, Tuple, Dict
 
@@ -17,7 +18,25 @@ EXCLUDE_DIRS = {'.git', 'target', 'node_modules', '.gemini', 'assets', 'docs', '
 EXTENSIONS = {'.rs', '.py', '.sh', '.md', '.lcy'}
 TAGS = {'TODO', 'FIXME', 'XXX'}
 
-def find_files(root_dir: Path) -> List[Path]:
+def in_scope(rel_path: Path, scope: str) -> bool:
+    path = rel_path.as_posix()
+    if scope == "all":
+        return True
+    if scope == "rust":
+        return (
+            path.startswith("crates/")
+            or path.startswith("lib/")
+            or path.startswith("tests/integration/")
+        )
+    if scope == "lency":
+        return (
+            path.startswith("lencyc/")
+            or path.startswith("lib/")
+            or path.startswith("tests/example/")
+        )
+    return False
+
+def find_files(root_dir: Path, scope: str = "all") -> List[Path]:
     """查找所有源代码文件"""
     found_files = []
     for root, dirs, files in os.walk(root_dir):
@@ -25,12 +44,16 @@ def find_files(root_dir: Path) -> List[Path]:
         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
         
         for file in files:
+            rel_root = Path(root).relative_to(root_dir)
+            rel_path = rel_root / file
+            if not in_scope(rel_path, scope):
+                continue
             if any(file.endswith(ext) for ext in EXTENSIONS):
                 found_files.append(Path(root) / file)
     
     return found_files
 
-def check_todos(root_dir: Path) -> Tuple[Dict[str, List], List[Tuple]]:
+def check_todos(root_dir: Path, scope: str = "all") -> Tuple[Dict[str, List], List[Tuple]]:
     """
     检查 TODOs，返回两个结果：
     1. 普通 TODO/FIXME: {tag: [(file, line_num, content)]}
@@ -44,7 +67,7 @@ def check_todos(root_dir: Path) -> Tuple[Dict[str, List], List[Tuple]]:
     # 匹配 @expect-error 后面的内容
     expect_error_pattern = re.compile(r'@expect-error:\s*(TODO|FIXME)\s*-\s*(.+)')
     
-    files = find_files(root_dir)
+    files = find_files(root_dir, scope)
     
     for file_path in files:
         try:
@@ -77,14 +100,22 @@ def check_todos(root_dir: Path) -> Tuple[Dict[str, List], List[Tuple]]:
 
 def main():
     """主函数"""
+    parser = argparse.ArgumentParser(description="扫描 TODO/FIXME 标记")
+    parser.add_argument(
+        "--scope",
+        choices=["all", "rust", "lency"],
+        default="all",
+        help="检查范围: all/rust/lency (默认 all)",
+    )
+    args = parser.parse_args()
+
     # 获取项目根目录
     script_dir = Path(__file__).parent
     project_root = script_dir.parent if script_dir.name == 'scripts' else script_dir
-    
-    print(f"🔍 扫描 TODO/FIXME 标记： {project_root}")
+    print(f"🔍 扫描 TODO/FIXME 标记： {project_root} (scope={args.scope})")
     print()
     
-    results, expected_failures = check_todos(project_root)
+    results, expected_failures = check_todos(project_root, args.scope)
     
     has_items = False
     total_count = 0

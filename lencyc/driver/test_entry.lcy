@@ -39,7 +39,7 @@ int main() {
     print("Successfully lexed " + int_to_string(count) + " tokens.\n")
     
     print("Step 2: Parsing test...\n")
-    var simple_source = "var i = 0\nwhile i < 10 && i != 5 {\n    i = i + 1\n}\nreturn i" 
+    var simple_source = "var i = 0\nvar ok = false || i < 10\nwhile ok && i != 5 {\n    i = i + 1\n}\nreturn i" 
     var parser = make_parser(simple_source)
     var statements = parser.parse()
     

@@ -12,9 +12,33 @@ env:
   LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
 
 jobs:
+  changes:
+    name: Detect Changed Scope
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'lib/**'
+              - 'tests/integration/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'scripts/check_*.py'
+              - '.github/workflows/lints.yml'
+
   # 1. Linux Static Checks & Lints
   static-checks:
     name: Static Checks & Quality
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,18 +51,20 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - name: Format Check
-        run: ./scripts/run_checks.sh --fmt
+        run: cargo fmt --all -- --check
       - name: Clippy Check
-        run: ./scripts/run_checks.sh --clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
       - name: File Size & TODOs & Banned Patterns
         run: |
-           python3 scripts/check_file_size.py
-           python3 scripts/check_todos.py
-           python3 scripts/check_banned_patterns.py
+           python3 scripts/check_file_size.py --scope rust
+           python3 scripts/check_todos.py --scope rust
+           python3 scripts/check_banned_patterns.py --scope rust
 
   # 2. Documentation Check
   doc-check:
     name: Documentation
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

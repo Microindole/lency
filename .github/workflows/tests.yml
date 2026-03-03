@@ -22,26 +22,41 @@ env:
   RUST_MIN_STACK: 8388608
 
 jobs:
-  # 1. Linux Unit Tests
-  unit-tests:
-    name: Unit Tests (Linux)
+  changes:
+    name: Detect Changed Scope
     runs-on: ubuntu-latest
-    env:
-      LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      lency: ${{ steps.filter.outputs.lency }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install LLVM
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y llvm-15-dev libpolly-15-dev libz-dev
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Run Unit Tests
-        run: ./scripts/run_checks.sh --test
+        with:
+          fetch-depth: 0
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'lib/**'
+              - 'tests/integration/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'scripts/run_checks.sh'
+              - 'scripts/check_*.py'
+              - '.github/workflows/tests.yml'
+            lency:
+              - 'lencyc/**'
+              - 'lib/**'
+              - 'tests/example/**'
+              - 'scripts/run_lency_checks.sh'
+              - 'scripts/check_*.py'
+              - '.github/workflows/tests.yml'
 
-  # 2. Linux Integration Tests
-  integration-tests:
-    name: Integration Tests (Linux)
+  rust-checks:
+    name: Rust Checks (Linux)
+    needs: changes
+    if: needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
@@ -53,18 +68,35 @@ jobs:
           sudo apt-get install -y llvm-15-dev libpolly-15-dev libz-dev
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Run .lcy Tests
-        run: ./scripts/run_checks.sh --lcy
-      - name: Run Self-Hosted Tests
+      - name: Run Rust Workflow
+        run: ./scripts/run_checks.sh
+
+  lency-checks:
+    name: Lency Checks (Linux)
+    needs: changes
+    if: needs.changes.outputs.lency == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LLVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-15-dev libpolly-15-dev libz-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Lency Workflow
         run: ./scripts/run_lency_checks.sh
 
   # 3. Release Build
   build-release:
     name: Build Release
+    needs: changes
     runs-on: ubuntu-latest
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
@@ -79,8 +111,9 @@ jobs:
   # 4. MacOS Check
   macos-check:
     name: MacOS Test
+    needs: changes
     runs-on: macos-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || github.event_name == 'workflow_dispatch'
     env:
       LLVM_SYS_150_PREFIX: /opt/homebrew/opt/llvm@15
       # Use Rust v0 symbol mangling to avoid macOS ld64 symbol name length bug

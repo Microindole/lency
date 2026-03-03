@@ -161,6 +161,9 @@ impl Parser {
         if this.match_token(T_TRUE()) {
             return make_expr_literal(this.previous)
         }
+        if this.match_token(T_FALSE()) {
+            return make_expr_literal(this.previous)
+        }
         if this.match_token(T_IDENTIFIER()) {
             return make_expr_variable(this.previous)
         }

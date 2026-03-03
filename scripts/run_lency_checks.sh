@@ -32,8 +32,14 @@ print_error() {
     echo -e "${RED}❌ $1 failed${NC}"
 }
 
+META_SCOPE="lency"
+if [[ "$#" -ne 0 ]]; then
+    echo -e "${RED}run_lency_checks.sh 不接受参数。该脚本固定为 Lency 专用检查。${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}=====================================${NC}"
-echo -e "${BLUE}   Starting Lency Self-host Checks   ${NC}"
+echo -e "${BLUE}   Starting Lency-side Checks   ${NC}"
 echo -e "${BLUE}=====================================${NC}"
 
 # 1. 编译 Rust 宿主编译器
@@ -48,9 +54,9 @@ fi
 # 1.5. 代码质量检查 (Meta Checks)
 print_step "1.5. Running Meta Checks (TODOs, File Size, Naming)"
 # 扫描 TODO/FIXME
-python3 scripts/check_todos.py
+python3 scripts/check_todos.py --scope "$META_SCOPE"
 # 检查文件大小
-python3 scripts/check_file_size.py
+python3 scripts/check_file_size.py --scope "$META_SCOPE"
 # 检查 Lencyc 专用规范 (命名等)
 if python3 scripts/check_lencyc_meta.py; then
     print_success "Meta checks"

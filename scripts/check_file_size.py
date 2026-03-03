@@ -8,6 +8,7 @@
 
 import os
 import sys
+import argparse
 from pathlib import Path
 from typing import List, Tuple
 
@@ -16,6 +17,24 @@ MAX_LINES_WARNING = 300   # 警告阈值
 MAX_LINES_ERROR = 500     # 错误阈值
 EXCLUDE_DIRS = {'.git', 'target', 'node_modules', '.gemini'}
 EXTENSIONS = {'.rs', '.py', '.lcy'}
+
+def in_scope(rel_path: Path, scope: str) -> bool:
+    path = rel_path.as_posix()
+    if scope == "all":
+        return True
+    if scope == "rust":
+        return (
+            path.startswith("crates/")
+            or path.startswith("lib/")
+            or path.startswith("tests/integration/")
+        )
+    if scope == "lency":
+        return (
+            path.startswith("lencyc/")
+            or path.startswith("lib/")
+            or path.startswith("tests/example/")
+        )
+    return False
 
 def count_rust_code_lines(content: str) -> int:
     """计算 Rust/Lency 代码行数，排除注释（包括嵌套块注释）和空行"""
@@ -112,7 +131,7 @@ def count_lines(file_path: Path) -> int:
         print(f"⚠️  无法读取 {file_path}: {e}", file=sys.stderr)
         return 0
 
-def find_code_files(root_dir: Path) -> List[Path]:
+def find_code_files(root_dir: Path, scope: str = "all") -> List[Path]:
     """查找所有代码文件 (Rust, Python)"""
     code_files = []
     for root, dirs, files in os.walk(root_dir):
@@ -120,17 +139,21 @@ def find_code_files(root_dir: Path) -> List[Path]:
         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
         
         for file in files:
+            rel_root = Path(root).relative_to(root_dir)
+            rel_path = rel_root / file
+            if not in_scope(rel_path, scope):
+                continue
             if any(file.endswith(ext) for ext in EXTENSIONS):
                 code_files.append(Path(root) / file)
     
     return code_files
 
-def check_file_sizes(root_dir: Path) -> Tuple[List, List]:
+def check_file_sizes(root_dir: Path, scope: str = "all") -> Tuple[List, List]:
     """检查文件大小，返回 (warnings, errors)"""
     warnings = []
     errors = []
     
-    code_files = find_code_files(root_dir)
+    code_files = find_code_files(root_dir, scope)
     
     for file_path in code_files:
         lines = count_lines(file_path)
@@ -145,16 +168,24 @@ def check_file_sizes(root_dir: Path) -> Tuple[List, List]:
 
 def main():
     """主函数"""
+    parser = argparse.ArgumentParser(description="检查代码文件大小")
+    parser.add_argument(
+        "--scope",
+        choices=["all", "rust", "lency"],
+        default="all",
+        help="检查范围: all/rust/lency (默认 all)",
+    )
+    args = parser.parse_args()
+
     # 获取项目根目录
     script_dir = Path(__file__).parent
     project_root = script_dir.parent if script_dir.name == 'scripts' else script_dir
-    
-    print(f"🔍 扫描代码文件 (Rust, Python)： {project_root}")
+    print(f"🔍 扫描代码文件 (Rust, Python)： {project_root} (scope={args.scope})")
     print(f"   警告阈值: {MAX_LINES_WARNING} 行")
     print(f"   错误阈值: {MAX_LINES_ERROR} 行")
     print()
     
-    warnings, errors = check_file_sizes(project_root)
+    warnings, errors = check_file_sizes(project_root, args.scope)
     
     # 输出结果
     has_issues = False
@@ -177,7 +208,7 @@ def main():
         print("✅ 所有代码文件大小适中！")
     
     # 统计信息
-    all_files = find_code_files(project_root)
+    all_files = find_code_files(project_root, args.scope)
     total_lines = sum(count_lines(f) for f in all_files)
     avg_lines = total_lines // len(all_files) if all_files else 0
     

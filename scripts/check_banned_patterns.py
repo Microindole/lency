@@ -7,11 +7,12 @@
 import os
 import sys
 import re
+import argparse
 from pathlib import Path
 from typing import List, Tuple, Dict
 
 # 需要检查的根目录
-CHECK_DIRS = ['crates', 'lib'] # Include 'lib' for .lcy files
+CHECK_DIRS = ['crates', 'lib', 'lencyc', 'tests', 'scripts', 'editors']
 # 排除的文件或目录
 EXCLUDE_DIRS = {'tests', 'target', 'node_modules', '.git', 'examples'}
 EXCLUDE_FILES = {'lency_cli/src/main.rs'} # CLI 入口允许 println
@@ -49,6 +50,24 @@ EXEMPTIONS = [
     (r'test_', {'error', 'warning'}),
     (r'\.lcy$', {'error', 'warning'}), # Currently Lency code doesn't have these rust-specific banned patterns, but file scanning logic needs update
 ]
+
+def in_scope(rel_path: Path, scope: str) -> bool:
+    path = rel_path.as_posix()
+    if scope == "all":
+        return True
+    if scope == "rust":
+        return (
+            path.startswith("crates/")
+            or path.startswith("lib/")
+            or path.startswith("tests/integration/")
+        )
+    if scope == "lency":
+        return (
+            path.startswith("lencyc/")
+            or path.startswith("lib/")
+            or path.startswith("tests/example/")
+        )
+    return False
 
 
 def check_file(file_path: Path) -> List[Tuple[int, str, str, str]]:
@@ -96,12 +115,22 @@ def check_file(file_path: Path) -> List[Tuple[int, str, str, str]]:
     return issues
 
 def main():
+    parser = argparse.ArgumentParser(description="代码质量检查")
+    parser.add_argument(
+        "--scope",
+        choices=["all", "rust", "lency"],
+        default="all",
+        help="检查范围: all/rust/lency (默认 all)",
+    )
+    args = parser.parse_args()
+
     root_dir = Path.cwd()
     all_issues = []
+    check_dirs = CHECK_DIRS
     
-    print(f"🔍 Running Code Quality Checks in: {CHECK_DIRS}")
+    print(f"🔍 Running Code Quality Checks in: {check_dirs} (scope={args.scope})")
     
-    for check_dir in CHECK_DIRS:
+    for check_dir in check_dirs:
         start_path = root_dir / check_dir
         if not start_path.exists():
             continue
@@ -113,13 +142,16 @@ def main():
             for file in files:
                 if file.endswith('.rs') or file.endswith('.lcy'):
                     file_path = Path(root) / file
+                    rel_path = file_path.relative_to(root_dir)
+                    if not in_scope(rel_path, args.scope):
+                        continue
                     # 检查是否排除
                     if any(str(file_path).endswith(ex) for ex in EXCLUDE_FILES):
                         continue
                         
                     file_issues = check_file(file_path)
                     for ln, content, msg, level in file_issues:
-                        all_issues.append((file_path.relative_to(root_dir), ln, content, msg, level))
+                        all_issues.append((rel_path, ln, content, msg, level))
 
     error_count = 0
     warning_count = 0

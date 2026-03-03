@@ -32,7 +32,7 @@ editors/         # IDE 插件与工具链
 1. **启动**：优先阅读 `prompt/context.md` 获取地图。
 2. **同步**：阅读 `prompt/sprint/status.md` 确定当前战术目标。
 3. **执行**：按需加载 `prompt/skills/` 下的子技能。
-4. **验证**：运行 `./scripts/run_checks.sh --fast`。
+4. **验证**：运行 `./scripts/run_checks.sh` 与 `./scripts/run_lency_checks.sh`。
 5. **交付**：必须更新 `prompt/sprint/status.md` 及 `prompt/context.md` (如有架构/状态变更)。
 6. **存档**：将最新的 task/implementation_plan/walkthrough 同步到 `prompt/artifacts/`，确保跨会话可追溯。
 
@@ -49,6 +49,9 @@ editors/         # IDE 插件与工具链
 - [WIP] 自举 Lexer & Parser 重新开始
   - 已完成 Token、Lexer 和 Parser 基础骨架，并集成到了 Github CI (`tests.yml` 中的 `self-hosted-tests`)
   - Parser 已支持表达式优先级链（assignment/logical/comparison/arithmetic/unary/primary）与 `var/if/while/block/return` 语句
+  - 2026-03-03 增量：`primary` 已补齐 `false` 字面量解析，并在 `lencyc/driver/test_entry.lcy` 加入布尔逻辑用例
+  - 2026-03-03 工具链修正：`run_checks.sh` / `run_lency_checks.sh` 改为无参数固定职责；前者仅 Rust 侧检查，后者仅 Lency 侧检查；作用域规则固定为 `lib/` 同时属于 rust/lency，`tests/example/` 归 lency，`tests/integration/` 归 rust
+  - 2026-03-03 CI 策略修正：Github Actions 先做变更路径判定，再按 rust/lency 作用域触发对应 job；未命中改动的侧不运行，减少无效 CI 消耗
   - 已提供 AST 可观测性：`expr_to_string` / `stmt_to_string` 已在 `lencyc/driver/test_entry.lcy` 接入
   - 2026-03-02 基线验证：`./scripts/run_checks.sh` 与 `./scripts/run_lency_checks.sh` 均通过
   - **关键规则**：必须“一步步一点点的新增”关键字和语法特性，每新增一个特性**必须**立即运行 `./scripts/run_lency_checks.sh` 进行验证，防止旧版本 Rust Lency 编译器的隐藏 Bug 导致 LLVM 报错。
