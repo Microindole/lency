@@ -1,38 +1,29 @@
-# Sprint 17 Tasks: Bootstrap - Parser
+# Sprint 18 Tasks: Bootstrap - Semantic Analysis
 
-- [ ] **AST 定义** (`lencyc/syntax/ast.lcy`)
-    - [x] `Expr` 基础节点 (Binary, Unary, Literal, Variable, Assign, Logical)
-    - [x] `Stmt` 基础节点 (If, While, VarDecl, Block, Return, Expr)
-    - [ ] `Type` representation
+- [x] **Name Resolution 最小闭环** (`lencyc/sema/resolver.lcy`)
+  - [x] 变量定义/引用校验（undefined / duplicate / out-of-scope）
+  - [x] 作用域遮蔽正例覆盖
+  - [x] 函数体局部作用域入口（`resolve_function_body`）
 
-- [x] **Parser 基础** (`lencyc/syntax/parser.lcy`)
-    - [x] `struct Parser`
-    - [x] `match`, `consume`, `check` helper methods
-    - [ ] Error synchronization logic
+- [x] **Builtin 调用约束** (`lencyc/sema/resolver.lcy`)
+  - [x] 预载 builtin 名称
+  - [x] 预载 builtin arity
+  - [x] 在 `EXPR_CALL` 执行参数个数校验
 
-- [ ] **Expression Parsing**
-    - [x] 递归优先级链 (`assignment -> or -> and -> equality -> comparison -> term -> factor -> unary -> primary`)
-    - [x] Leaf nodes (number, bool, identifier, grouping)
-    - [x] Infix/Prefix operators
-    - [x] 字符串字面量扩展（`T_STRING_LITERAL`，含正/负例回归）
-    - [x] 浮点字面量扩展（`digits '.' digits`，沿用 `T_NUMBER`）
-    - [ ] 科学计数法字面量扩展（如 `1.2e-3`）
+- [ ] **语义下一步**
+  - [x] return 语义约束（value-return / void-return）
+  - [ ] 最小类型一致性检查（int / bool / string / float）
+  - [ ] 非 builtin 函数签名接入与调用校验
 
-- [ ] **Statement Parsing**
-    - [x] `parse_decl` (var)
-    - [x] `parse_stmt` (if, while, block, return, expr_stmt)
-    - [ ] `func/struct/impl` 声明解析
-
-- [ ] **验证 & 驱动**
-    - [x] AST Pretty Printer (`expr_to_string` / `stmt_to_string`)
-    - [x] 更新 `lencyc/driver/test_entry.lcy` (覆盖 `return` 解析路径)
-    - [x] 运行 `./scripts/run_lency_checks.sh`
-    - [x] `lencyc/driver/main.lcy` 串联最小完整自举流程（Read/Lex/Parse/Resolve/Emit）
+- [x] **验证 & 驱动**
+  - [x] `lencyc/driver/test_cases.lcy` 新增 builtin arity 与 function-return 约束正/负例
+  - [x] `lencyc/driver/test_entry.lcy` 接入 Step 15 与函数体语义约束回归
+  - [x] 运行 `./scripts/run_checks.sh`
+  - [x] 运行 `./scripts/run_lency_checks.sh`
 
 ---
 
-# Completed (Sprint 16)
-- [x] Token 定义
-- [x] Keywords 映射
-- [x] Lexer 核心逻辑
-- [x] Driver 验证
+# Parser 收尾并行项 (Sprint 17)
+- [ ] `func/struct/impl` 声明解析最小骨架
+- [ ] Parser error synchronization
+- [ ] AST 类型表示补全（Type representation）

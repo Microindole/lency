@@ -50,3 +50,8 @@ string src_resolver_duplicate_same_scope() { return "var x = 1\nvar x = 2"; }
 string src_resolver_out_of_scope_after_block() { return "{ var y = 1 }\ny = 2"; }
 string src_resolver_shadowing_ok() { return "var x = 1\n{ var x = 2\n  x = x + 1\n}\nx = x + 1"; }
 string src_resolver_function_body_ok() { return "var x = p\nx = x + 1\nreturn x"; }
+string src_resolver_function_body_missing_return() { return "var x = p\nx = x + 1"; }
+string src_resolver_function_body_void_return_bad() { return "if p > 0 {\n  return\n}\nreturn p"; }
+string src_resolver_function_body_if_else_return_ok() { return "if p > 0 {\n  return p\n} else {\n  return p + 1\n}"; }
+string src_resolver_builtin_arity_ok() { return "var n = arg_count()\nvar s = arg_at(0)\nvar ok = write_string(\"out.txt\", s)\nreturn n"; }
+string src_resolver_builtin_arity_bad() { return "var a = arg_count(1)\nvar b = write_string(\"x\")\nreturn a + b"; }

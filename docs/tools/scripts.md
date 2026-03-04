@@ -1,151 +1,79 @@
 # 工具脚本指南
 
-Lency 项目包含一套实用脚本，位于 `scripts/` 目录下，用于维护代码质量和提高开发效率。
+Lency 项目的脚本位于 `scripts/` 目录，用于统一质量门禁与自举链路验证。
 
-## 1. 运行所有检查
+## 1. Rust 侧检查入口
 
-**脚本**: `scripts/run_checks.sh`
+脚本: `scripts/run_checks.sh`
 
-这是提交代码前推荐运行的主脚本。它会按顺序执行以下检查：
-1. `cargo fmt` (格式化检查)
-2. `cargo clippy` (Lint 检查)
-3. `cargo test` (单元测试)
-4. `run_lcy_tests.sh` (.lcy 集成测试)
-5. `check_file_size.py` (文件大小检查)
-6. `check_todos.py` (扫描 TODOs)
+固定执行顺序：
+1. `cargo fmt --check`
+2. `cargo clippy --all-targets --all-features -D warnings`
+3. `cargo test`
+4. `scripts/check_file_size.py --scope rust`
+5. `scripts/check_todos.py --scope rust`
+6. `scripts/check_banned_patterns.py --scope rust`
 
-**用法**:
+用法：
 ```bash
 ./scripts/run_checks.sh
 ```
 
-如果任何步骤失败（TODO 检查除外），脚本将以非零状态码退出。
+约束：
+- 不接受参数。
+- 除 TODO 扫描外，任一步骤失败都会直接退出。
 
-## 2. .lcy 集成测试
+## 2. Lency 自举检查入口
 
-**脚本**: `scripts/run_lcy_tests.sh`
+脚本: `scripts/run_lency_checks.sh`
 
-用于测试 `tests/integration/` 目录下的所有 `.lcy` 文件，防止修复 bug 时破坏已有语言特性。
+固定执行内容：
+1. 构建 Rust 宿主编译器（`lency_cli` + `lency_runtime`）
+2. 元检查（TODO/FIXME、文件大小、Lency 命名规范）
+3. 入口语法检查（`--check-only` 可用时）
+4. 编译并运行 `lencyc/driver/test_entry.lcy`
+5. 编译并运行 `lencyc/driver/main.lcy`
+6. 校验主流程 AST 产物
+7. 自举 LIR 回归样例校验
+8. Rust `.lir -> LLVM -> executable` 冒烟
+9. 一键构建脚本冒烟（`lency_selfhost_build.sh`）
+10. 一键运行脚本冒烟（`lency_selfhost_run.sh`，含参数透传）
+11. runtime builtin 映射回归（`int_to_string` 等）
 
-**预期失败标记**:
-在 `.lcy` 文件开头添加 `// @expect-error` 注释可以标记该测试为预期失败：
-- `// @expect-error` - 纯粹的错误检测测试
-- `// @expect-error: TODO - 描述` - 功能尚未实现
-- `// @expect-error: FIXME - 描述` - 编译器 bug 需要修复
-
-**用法**:
-```bash
-./scripts/run_lcy_tests.sh
-```
-
-**输出示例**:
-```
-✅ tests/integration/enums/match_runtime.lcy
-🔶 tests/integration/adt/match_exhaust_fail.lcy (expected failure)
-❌ tests/integration/some_broken_test.lcy
-
-📊 Results: 30 passed, 16 expected failures, 1 unexpected failures
-```
-
-## 3. 文件大小检查
-
-**脚本**: `scripts/check_file_size.py`
-
-用于确保源文件不会变得过大，难以维护。支持 Rust (`.rs`) 和 Python (`.py`) 文件。
-
-**配置**:
-- **警告阈值**: 300 行代码（不含注释和空行）
-- **错误阈值**: 500 行代码
-
-**用法**:
-```bash
-python3 scripts/check_file_size.py
-```
-
-## 4. TODO 扫描
-
-**脚本**: `scripts/check_todos.py`
-
-扫描代码库中的 `TODO`, `FIXME`, `XXX` 标记，帮助跟踪技术债务。
-
-**特性**:
-- 扫描普通代码中的 TODO/FIXME
-- 单独列出预期失败测试中的 TODO（功能未实现）和 FIXME（编译器 bug）
-
-**用法**:
-```bash
-python3 scripts/check_todos.py
-```
-
-**输出示例**:
-```
-📝 Found 20 TODOs:
-   lib/std/io.lcy:11   // TODO: 需要更好的实现
-   ...
-
-🔴 Found 2 FIXMEs:
-   crates/lency_codegen/src/module.rs:100  // FIXME: 临时方案
-   ...
-
-📋 预期失败测试 (功能未实现 - 6 个):
-   tests/integration/arrays/vec_simple.lcy: print() 不支持 Vec 类型
-   ...
-
-🐛 预期失败测试 (需要修复 Bug - 5 个):
-   tests/integration/structs/methods.lcy: 方法调用代码生成存在 bug
-   ...
-```
-
-## 5. 自举链路检查
-
-**脚本**: `scripts/run_lency_checks.sh`
-
-用于验证 Lency 自举编译器链路，当前包含：
-1. 构建 Rust 宿主编译器 `lencyc`
-2. 执行 Lency scope 元检查（TODO/FIXME、文件大小、命名）
-3. 编译并运行 `lencyc/driver/test_entry.lcy` 回归入口
-4. 编译并运行 `lencyc/driver/main.lcy` 最小主流程入口
-5. 校验主流程产物 `lencyc_selfhost_ast.txt` 非空且格式正确
-6. 运行 `tests/example/lencyc_lir_*.lcy` 用例并校验 `--emit-lir` 产物结构（含 `basic/loop_if/exit0/unary_logic/break_continue`）
-7. 用 `tests/example/lencyc_lir_exit0.lcy` 做 LIR 端到端冒烟：`self-host --emit-lir` -> `Rust lencyc build .lir` -> 执行产物
-8. 用 `scripts/lency_selfhost_build.sh` 跑一键流程：`.lcy -> self-host emit-lir -> Rust build -> executable`
-9. 用 `scripts/lency_selfhost_run.sh` 跑一键运行流程：`.lcy -> self-host build -> run(支持参数透传)`
-
-**用法**:
+用法：
 ```bash
 ./scripts/run_lency_checks.sh
 ```
 
-## 6. 自举一键构建脚本
+约束：
+- 不接受参数。
 
-**脚本**: `scripts/lency_selfhost_build.sh`
+## 3. 自举一键构建
 
-用于把 `.lcy` 源文件通过自举编译器和 Rust backend 一次性构建为可执行文件：
-- 阶段1：构建 Rust `lencyc` 与 runtime
-- 阶段2：构建自举入口 `lencyc/driver/main.lcy`
-- 阶段3：自举入口输出 LIR (`--emit-lir`)
-- 阶段4：Rust `lencyc build <emitted.lir>` 生成可执行
+脚本: `scripts/lency_selfhost_build.sh`
 
-**用法**:
+作用：`.lcy -> self-host emit-lir -> Rust build executable`
+
+用法：
 ```bash
 ./scripts/lency_selfhost_build.sh <input.lcy> [-o output] [--out-dir DIR] [--check-only] [--release]
 ```
 
-## 7. 自举一键运行脚本
+## 4. 自举一键运行
 
-**脚本**: `scripts/lency_selfhost_run.sh`
+脚本: `scripts/lency_selfhost_run.sh`
 
-用于把 `.lcy` 源文件通过自举链路构建并立即运行，支持参数透传。
+作用：`.lcy -> self-host build -> run`，支持参数透传和期望退出码校验。
 
-**用法**:
+用法：
 ```bash
 ./scripts/lency_selfhost_run.sh <input.lcy> [--release] [--out-dir DIR] [--expect-exit N] [--] [program args...]
 ```
 
-## 为何需要这些脚本？
+## 5. 其他辅助脚本
 
-Lency 遵循严格的工程标准：
-- **可维护性**: 通过限制文件大小，强制进行模块化拆分。
-- **代码质量**: 通过强制 Lint 和 Format，保持代码风格一致。
-- **可追踪性**: 通过扫描 TODOs，防止遗忘临时代码。
-- **回归测试**: 通过 .lcy 集成测试，防止修复 bug 时破坏语言特性。
+- `scripts/run_lcy_tests.sh`: 独立 `.lcy` 集成测试入口（不在 `run_checks.sh` 主流程中）。
+- `scripts/check_file_size.py`: 文件规模检查。
+- `scripts/check_todos.py`: TODO/FIXME 扫描。
+- `scripts/check_banned_patterns.py`: 禁用模式扫描。
+- `scripts/check_lencyc_meta.py`: Lency 命名与结构元规则检查。

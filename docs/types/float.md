@@ -217,4 +217,4 @@ int main() {
 
 ---
 
-**参考**: [Lency Language Specification](../design_spec.md)
+**参考**: [Lency Language Specification](../../assets/design_spec.md)

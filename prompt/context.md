@@ -20,6 +20,7 @@
 - 进度状态：只更新 `prompt/sprint/status.md`。
 - 任务过程：写入 `prompt/artifacts/` 对应文件。
 - 架构变化：必要时补充到本文件“长期约定”，不要写流水账。
+- 冲刺治理约束：`prompt/sprint/` 仅保留 `status.md` 作为当前真相来源；历史 `plan_*.md` / `roadmap.md` 不再维护，过期即删除。
 - Lency 语法检查约定：`run_lency_checks.sh` 会优先使用 `lencyc build --check-only` 对 `lencyc/driver/test_entry.lcy` 与 `lencyc/driver/main.lcy` 做入口级语法检查；若未来该参数缺失，脚本才会回退为跳过并由完整 build 覆盖。
 - 每次改动结束必须运行：
   - `./scripts/run_checks.sh`
@@ -59,5 +60,8 @@
 - 运行闭环回归：`tests/example/lencyc_run_args.lcy` 已覆盖 `arg_count + arg_at`，`run_lency_checks.sh` 第 10 步不再依赖绕过用例。
 - 运行时映射回归：`tests/example/lencyc_run_int_to_string.lcy` 已接入 `run_lency_checks.sh` 第 11 步，固定校验最小 runtime builtin 映射链路。
 - 解析可用性修复：`lencyc` resolver 已预载最小 prelude 符号，目标源码中的 `arg_count()/arg_at()` 等内建符号不再因未声明而解析失败。
+- 语义约束增量：`lencyc` resolver 已加入 builtin 调用参数个数校验（固定 arity），`test_entry` 已覆盖正/负例回归。
+- 语义约束增量：`resolve_function_body` 已加入最小 return 合法性检查（value-return 函数禁止 `return` 空值，且要求可达 value-return），并已接入正/负例回归。
+- 文档治理增量：`docs/` 已清理过时实现状态与坏链接（补齐 `types/primitives.md`、`stdlib/hashmap.md`，同步脚本文档到当前检查链路）。
 - 当前策略：按语法特性小步增量推进，每次增量后立刻跑 Lency 检查，避免回归。
 - 下一阶段：在保持可运行的前提下逐步补齐语句与语义能力。

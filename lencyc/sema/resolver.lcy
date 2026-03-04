@@ -10,19 +10,38 @@ struct ResolveResult {
     int error_count
 }
 
+struct BuiltinArity {
+    string name
+    int argc
+}
+
 struct Resolver {
     SymbolTable table
+    Vec<BuiltinArity> builtin_arities
+    bool in_function
+    bool require_value_return
     bool has_error
     int error_count
+}
+
+BuiltinArity make_builtin_arity(string name, int argc) {
+    return BuiltinArity {
+        name: name,
+        argc: argc
+    }
 }
 
 Resolver make_resolver() {
     var resolver = Resolver {
         table: make_symbol_table(),
+        builtin_arities: vec![],
+        in_function: false,
+        require_value_return: false,
         has_error: false,
         error_count: 0
     }
     resolver.preload_prelude_symbols()
+    resolver.preload_builtin_arities()
     return resolver
 }
 
@@ -49,6 +68,36 @@ ResolveResult resolve_function_body(Vec<string> params, Vec<Stmt> body) {
 }
 
 impl Resolver {
+    void preload_builtin_arity(string name, int argc) {
+        this.builtin_arities.push(make_builtin_arity(name, argc))
+    }
+
+    void preload_builtin_arities() {
+        this.preload_builtin_arity("arg_count", 0)
+        this.preload_builtin_arity("arg_at", 1)
+        this.preload_builtin_arity("int_to_string", 1)
+        this.preload_builtin_arity("float_to_string", 1)
+        this.preload_builtin_arity("parse_int", 1)
+        this.preload_builtin_arity("parse_float", 1)
+        this.preload_builtin_arity("file_exists", 1)
+        this.preload_builtin_arity("is_dir", 1)
+        this.preload_builtin_arity("read_to_string", 1)
+        this.preload_builtin_arity("write_string", 2)
+        this.preload_builtin_arity("bool_to_string", 1)
+        this.preload_builtin_arity("int_to_bool", 1)
+    }
+
+    int lookup_builtin_arity(string name) {
+        var i = 0
+        while i < this.builtin_arities.len() {
+            if this.builtin_arities[i].name == name {
+                return this.builtin_arities[i].argc
+            }
+            i = i + 1
+        }
+        return -1
+    }
+
     void preload_prelude_symbol(string name) {
         if !this.table.resolve(name) {
             this.table.define(name)
@@ -99,6 +148,10 @@ impl Resolver {
 
     void resolve_function(Vec<string> params, Vec<Stmt> body) {
         this.table.begin_scope()
+        var prev_in_function = this.in_function
+        var prev_require_value_return = this.require_value_return
+        this.in_function = true
+        this.require_value_return = true
         var i = 0
         while i < params.len() {
             if this.table.is_defined_in_current_scope(params[i]) {
@@ -109,7 +162,39 @@ impl Resolver {
             i = i + 1
         }
         this.resolve_stmt_list(body)
+        if !this.block_guarantees_value_return(body) {
+            this.error("function body may exit without returning a value")
+        }
+        this.in_function = prev_in_function
+        this.require_value_return = prev_require_value_return
         this.table.end_scope()
+    }
+
+    bool block_guarantees_value_return(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            if this.stmt_guarantees_value_return(statements[i]) {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+
+    bool stmt_guarantees_value_return(Stmt stmt) {
+        if stmt.kind == STMT_RETURN() {
+            return true
+        }
+        if stmt.kind == STMT_BLOCK() {
+            return this.block_guarantees_value_return(stmt.body)
+        }
+        if stmt.kind == STMT_IF() {
+            if stmt.body.len() == 0 || stmt.else_body.len() == 0 {
+                return false
+            }
+            return this.block_guarantees_value_return(stmt.body) && this.block_guarantees_value_return(stmt.else_body)
+        }
+        return false
     }
 
     void resolve_stmt(Stmt stmt) {
@@ -131,6 +216,9 @@ impl Resolver {
             return
         }
         if stmt.kind == STMT_RETURN_VOID() || stmt.kind == STMT_BREAK() || stmt.kind == STMT_CONTINUE() {
+            if stmt.kind == STMT_RETURN_VOID() && this.in_function && this.require_value_return {
+                this.error("void return is not allowed in value-return function")
+            }
             return
         }
         if stmt.kind == STMT_BLOCK() {
@@ -177,6 +265,21 @@ impl Resolver {
             return
         }
         if expr.kind == EXPR_CALL() {
+            if expr.children.len() > 0 {
+                var callee = expr.children[0]
+                if callee.kind == EXPR_VARIABLE() {
+                    var expected = this.lookup_builtin_arity(callee.literal_value.lexeme)
+                    if expected >= 0 {
+                        var actual = expr.children.len() - 1
+                        if actual != expected {
+                            this.error(
+                                "builtin call arity mismatch for " + callee.literal_value.lexeme +
+                                ": expected " + int_to_string(expected) + ", got " + int_to_string(actual)
+                            )
+                        }
+                    }
+                }
+            }
             var j = 0
             while j < expr.children.len() {
                 this.resolve_expr(expr.children[j])

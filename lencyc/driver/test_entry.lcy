@@ -54,6 +54,38 @@ bool expect_resolve_success(string source, string label) {
     return true
 }
 
+bool expect_function_body_resolve_error(Vec<string> params, string source, string label) {
+    var parser = make_parser(source)
+    var body = parser.parse()
+    if parser.has_error {
+        print("Function-body resolve test setup failed: parser rejected source for " + label + ".\n")
+        return false
+    }
+    var result = resolve_function_body(params, body)
+    if !result.has_error {
+        print("Function-body negative test failed: " + label + " should produce resolver error.\n")
+        return false
+    }
+    print("Function-body negative test passed: " + label + " (" + int_to_string(result.error_count) + " errors).\n")
+    return true
+}
+
+bool expect_function_body_resolve_success(Vec<string> params, string source, string label) {
+    var parser = make_parser(source)
+    var body = parser.parse()
+    if parser.has_error {
+        print("Function-body resolve test setup failed: parser rejected source for " + label + ".\n")
+        return false
+    }
+    var result = resolve_function_body(params, body)
+    if result.has_error {
+        print("Function-body positive test failed: " + label + " should pass.\n")
+        return false
+    }
+    print("Function-body positive test passed: " + label + ".\n")
+    return true
+}
+
 int main() {
     print("Running Lency Self-hosted Compiler Lexer/Parser Tests...\n")
     
@@ -275,19 +307,27 @@ int main() {
     }
 
     print("Step 14: Function-like scope resolution tests...\n")
-    var fn_body_parser = make_parser(src_resolver_function_body_ok())
-    var fn_body = fn_body_parser.parse()
-    if fn_body_parser.has_error {
-        print("Function-like resolve test setup parse failed.\n")
-        return 1
-    }
     var fn_params = vec!["p"]
-    var fn_result = resolve_function_body(fn_params, fn_body)
-    if fn_result.has_error {
-        print("Function-like scope resolution should pass but failed.\n")
+    if !expect_function_body_resolve_success(fn_params, src_resolver_function_body_ok(), "function-like scope resolution") {
         return 1
     }
-    print("Function-like scope resolution passed.\n")
+    if !expect_function_body_resolve_success(fn_params, src_resolver_function_body_if_else_return_ok(), "if-else guaranteed return is legal") {
+        return 1
+    }
+    if !expect_function_body_resolve_error(fn_params, src_resolver_function_body_missing_return(), "function body missing return") {
+        return 1
+    }
+    if !expect_function_body_resolve_error(fn_params, src_resolver_function_body_void_return_bad(), "void return in value-return function") {
+        return 1
+    }
+
+    print("Step 15: Builtin call arity resolution tests...\n")
+    if !expect_resolve_success(src_resolver_builtin_arity_ok(), "builtin arity positive") {
+        return 1
+    }
+    if !expect_resolve_error(src_resolver_builtin_arity_bad(), "builtin arity mismatch negative") {
+        return 1
+    }
 
     print("Tests completed successfully.\n")
     return 0

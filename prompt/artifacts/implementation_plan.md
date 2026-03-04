@@ -1,41 +1,29 @@
-# Sprint 17 Implementation Plan (Parser)
+# Sprint 18 Implementation Plan (Semantic Analysis)
 
 ## 目标
-以“最小增量 + 立即验证”的节奏推进 `lencyc` 自举 Parser，避免一次性大改导致回归。
-
-## 本轮已完成 (2026-03-02)
-1. 在 `lencyc/syntax/ast.lcy` 新增 `STMT_RETURN` 与 `make_stmt_return`。
-2. 在 `lencyc/syntax/parser.lcy` 新增 `return_statement()` 并接入 `statement()` 分发。
-3. 在 `lencyc/driver/test_entry.lcy` 加入 `return` 语句样例，验证解析路径。
-4. 在 `lencyc/syntax/ast.lcy` 新增 `expr_to_string` / `stmt_to_string` AST Printer。
-5. 在 `lencyc/driver/test_entry.lcy` 输出 AST 文本，提升可观测性。
-6. 运行 `./scripts/run_lency_checks.sh`，通过。
+以“最小语义闭环 + 立即回归”为节奏推进 `lencyc` 自举语义层，优先阻断明显非法程序。
 
 ## 本轮已完成 (2026-03-04)
-1. 在 `lencyc/syntax/token.lcy` 新增 `T_STRING_LITERAL`，避免与 `string` 关键字语义混淆。
-2. 在 `lencyc/syntax/lexer.lcy` 新增 `string_literal()`，支持双引号字符串扫描与未闭合报错。
-3. 在 `lencyc/syntax/parser/expr.lcy` 的 `primary()` 接入字符串字面量解析路径。
-4. 在 `lencyc/driver/test_cases.lcy` 与 `lencyc/driver/test_entry.lcy` 新增字符串正/负例回归断言。
-5. 在 `lencyc/syntax/lexer.lcy` 的 `number()` 新增浮点扫描（`digits '.' digits`）。
-6. 在 `lencyc/driver/test_cases.lcy` 与 `lencyc/driver/test_entry.lcy` 新增浮点正/负例回归断言。
-7. 在 `lencyc/driver/main.lcy` 打通最小主流程：`Read -> Lex -> Parse -> Resolve -> Emit(AST 文本)`。
-8. 在 `lencyc/cli/args.lcy` 提供可运行默认参数（输入样例与输出文件），并保留 argv 未接入 `FIXME`。
-9. 新增 `lencyc/driver/pipeline_sample.lcy` 作为主流程默认输入样例。
-10. 扩展 `scripts/run_lency_checks.sh`：新增主入口编译、运行、AST 输出校验。
+1. 在 `lencyc/sema/resolver.lcy` 增加 builtin 函数签名表（参数个数）。
+2. 在 `resolve_expr(EXPR_CALL)` 增加 builtin 调用参数个数校验（arity mismatch 报错）。
+3. 在 `lencyc/driver/test_cases.lcy` 新增 `src_resolver_builtin_arity_ok` 与 `src_resolver_builtin_arity_bad`。
+4. 在 `lencyc/driver/test_entry.lcy` 新增 Step 15，覆盖 builtin arity 正/负例回归。
+5. 在 `lencyc/sema/resolver.lcy` 增加函数体 return 约束：
+   - value-return 函数禁止 `return` 空值。
+   - 函数体必须保证存在可达 value-return（支持 block/if-else 双分支返回判定）。
+6. 在 `lencyc/driver/test_cases.lcy` 与 `lencyc/driver/test_entry.lcy` 增加函数体 return 约束正/负例回归。
 
 ## 下一步 (按优先级)
-1. 声明解析扩展
-   - 支持 `func`/类型声明的最小骨架（若暂未完成，保留 TODO 注释）。
-2. 词法补强
-   - 支持科学计数法（如 `1.2e-3`）。
-   - 支持字符串转义与字符字面量。
+1. 类型一致性最小闭环
+   - 先覆盖赋值与二元表达式上的最小类型冲突检查（int/bool/string/float）。
+2. 调用语义扩展
+   - 非 builtin 函数签名来源与调用校验（依赖函数声明语义接入）。
 
 ## 质量门禁
-每次新增一个语法点，立即执行：
-1. `./scripts/run_lency_checks.sh`
-2. 在阶段性提交前执行 `./scripts/run_checks.sh`
+每次改动结束必须执行：
+1. `./scripts/run_checks.sh`
+2. `./scripts/run_lency_checks.sh`
 
-## 当前阻塞/技术债
-1. `return` 无值场景仍使用哑元表达式承载
-   - TODO: 支持 void-return 的专用 AST 节点，避免哑元表达式。
-2. Parser 报错仍为本地 `print`，尚未接入统一 Reporter。
+## 当前技术债
+1. 语义诊断仍是 `print` 文本，未统一 Reporter。
+2. 非 builtin 函数目前缺少签名源，调用校验仅覆盖 builtin。

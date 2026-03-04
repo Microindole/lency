@@ -1,68 +1,51 @@
-# Lency 语言设计规范 (Ver 2.0)
+# Lency 语言设计规范 (Ver 2.1)
 
-> **更新**: 2026-01-16  
-> **状态**: 开发中 (65% 完成)
+> 更新: 2026-03-04
+> 状态: 规范持续维护中（实现分为 Rust 主编译器与 Lency 自举编译器两条链路）
 
 ## 1. 核心哲学 (Philosophy)
 
-Lency 是一门 **"实用主义的工业级语言"**。它的设计目标是在 C 语言的结构感与 Python 的开发效率之间找到黄金平衡点。
+Lency 是一门实用主义的工业级语言，目标是在 C 的结构感与 Python 的开发效率之间取得平衡。
 
-**四大支柱**:
-- **Crystal Clear (清晰如晶)**: 代码意图一目了然。拒绝隐式转换，拒绝复杂的元编程魔法。
-- **Safety by Default (默认安全)**: 所有的引用默认不可为空 (Non-nullable)。空值必须显式处理。
-- **Structure over Style (结构至上)**: 采用 C 系的大括号 `{}` 结构，但在语句末尾摒弃分号 `;` (除非一行多句)，减少视觉噪音。
-- **Simplicity First (简洁优先)**: 组合优于继承，显式优于隐式。
+四大支柱:
+- Crystal Clear (清晰如晶): 拒绝隐式转换与不透明魔法。
+- Safety by Default (默认安全): 空值语义必须显式。
+- Structure over Style (结构至上): 使用 C 系 `{}` 结构，减少样板噪音。
+- Simplicity First (简洁优先): 显式优于隐式，组合优于继承。
 
 ---
 
 ## 2. 基础语法 (Syntax)
 
-### 2.1 变量与常量 ✅
-
-采用 `var` 进行类型推导，支持显式类型标注。
+### 2.1 变量与常量
 
 ```lency
-// 自动推导为 int
-var count = 10 
-
-// 显式类型
+var count = 10
 var name: string = "Lency"
-
-// 常量（规划中）
 const PI = 3.14159
 ```
 
-**实现状态**: ✅ 完成
+实现状态:
+- Rust 主编译器: 已支持核心变量语法。
+- Lency 自举编译器: 已支持 `var` 声明解析；`const` 暂未进入自举主线。
 
-### 2.2 函数 (Functions) ✅
-
-抛弃 `func/fn` 关键字，回归 C 系的直观。
+### 2.2 函数 (Functions)
 
 ```lency
-// 返回值类型写在前面
 int add(int a, int b) {
     return a + b
 }
 
-// 无返回值
 void log(string msg) {
     print(msg)
 }
-
-// 泛型函数
-T max<T>(T a, T b) {
-    if a > b {
-        return a
-    }
-    return b
-}
 ```
 
-**实现状态**: ✅ 完成
+实现状态:
+- Rust 主编译器: 已具备函数语义与代码生成能力。
+- Lency 自举编译器: 函数声明解析仍在收尾，当前优先保障语句与表达式主链路可运行。
 
-### 2.3 控制流 (Control Flow) ✅
-
-没有括号包裹条件，强制使用大括号。
+### 2.3 控制流 (Control Flow)
 
 ```lency
 if x > 10 {
@@ -75,200 +58,70 @@ while x > 0 {
     x = x - 1
 }
 
-for i in 0..10 {
+for i = 0; i < 10; i = i + 1 {
     print(i)
-}
-
-// Match 表达式
-match status {
-    200 => print("OK"),
-    404 => print("Not Found"),
-    _   => print("Unknown")
 }
 ```
 
-**实现状态**: ✅ 完成 (for-range 部分完成)
+实现状态:
+- Rust 主编译器: 已支持主流控制流。
+- Lency 自举编译器: `if/while/for/break/continue/return` 已支持，`for` 采用反糖到 `while`。
 
 ---
 
 ## 3. 类型系统 (Type System)
 
-### 3.1 空安全 (Null Safety) ✅
-
-这是 Lency 最核心的特性之一。
+### 3.1 空安全 (Null Safety)
 
 ```lency
-string s = "Hello" // 永远不可能是 null
-
-string? maybe = null // 显式可空
-
-// 安全访问
-if maybe != null {
-    print(maybe.length) // 智能转换
-}
-
-// Elvis 操作符
-var len = maybe?.length  // 返回 int?
-var len2 = maybe?.length ?? 0  // 提供默认值
+string s = "Hello"
+string? maybe = null
 ```
 
-**实现状态**: ✅ 完成（智能类型转换、Elvis、空值合并）
+实现状态:
+- Rust 主编译器: 空安全与相关检查可用。
+- Lency 自举编译器: 当前以最小语义闭环为目标，类型系统仍在增量补齐。
 
-### 3.2 结构体与泛型 ✅
+### 3.2 结构体、泛型、枚举、Trait
 
-采用单态化泛型 (Monomorphization)，零运行时开销。
-
-```lency
-struct Box<T> {
-    T value
-}
-
-impl<T> Box<T> {
-    T get() {
-        return this.value
-    }
-    
-    void set(T v) {
-        this.value = v
-    }
-}
-
-var intBox = Box<int> { value: 10 }
-var val = intBox.get()
-```
-
-**实现状态**: ✅ 完成（泛型 struct、impl、方法调用）
-
-### 3.3 枚举与模式匹配 ✅
-
-```lency
-enum Status {
-    Ok,
-    Error,
-    Pending
-}
-
-// 泛型枚举（部分支持）
-enum Option<T> {
-    Some(T),
-    None
-}
-
-match opt {
-    Some(val) => print(val),
-    None => print("empty")
-}
-```
-
-**实现状态**: ✅ 基础枚举，⚠️ 泛型枚举有限制
-
-### 3.4 Trait 系统 ✅
-
-```lency
-trait Hash {
-    int hash()
-}
-
-impl Hash for int {
-    int hash() {
-        return this
-    }
-}
-
-trait Comparable<T> {
-    bool greater_than(T other)
-}
-```
-
-**实现状态**: ✅ 完成
+这是语言规范目标能力，Rust 主编译器链路支持度更高；Lency 自举编译器当前不把该组特性作为近期里程碑优先项。
 
 ---
 
 ## 4. 错误处理 (Error Handling)
 
-拒绝 Try-Catch 这种破坏控制流的机制。使用 Result 模式。
+采用 `Result` 风格而非 `try-catch`。
 
-```lency
-// ! 表示可能出错
-string! read_file(string path) {
-    // ...
-}
-
-var result = read_file("data.txt")
-// 需要手动处理错误（当前实现）
-```
-
-**实现状态**: ⚠️ 语法支持，Result 类型待完善
+实现状态:
+- Rust 主编译器: 诊断系统与错误传播链路已可用。
+- Lency 自举编译器: 语义诊断仍以最小文本报错为主，后续会统一收敛到更完整的诊断模型。
 
 ---
 
-## 5. 内存管理 (Memory)
+## 5. 编译器实现分层
 
-### 5.1 内存模型 ⚠️
+### 5.1 Rust 主编译器
 
-- **当前**: 手动管理 + LLVM 优化
-- **计划**: Boehm GC 或引用计数
-- **未来**: 所有权系统（学习 Rust）
+`lency_cli` + `lency_driver` + `lency_syntax` + `lency_sema` + `lency_monomorph` + `lency_codegen` + `lency_runtime` + `lency_diagnostics`。
 
-**实现状态**: ⚠️ 基础实现，GC 待集成
+### 5.2 Lency 自举编译器
 
----
+当前重点目录: `lencyc/`。
 
-## 6. 标准库 (Standard Library)
-
-### 6.1 已实现模块 ✅
-
-**std/core** - 核心类型和 Trait (Error, Option, Hash, Eq, Comparable)
-**std/string** - 字符串处理 (trim, split, join, substr, repeat, starts_with, ends_with, replace, index_of, contains)
-**std/collections** - 集合 (Vec<T>, HashMap FFI, Pair, Box, Iterator)
-**std/iterator** - 迭代器 (Iterator<T> trait, VecIterator<T>, vec_iter)
-**std/io** - I/O (println, print_line)
-**std/fs** - 文件系统 (read_file, write_file)
-**std/math** - 数学 (abs, max, min, clamp, sign, pow_int, lerp, is_close)
-**std/char** - 字符处理 (is_digit, is_alpha, is_alphanumeric, is_whitespace)
-**std/assert** - 断言 (assert_true, assert_false, assert_eq_int, assert_eq_string)
-**std/result** - Result 辅助 (result_to_string)
-**std/option** - Option 辅助 (option_int_to_string, option_string_to_string)
-**std/convert** - 类型转换 (bool_to_string, int_to_bool)
-**lib/test** - 测试工具 (assert_eq, assert_true, test_passed, test_failed)
-
-### 6.2 规划中模块 📋
-
-- lib/json - JSON 解析（需要更多语言特性）
+当前阶段已打通最小链路:
+- Read -> Lex -> Parse -> Resolve -> Emit(AST/LIR)
+- 通过 `scripts/run_lency_checks.sh` 做回归闭环
 
 ---
 
-## 7. 编译器架构
-
-```
-lency_cli      # CLI 入口
-lency_driver   # 编译驱动
-  ├─ lency_syntax      # 词法+语法 ✅
-  ├─ lency_sema        # 语义分析 ✅
-  ├─ lency_monomorph   # 泛型单态化 ✅
-  ├─ lency_codegen     # LLVM 代码生成 ✅
-  └─ lency_runtime     # 运行时库 ✅
-
-lency_diagnostics # 统一诊断 ✅
-```
-
-**详见**: [assets/roadmap.md](file:///home/indolyn/beryl/assets/roadmap.md)
-
----
-
-## 8. 文件扩展名
+## 6. 文件扩展名
 
 `.lcy`
 
 ---
 
-## 9. 下一步开发
+## 7. 当前阶段约束 (2026-03-04)
 
-**Sprint 16 - 自举 Lexer**:
-- 使用 Lency 实现词法分析器
-- Token 定义、Lexer 架构、Scanner 逻辑
-
-**Sprint 17+ - 自举 Parser**:
-- 使用 Lency 实现语法分析器
-
-详见 [roadmap.md](../prompt/sprint/roadmap.md)
+- 规范与实现要分层描述，禁止再用单一“完成百分比”掩盖链路差异。
+- Sprint 当前主线是语义增量（Sema），不是继续堆 Parser 文案。
+- 文档中涉及阶段计划时，只允许引用 `prompt/sprint/status.md` 的当前状态，不再维护过期冲刺计划副本。

@@ -1,20 +1,40 @@
 # Sprint 状态总结
 
-## Sprint 17: 自举 - Parser (进行中)
+## Sprint 18: 自举 - Semantic Analysis (进行中)
 
-**工作记录**: [task](../artifacts/task.md) | [implementation_plan](../artifacts/implementation_plan.md) | [walkthrough](../artifacts/walkthrough.md) | [详细计划](plan_17.md)
+**工作记录**: [task](../artifacts/task.md) | [implementation_plan](../artifacts/implementation_plan.md) | [walkthrough](../artifacts/walkthrough.md)
 
 ### 目标
-实现一个递归下降解析器 (Recursive Descent Parser)，将 Token 流转换为 AST。
+在保持自举链路可运行的前提下，逐步补齐语义约束（解析后尽早失败，避免错误进入后端）。
+
+### 已完成
+- [x] 最小 name resolution：变量定义/引用检查（undefined / duplicate / out-of-scope / shadowing）
+- [x] 函数体作用域入口：`resolve_function_body(params, body)`
+- [x] 内建符号 prelude 预载（`arg_count/arg_at/...`）
+- [x] 内建函数调用参数个数校验（builtin arity）
+- [x] 函数体 return 约束（禁止 void-return，要求可达 value-return）
 
 ### 待完成
-- [ ] AST 定义 (Enum/Struct) - `lencyc/syntax/ast.lcy`（已覆盖 Expr/Stmt 基础节点，含 `return`）
-- [x] Parser 基础架构 - `lencyc/syntax/parser.lcy`
-- [ ] Expression Parsing (优先级, Pratt/Recursive)（已支持 assignment/logical/comparison/arithmetic/unary/primary，含 `true/false/string-literal/int-float-literal` 字面量）
-- [ ] Statement/Declaration Parsing（已支持 var/if/while/for/block/return/return-void/break/continue/expr）
-- [x] AST Printer (Debug验证)
-- [x] Parser 模块化拆分（D&D）：`lencyc/syntax/parser/{expr,stmt,decl}.lcy`
-- [x] AST 模块化拆分：`lencyc/syntax/ast/{expr,stmt,printer}.lcy`
+- [ ] 基础类型一致性校验（最小 `int/bool/string/float`）
+- [ ] 非 builtin 函数签名来源与调用校验（待函数声明语义接入）
+
+---
+
+## Sprint 17: 自举 - Parser (收尾中)
+
+### 目标
+实现递归下降解析器，将 Token 流转换为 AST，并维持可测试的模块化结构。
+
+### 收尾项
+- [ ] AST 定义补全（Type representation 等未落地部分）
+- [ ] 声明解析扩展（`func/struct/impl` 最小骨架）
+- [ ] Parser 错误恢复同步点（当前仍偏 fail-fast）
+
+### 已完成摘要
+- [x] Parser/AST 模块化拆分：`lencyc/syntax/{parser,ast}/...`
+- [x] 表达式优先级链、`call/member`、`string/char/int/float/scientific` 字面量
+- [x] 语句解析：`var/if/while/for/block/return/break/continue/expr`
+- [x] `for` 反糖 + `continue` 增量修正
 
 ---
 
@@ -47,9 +67,9 @@
 
 ## 下一步计划
 
-### 优先级 1: Sprint 17 -- Parser Implementation
+### 优先级 1: Sprint 18 -- Semantic Analysis（类型/调用/返回约束）
 
-### 优先级 2: Sprint 18 -- Semantic Analysis (Name Resolution)
+### 优先级 2: Sprint 17 -- Parser 收尾（声明解析最小骨架）
 
 ---
 
@@ -57,7 +77,7 @@
 | 指标 | 值 |
 |------|-----|
 | 测试通过 | 69 (.lcy) + Rust unit tests |
-| 自举组件 | Lexer (Done), Parser (WIP) |
+| 自举组件 | Lexer (Done), Parser (Closeout), Sema (WIP) |
 | 自举准备度 | ~98% |
 
 *更新时间: 2026-03-04*
@@ -73,23 +93,5 @@
 8. 新增 `lencyc/driver/pipeline_sample.lcy` 作为主入口默认样例输入，避免依赖尚未实现的函数声明解析。
 9. `scripts/run_lency_checks.sh` 新增对 `lencyc/driver/main.lcy` 的编译、运行与产物校验步骤。
 10. 自举最小“完整流程”可执行：`lencyc_main` 运行后可生成 `lencyc_selfhost_ast.txt`。
-
-### 今日增量（2026-03-03）
-1. 自举 Parser 新增 `break` 语句：
-   - 词法：`break` 关键字映射到 `T_BREAK`
-   - AST：新增 `STMT_BREAK` 与构造函数
-   - 语法：新增 `break_statement`，并限制只能出现在 `while` 块内
-   - 调试打印：新增 `(break)` 输出
-2. `prompt/context.md` 已重构为“目录地图+职责说明”，移除逐条流水账。
-3. 自举 Parser 新增 `continue` 语句，并补充 `break/continue` 循环外非法位置负例测试。
-4. 自举 Parser 新增 C 风格 `for` 语句解析（先反糖为 `while` 路径）。
-5. 修复 `for` 反糖语义：`continue` 现在会先执行 `increment`，并避免污染嵌套循环的 `continue`。
-6. 自举测试扩展：补齐 `for` 非法语法负例（缺 `var` / `;` / `{`）与嵌套循环重写安全性断言。
-7. 新增最小 `name resolution` 骨架（`lencyc/sema/{symbol,scope,resolver}.lcy`），并在 `test_entry` 中加入 smoke test。
-8. 为 resolver 新增负例断言：未定义变量、未定义赋值、同作用域重复定义。
-9. `for` 初始化扩展：从仅 `var` 扩展为支持表达式初始化（`for i = ...;`）。
-10. resolver 测试扩展：新增“块退出后不可见”负例与“作用域遮蔽合法”正例。
-11. parser 表达式链扩展：新增 `call/member` 解析与 AST 节点（`EXPR_CALL` / `EXPR_GET`）。
-12. parser 架构收敛：抽出 `lower_for_statement`，集中管理 for 反糖规则。
-13. resolver 扩展：新增函数体级入口 `resolve_function_body(params, body)`，并补函数样式作用域测试。
-14. 自举回归集结构化：新增 `lencyc/driver/test_cases.lcy` 管理测试源码，`test_entry` 仅负责编排与断言。
+11. resolver 新增 builtin 参数个数校验：对 `arg_count/arg_at/write_string/...` 固定签名做调用 arity 检查，并补充正/负例回归。
+12. resolver 新增函数体 return 约束：value-return 函数禁止 `return` 空值，且要求函数体可达 value-return；`test_entry` 已补齐正/负例回归。

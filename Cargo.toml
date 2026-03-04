@@ -13,7 +13,7 @@ members = [
     "crates/lency_runtime", "crates/lency_ls",
 ]
 
-# 【关键】统一依赖版本管理
+# 统一依赖版本管理
 # 子 crate 使用时只需要写 dependencies.xxx = { workspace = true }
 
 [workspace.dependencies]

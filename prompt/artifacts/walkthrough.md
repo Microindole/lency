@@ -1,28 +1,30 @@
-# Sprint 17 Walkthrough (2026-03-02)
+# Sprint 18 Walkthrough (2026-03-04)
 
 ## 当前进度
-1. P0 完成：Parser 新增 `return` 语句解析路径。
-2. AST 已新增 `STMT_RETURN` 节点与工厂函数。
-3. AST Printer 已实现：`expr_to_string`/`stmt_to_string`。
-4. 自举驱动样例已覆盖 `return` 解析路径（`simple_source` 新增 `return i`），并打印 AST 文本。
-5. 验证结果：`./scripts/run_lency_checks.sh` 通过，运行时输出由 `2 statements` 变为 `3 statements`，并显示 AST[0..2]。
-6. 工程产物管理优化：`lencyc compile/build` 新增 `--out-dir`，`run_lency_checks.sh` 的自举产物改写入 `target/lencyc_selfhost/`，避免污染仓库根目录。
+1. 语义层已具备最小 name resolution 与函数体作用域入口。
+2. 本轮新增 builtin 调用参数个数校验，解析后可直接阻断明显非法调用。
+3. 本轮新增函数体 return 约束（禁止 void-return、要求可达 value-return）。
+4. 自举回归已覆盖 builtin arity 与 function-return 正/负路径。
+
+## 本轮改动明细
+1. `lencyc/sema/resolver.lcy`
+   - 新增 `BuiltinArity` 与 `builtin_arities`。
+   - 新增 `preload_builtin_arities()` 与 `lookup_builtin_arity()`。
+   - 在 `EXPR_CALL` 分支新增参数个数检查：`expected != actual` 时报错。
+   - 在函数体解析路径新增 return 约束检查：`return` 形态合法性 + 可达 value-return 判定。
+2. `lencyc/driver/test_cases.lcy`
+   - 新增 `src_resolver_builtin_arity_ok()`。
+   - 新增 `src_resolver_builtin_arity_bad()`。
+   - 新增 `src_resolver_function_body_missing_return()`。
+   - 新增 `src_resolver_function_body_void_return_bad()`。
+   - 新增 `src_resolver_function_body_if_else_return_ok()`。
+3. `lencyc/driver/test_entry.lcy`
+   - 新增 Step 15 builtin arity 回归，接入统一通过/失败断言。
+   - 新增函数体语义断言 helper，并接入 function-return 正/负例。
+
+## 验证方式
+1. 运行 `./scripts/run_checks.sh`。
+2. 运行 `./scripts/run_lency_checks.sh`。
 
 ## 未尽事宜
-1. 扩展声明解析（`func/struct/impl` 的最小子集）。
-2. 补齐字符串和浮点字面量词法支持。
-3. 为 Parser 增加错误恢复同步点（避免单错中断）。
-
-## 阻塞项
-1. `return` 无值场景暂无专用节点，当前采用哑元表达式占位。
-2. Parser 诊断尚未统一到 Reporter，错误恢复能力有限。
-
-## 增量记录 (2026-03-04)
-1. 新增字符串字面量 token：`T_STRING_LITERAL`。
-2. Lexer 已支持双引号字符串扫描，并在未闭合场景返回错误 token。
-3. Parser `primary` 已接入字符串字面量，统一映射到 `EXPR_LITERAL`。
-4. 自举测试新增字符串正/负例，覆盖 `var msg = "hello"`、`print("done")` 与未闭合字符串拒绝路径。
-5. Lexer `number()` 已支持浮点字面量扫描（`digits '.' digits`，例如 `3.14`）。
-6. 自举测试新增浮点正/负例，覆盖 `3.14`/`0.5` 与 `12.` 拒绝路径。
-7. 自举主入口 `main.lcy` 已打通最小完整流程，默认样例可运行到语义检查并输出 AST 文本。
-8. `run_lency_checks.sh` 现已覆盖 `main.lcy` 的编译、执行与 emit 产物校验。
+1. 类型一致性校验仍未落地（int/bool/string/float）。
