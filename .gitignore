@@ -27,6 +27,7 @@ tmp/
 /*.out
 
 # 6. test
+/lency*.txt
 
 
 # 7. Python

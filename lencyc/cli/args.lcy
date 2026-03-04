@@ -14,8 +14,8 @@ struct Args {
 Args parse_args() {
     // FIXME: 暂时返回硬编码或默认值，直到 std/runtime 支持 argv 获取
     return Args {
-        input_file: "",
-        output_file: "out.ll",
+        input_file: "lencyc/driver/pipeline_sample.lcy",
+        output_file: "lencyc_selfhost_ast.txt",
         check_only: false
     }
 }

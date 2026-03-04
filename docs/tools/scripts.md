@@ -96,6 +96,22 @@ python3 scripts/check_todos.py
    ...
 ```
 
+## 5. 自举链路检查
+
+**脚本**: `scripts/run_lency_checks.sh`
+
+用于验证 Lency 自举编译器链路，当前包含：
+1. 构建 Rust 宿主编译器 `lencyc`
+2. 执行 Lency scope 元检查（TODO/FIXME、文件大小、命名）
+3. 编译并运行 `lencyc/driver/test_entry.lcy` 回归入口
+4. 编译并运行 `lencyc/driver/main.lcy` 最小主流程入口
+5. 校验主流程产物 `lencyc_selfhost_ast.txt` 非空且格式正确
+
+**用法**:
+```bash
+./scripts/run_lency_checks.sh
+```
+
 ## 为何需要这些脚本？
 
 Lency 遵循严格的工程标准：

@@ -12,6 +12,10 @@ SELF_HOST_ENTRY="lencyc/driver/test_entry.lcy"
 SELF_HOST_OUT_DIR="target/lencyc_selfhost"
 SELF_HOST_OUT_NAME="lencyc_test"
 SELF_HOST_OUT="$SELF_HOST_OUT_DIR/$SELF_HOST_OUT_NAME"
+SELF_HOST_MAIN_ENTRY="lencyc/driver/main.lcy"
+SELF_HOST_MAIN_OUT_NAME="lencyc_main"
+SELF_HOST_MAIN_OUT="$SELF_HOST_OUT_DIR/$SELF_HOST_MAIN_OUT_NAME"
+SELF_HOST_MAIN_EMIT="lencyc_selfhost_ast.txt"
 
 # Colors
 RED='\033[0;31m'
@@ -70,8 +74,8 @@ print_step "1.6. Running Entry Syntax Checks for lencyc/"
 if $RUST_LENCY_EXEC build --help | grep -q -- "--check-only"; then
     CHECK_ENTRIES=(
         "lencyc/driver/test_entry.lcy"
+        "lencyc/driver/main.lcy"
     )
-    # FIXME: 恢复对 lencyc/driver/main.lcy 的 --check-only 检查，当前主入口尚未自举完备。
     for entry in "${CHECK_ENTRIES[@]}"; do
         if [ ! -f "$entry" ]; then
             print_error "Missing check entry: $entry"
@@ -112,6 +116,39 @@ else
     print_error "Self-hosted Lencyc execution test"
     exit 1
 fi
+
+# 4. 编译并运行自举主入口，验证最小完整流水线
+print_step "4. Compiling Self-host Main Pipeline Entry"
+if [ ! -f "$SELF_HOST_MAIN_ENTRY" ]; then
+    print_error "Cannot find self-host main entry file: $SELF_HOST_MAIN_ENTRY"
+    exit 1
+fi
+
+if $RUST_LENCY_EXEC build $SELF_HOST_MAIN_ENTRY -o $SELF_HOST_MAIN_OUT_NAME --out-dir "$SELF_HOST_OUT_DIR"; then
+    print_success "Self-host main compilation"
+else
+    print_error "Self-host main compilation"
+    exit 1
+fi
+
+print_step "5. Running Self-host Main Pipeline"
+if ./$SELF_HOST_MAIN_OUT; then
+    print_success "Self-host main execution"
+else
+    print_error "Self-host main execution"
+    exit 1
+fi
+
+print_step "6. Verifying Self-host Main Emit Output"
+if [ ! -s "$SELF_HOST_MAIN_EMIT" ]; then
+    print_error "Self-host main emit output missing or empty: $SELF_HOST_MAIN_EMIT"
+    exit 1
+fi
+if ! grep -q "AST\\[0\\]:" "$SELF_HOST_MAIN_EMIT"; then
+    print_error "Self-host main emit output format mismatch: $SELF_HOST_MAIN_EMIT"
+    exit 1
+fi
+print_success "Self-host main emit output"
 
 echo -e "\n${BLUE}=====================================${NC}"
 echo -e "${GREEN}🎉 All self-hosted checks passed!${NC}"

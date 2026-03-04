@@ -1,0 +1,13 @@
+// lencyc/driver/pipeline_sample.lcy
+// Self-host main pipeline sample program.
+
+var sum = 0
+for var i = 0; i < 5; i = i + 1 {
+    sum = sum + i
+}
+
+if sum > 0 {
+    return sum
+}
+
+return 0

@@ -27,6 +27,7 @@
     - [x] AST Pretty Printer (`expr_to_string` / `stmt_to_string`)
     - [x] 更新 `lencyc/driver/test_entry.lcy` (覆盖 `return` 解析路径)
     - [x] 运行 `./scripts/run_lency_checks.sh`
+    - [x] `lencyc/driver/main.lcy` 串联最小完整自举流程（Read/Lex/Parse/Resolve/Emit）
 
 ---
 

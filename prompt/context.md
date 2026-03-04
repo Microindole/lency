@@ -42,5 +42,6 @@
 - 自举语义骨架：已添加最小 `name resolution`（变量定义/引用检查）并接入 `test_entry` 烟雾验证。
 - 语义测试：`test_entry` 已补 resolver 负例（undefined/duplicate），不再只测正例。
 - 回归结构化：测试样例已抽离到 `lencyc/driver/test_cases.lcy`，`test_entry` 改为用例编排执行。
+- 最小完整链路：`lencyc/driver/main.lcy` 已串联 `Read -> Lex -> Parse -> Resolve -> Emit(AST 文本)`，默认输入 `lencyc/driver/pipeline_sample.lcy`。
 - 当前策略：按语法特性小步增量推进，每次增量后立刻跑 Lency 检查，避免回归。
 - 下一阶段：在保持可运行的前提下逐步补齐语句与语义能力。

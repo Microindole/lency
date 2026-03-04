@@ -2,7 +2,23 @@
 // 自举版 Lency 编译器入口
 
 import std.core
+import std.fs
 import lencyc.cli.args
+import lencyc.syntax.token
+import lencyc.syntax.lexer
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+string render_ast_program(Vec<Stmt> statements) {
+    var out = ""
+    var i = 0
+    while i < statements.len() {
+        out = out + "AST[" + int_to_string(i) + "]: " + stmt_to_string(statements[i]) + "\n"
+        i = i + 1
+    }
+    return out
+}
 
 int main() {
     print("Lency Self-hosted Compiler (v0.1.0)\n")
@@ -12,15 +28,67 @@ int main() {
     
     if args.input_file == "" {
         print("Usage: lencyc <input_file> [-o <output_file>] [--check-only]\n")
-        // TODO: 在这里支持从命令行获取参数
-        return 0
+        // FIXME: 在 std/runtime 支持 argv 前，CLI 只能依赖 parse_args() 的默认值。
+        return 1
     }
 
     print("Target file: " + args.input_file + "\n")
-    
-    // TODO: 串联 Lexer -> Parser -> Sema -> Codegen
-    print("Compilation pipeline starting...\n")
-    
+
+    print("Stage 1/4: Reading source...\n")
+    var source_result = read_to_string(args.input_file)
+    if source_result.is_err() {
+        print("Read failed: " + args.input_file + "\n")
+        return 1
+    }
+    var source = source_result.unwrap()
+
+    print("Stage 2/4: Lexing...\n")
+    var lexer = make_lexer(source)
+    var token_count = 0
+    while true {
+        var token = lexer.scan_token()
+        token_count = token_count + 1
+        if token.kind == T_ERROR() {
+            print("Lex failed at " + int_to_string(token.line) + ":" + int_to_string(token.column) + ": " + token.lexeme + "\n")
+            return 1
+        }
+        if token.kind == T_EOF() {
+            break
+        }
+    }
+    print("Lexed tokens: " + int_to_string(token_count) + "\n")
+
+    print("Stage 3/4: Parsing...\n")
+    var parser = make_parser(source)
+    var statements = parser.parse()
+    if parser.has_error {
+        print("Parse failed.\n")
+        return 1
+    }
+    print("Parsed statements: " + int_to_string(statements.len()) + "\n")
+
+    print("Stage 4/4: Resolving names...\n")
+    var resolve_result = resolve_statements(statements)
+    if resolve_result.has_error {
+        print("Resolve failed with " + int_to_string(resolve_result.error_count) + " errors.\n")
+        return 1
+    }
+    print("Resolve passed.\n")
+
+    if args.check_only {
+        print("Check-only mode: pipeline completed without emit.\n")
+        return 0
+    }
+
+    // FIXME: 当前 emit 仅输出 AST 文本，不是正式代码生成产物。
+    var ast_text = render_ast_program(statements)
+    var write_result = write_string(args.output_file, ast_text)
+    if write_result.is_err() {
+        print("Emit failed: " + args.output_file + "\n")
+        return 1
+    }
+    print("Emit output: " + args.output_file + "\n")
+    print("Pipeline completed successfully.\n")
+
     return 0
 }
-

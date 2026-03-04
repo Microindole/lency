@@ -18,13 +18,17 @@
 4. 在 `lencyc/driver/test_cases.lcy` 与 `lencyc/driver/test_entry.lcy` 新增字符串正/负例回归断言。
 5. 在 `lencyc/syntax/lexer.lcy` 的 `number()` 新增浮点扫描（`digits '.' digits`）。
 6. 在 `lencyc/driver/test_cases.lcy` 与 `lencyc/driver/test_entry.lcy` 新增浮点正/负例回归断言。
+7. 在 `lencyc/driver/main.lcy` 打通最小主流程：`Read -> Lex -> Parse -> Resolve -> Emit(AST 文本)`。
+8. 在 `lencyc/cli/args.lcy` 提供可运行默认参数（输入样例与输出文件），并保留 argv 未接入 `FIXME`。
+9. 新增 `lencyc/driver/pipeline_sample.lcy` 作为主流程默认输入样例。
+10. 扩展 `scripts/run_lency_checks.sh`：新增主入口编译、运行、AST 输出校验。
 
 ## 下一步 (按优先级)
 1. 声明解析扩展
    - 支持 `func`/类型声明的最小骨架（若暂未完成，保留 TODO 注释）。
 2. 词法补强
-   - 补齐字符串字面量与浮点字面量。
-   - 清理已完成但过期的 TODO 注释。
+   - 支持科学计数法（如 `1.2e-3`）。
+   - 支持字符串转义与字符字面量。
 
 ## 质量门禁
 每次新增一个语法点，立即执行：

@@ -69,6 +69,10 @@
 4. 自举回归新增字符串负例：未闭合字符串字面量应被 parser 拒绝。
 5. 自举 Lexer `number()` 新增浮点扫描：支持 `digits '.' digits`（仍归类 `T_NUMBER`）。
 6. 自举回归新增浮点正例：`3.14`、`0.5`；新增浮点负例：`12.`（缺少小数部分）应被 parser 拒绝。
+7. 自举主入口 `lencyc/driver/main.lcy` 完成最小流水线串联：读取源码、词法、语法、语义、AST 文本产物输出。
+8. 新增 `lencyc/driver/pipeline_sample.lcy` 作为主入口默认样例输入，避免依赖尚未实现的函数声明解析。
+9. `scripts/run_lency_checks.sh` 新增对 `lencyc/driver/main.lcy` 的编译、运行与产物校验步骤。
+10. 自举最小“完整流程”可执行：`lencyc_main` 运行后可生成 `lencyc_selfhost_ast.txt`。
 
 ### 今日增量（2026-03-03）
 1. 自举 Parser 新增 `break` 语句：
