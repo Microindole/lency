@@ -34,8 +34,7 @@ int T_OR_OR()       { return 30; } // '||'
 int T_NUMBER() { return 7; }
 int T_IDENTIFIER() { return 8; }
 
-// TODO: Add string literals, blocks, etc.
-// TODO: Add keywords (while, struct, etc.)
+// TODO: Add dedicated token kinds for additional punctuation/operators as parser grows.
 int T_IF()     { return 14; }
 int T_ELSE()    { return 15; }
 int T_VAR()    { return 9; }
@@ -52,6 +51,7 @@ int T_BOOL()   { return 38; }
 int T_BREAK()  { return 39; }
 int T_CONTINUE() { return 40; }
 int T_FOR()    { return 41; }
+int T_STRING_LITERAL() { return 42; }
 
 struct Token {
     int kind

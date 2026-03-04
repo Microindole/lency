@@ -11,6 +11,14 @@ string src_call_member_program() {
     return "var obj = 1\nfoo(obj, 2)\nobj.to_string()"
 }
 
+string src_string_literal_program() {
+    return "var msg = \"hello\"\nprint(msg)\nprint(\"done\")"
+}
+
+string src_float_literal_program() {
+    return "var pi = 3.14\nvar half = 0.5\nprint(pi + half)"
+}
+
 string src_nested_loop_continue_safety() {
     return "for var i = 0; i < 4; i = i + 1 {\n    while i < 3 {\n        continue\n    }\n    continue\n}"
 }
@@ -21,6 +29,8 @@ string src_invalid_for_missing_first_semicolon_expr_init() { return "for i = 0 i
 string src_invalid_for_missing_first_semicolon_var_init() { return "for var i = 0 i < 3; i = i + 1 { }"; }
 string src_invalid_for_missing_second_semicolon() { return "for var i = 0; i < 3 i = i + 1 { }"; }
 string src_invalid_for_missing_left_brace() { return "for var i = 0; i < 3; i = i + 1 i = i + 2 }"; }
+string src_invalid_unterminated_string_literal() { return "var msg = \"unterminated"; }
+string src_invalid_float_missing_fraction_digits() { return "var bad = 12."; }
 
 string src_resolver_undefined_in_initializer() { return "var x = y"; }
 string src_resolver_undefined_assignment() { return "x = 1"; }

@@ -10,7 +10,7 @@
 ### 待完成
 - [ ] AST 定义 (Enum/Struct) - `lencyc/syntax/ast.lcy`（已覆盖 Expr/Stmt 基础节点，含 `return`）
 - [x] Parser 基础架构 - `lencyc/syntax/parser.lcy`
-- [ ] Expression Parsing (优先级, Pratt/Recursive)（已支持 assignment/logical/comparison/arithmetic/unary/primary，含 `true/false` 字面量）
+- [ ] Expression Parsing (优先级, Pratt/Recursive)（已支持 assignment/logical/comparison/arithmetic/unary/primary，含 `true/false/string-literal/int-float-literal` 字面量）
 - [ ] Statement/Declaration Parsing（已支持 var/if/while/for/block/return/return-void/break/continue/expr）
 - [x] AST Printer (Debug验证)
 - [x] Parser 模块化拆分（D&D）：`lencyc/syntax/parser/{expr,stmt,decl}.lcy`
@@ -60,7 +60,15 @@
 | 自举组件 | Lexer (Done), Parser (WIP) |
 | 自举准备度 | ~98% |
 
-*更新时间: 2026-03-03*
+*更新时间: 2026-03-04*
+
+### 今日增量（2026-03-04）
+1. 自举 Lexer 新增字符串字面量扫描：`"` 开始与结束，产出 `T_STRING_LITERAL`。
+2. 自举 Parser `primary` 新增字符串字面量分支，AST 走 `EXPR_LITERAL` 统一路径。
+3. 自举回归新增字符串正例：`var msg = "hello"` 与 `print("done")` 的 AST 断言。
+4. 自举回归新增字符串负例：未闭合字符串字面量应被 parser 拒绝。
+5. 自举 Lexer `number()` 新增浮点扫描：支持 `digits '.' digits`（仍归类 `T_NUMBER`）。
+6. 自举回归新增浮点正例：`3.14`、`0.5`；新增浮点负例：`12.`（缺少小数部分）应被 parser 拒绝。
 
 ### 今日增量（2026-03-03）
 1. 自举 Parser 新增 `break` 语句：

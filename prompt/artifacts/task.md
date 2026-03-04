@@ -14,7 +14,9 @@
     - [x] 递归优先级链 (`assignment -> or -> and -> equality -> comparison -> term -> factor -> unary -> primary`)
     - [x] Leaf nodes (number, bool, identifier, grouping)
     - [x] Infix/Prefix operators
-    - [ ] 字符串/浮点等字面量扩展
+    - [x] 字符串字面量扩展（`T_STRING_LITERAL`，含正/负例回归）
+    - [x] 浮点字面量扩展（`digits '.' digits`，沿用 `T_NUMBER`）
+    - [ ] 科学计数法字面量扩展（如 `1.2e-3`）
 
 - [ ] **Statement Parsing**
     - [x] `parse_decl` (var)

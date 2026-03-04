@@ -122,6 +122,12 @@ int main() {
     if !expect_parse_error(src_invalid_for_missing_left_brace(), "for missing left brace") {
         return 1
     }
+    if !expect_parse_error(src_invalid_unterminated_string_literal(), "unterminated string literal") {
+        return 1
+    }
+    if !expect_parse_error(src_invalid_float_missing_fraction_digits(), "float missing fraction digits") {
+        return 1
+    }
 
     print("Step 5: Call/member parsing tests...\n")
     var call_member_source = src_call_member_program()
@@ -142,7 +148,41 @@ int main() {
         return 1
     }
 
-    print("Step 6: Nested loop rewrite safety tests...\n")
+    print("Step 6: String literal parsing tests...\n")
+    var string_source = src_string_literal_program()
+    var string_parser = make_parser(string_source)
+    var string_stmts = string_parser.parse()
+    if string_parser.has_error {
+        print("String literal parse failed unexpectedly.\n")
+        return 1
+    }
+    if !contains(stmt_to_string(string_stmts[0]), "(var msg = \"hello\")") {
+        print("String literal var AST shape mismatch.\n")
+        return 1
+    }
+    if !contains(stmt_to_string(string_stmts[2]), "(call print \"done\")") {
+        print("String literal call AST shape mismatch.\n")
+        return 1
+    }
+
+    print("Step 7: Float literal parsing tests...\n")
+    var float_source = src_float_literal_program()
+    var float_parser = make_parser(float_source)
+    var float_stmts = float_parser.parse()
+    if float_parser.has_error {
+        print("Float literal parse failed unexpectedly.\n")
+        return 1
+    }
+    if !contains(stmt_to_string(float_stmts[0]), "(var pi = 3.14)") {
+        print("Float literal var AST shape mismatch.\n")
+        return 1
+    }
+    if !contains(stmt_to_string(float_stmts[2]), "(call print (+ pi half))") {
+        print("Float literal expression AST shape mismatch.\n")
+        return 1
+    }
+
+    print("Step 8: Nested loop rewrite safety tests...\n")
     var nested_source = src_nested_loop_continue_safety()
     var nested_parser = make_parser(nested_source)
     var nested_stmts = nested_parser.parse()
@@ -165,7 +205,7 @@ int main() {
         return 1
     }
 
-    print("Step 7: Name resolution smoke test...\n")
+    print("Step 9: Name resolution smoke test...\n")
     var resolve_result = resolve_statements(statements)
     if resolve_result.has_error {
         print("Resolver failed unexpectedly on valid sample.\n")
@@ -173,7 +213,7 @@ int main() {
     }
     print("Resolver smoke test passed.\n")
 
-    print("Step 8: Name resolution negative tests...\n")
+    print("Step 10: Name resolution negative tests...\n")
     if !expect_resolve_error(src_resolver_undefined_in_initializer(), "undefined variable in initializer") {
         return 1
     }
@@ -187,12 +227,12 @@ int main() {
         return 1
     }
 
-    print("Step 9: Name resolution positive scope tests...\n")
+    print("Step 11: Name resolution positive scope tests...\n")
     if !expect_resolve_success(src_resolver_shadowing_ok(), "shadowing in inner block is legal") {
         return 1
     }
 
-    print("Step 10: Function-like scope resolution tests...\n")
+    print("Step 12: Function-like scope resolution tests...\n")
     var fn_body_parser = make_parser(src_resolver_function_body_ok())
     var fn_body = fn_body_parser.parse()
     if fn_body_parser.has_error {

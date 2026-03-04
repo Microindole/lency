@@ -60,6 +60,13 @@ impl Lexer {
         }
         return this.source[this.current];
     }
+
+    int peek_next_char() {
+        if this.current + 1 >= len(this.source) {
+            return 0
+        }
+        return this.source[this.current + 1]
+    }
     
     // Generate normal token
     Token make_token_from(int kind) {
@@ -141,10 +148,37 @@ impl Lexer {
         while is_digit(this.peek_char()) {
             var dummy = this.advance();
         }
-        
-        // TODO: Support decimal points (floats)
+
+        // Support decimal fraction: digits '.' digits
+        if this.peek() == "." && is_digit(this.peek_next_char()) {
+            var dot = this.advance()
+            while is_digit(this.peek_char()) {
+                var dummy2 = this.advance()
+            }
+        }
+        // TODO: Support scientific notation like 1.23e-4.
         
         return this.make_token_from(T_NUMBER());
+    }
+
+    // Parse double-quoted string literals.
+    Token string_literal() {
+        // TODO: Support escape sequences like \" and \n.
+        while !this.is_at_end() && this.peek() != "\"" {
+            if this.peek() == "\n" {
+                this.line = this.line + 1
+                this.column = 1
+            }
+            var dummy = this.advance()
+        }
+
+        if this.is_at_end() {
+            return this.error_token("Unterminated string literal.")
+        }
+
+        // Consume closing quote.
+        var dummy_end = this.advance()
+        return this.make_token_from(T_STRING_LITERAL())
     }
 
     // Get next token
@@ -172,6 +206,7 @@ impl Lexer {
         if c == ":" { return this.make_token_from(T_COLON()); }
         if c == "." { return this.make_token_from(T_DOT()); }
         if c == "," { return this.make_token_from(T_COMMA()); }
+        if c == "\"" { return this.string_literal(); }
 
         if c == "!" {
             if this.match_char("=") { return this.make_token_from(T_BANG_EQUAL()); }
@@ -212,7 +247,7 @@ impl Lexer {
         }
         
         // TODO: Support double-char operators (==, !=, etc)
-        // TODO: Support string literals
+        // TODO: Support char literals.
         
         return this.error_token("Unexpected character.");
     }

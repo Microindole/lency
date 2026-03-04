@@ -37,7 +37,8 @@
 - 已支持：C 风格 `for` 语句基础解析（当前通过 parser 反糖到 `while`）。
 - 语义修正：`for` 反糖路径下，`continue` 已确保先执行 `increment`（且不影响嵌套循环）。
 - 解析边界：`for` 当前支持 `var` 或表达式初始化（如 `for var i = ...;` / `for i = ...;`）。
-- 表达式能力：parser 已支持 `call` 与 `member` 链（`foo(a,b)`、`obj.method()`）。
+- 表达式能力：parser 已支持 `call` 与 `member` 链（`foo(a,b)`、`obj.method()`），并支持字符串字面量（`"text"`）。
+- 数字字面量：lexer 已支持 `int/float`（如 `1`、`3.14`），当前 `float` 采用 `digits '.' digits` 形式。
 - 自举语义骨架：已添加最小 `name resolution`（变量定义/引用检查）并接入 `test_entry` 烟雾验证。
 - 语义测试：`test_entry` 已补 resolver 负例（undefined/duplicate），不再只测正例。
 - 回归结构化：测试样例已抽离到 `lencyc/driver/test_cases.lcy`，`test_entry` 改为用例编排执行。
