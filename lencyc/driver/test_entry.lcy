@@ -351,6 +351,20 @@ int main() {
         return 1
     }
 
+    print("Step 18: User function type-signature resolution tests...\n")
+    if !expect_resolve_success(src_resolver_user_function_type_ok(), "user function type signature positive") {
+        return 1
+    }
+    if !expect_resolve_success(src_resolver_user_function_float_signature_ok(), "user function float signature positive") {
+        return 1
+    }
+    if !expect_resolve_error(src_resolver_user_function_arg_type_bad(), "user function argument type mismatch negative") {
+        return 1
+    }
+    if !expect_resolve_error(src_resolver_user_function_return_type_bad(), "user function return type mismatch negative") {
+        return 1
+    }
+
     print("Tests completed successfully.\n")
     return 0
 }

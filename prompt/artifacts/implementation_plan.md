@@ -19,13 +19,18 @@
 3. 在 `lencyc/driver/test_cases.lcy` 新增类型一致性正/负例用例。
 4. 在 `lencyc/driver/test_entry.lcy` 新增 Step 16，接入类型一致性回归。
 5. 对 `arg_at/int_to_string/float_to_string/bool_to_string` 采用 `unknown` 返回类型兜底，兼容当前 self-host runtime 回归用例（pointer-as-value 语义）。
-6. 在 `lencyc/syntax/parser/decl.lcy` 接入最小函数声明骨架解析（`int/string/bool/void` 起始）。
+6. 在 `lencyc/syntax/parser/decl.lcy` 接入最小函数声明骨架解析（`int/string/bool/void/float` 起始）。
 7. 在 `lencyc/sema/resolver.lcy` 增加用户函数 arity 预扫描，并在 `EXPR_CALL` 复用统一 arity 校验逻辑。
 8. 在 `lencyc/driver/test_cases.lcy` 与 `lencyc/driver/test_entry.lcy` 增加 Step 17 用户函数 arity 正/负例回归。
+9. 在 token/lexer 层新增 `T_FLOAT`，补齐 `float` 关键字在函数签名中的词法支持。
+10. 在 AST/Parser 层新增函数参数类型记录（`param_kinds`），让 resolver 可读取签名类型。
+11. 在 resolver 层新增用户函数签名表（返回类型 + 参数类型），并接入调用参数类型校验与 return 返回类型校验。
+12. 在 `lencyc/sema/resolver` 目录完成模块拆分（`resolver.lcy`/`core.lcy`/`expr.lcy`），规避单文件超限。
+13. 在 `test_cases/test_entry` 新增 Step 18：用户函数类型签名正例、参数类型负例、返回类型负例、float 签名正例。
 
 ## 下一步 (按优先级)
 1. 调用语义扩展
-   - 非 builtin 函数参数/返回类型签名接入与类型级调用校验。
+   - 自定义类型（`T_IDENTIFIER`）参数/返回签名接入与类型级调用校验。
 
 ## 质量门禁
 每次改动结束必须执行：
@@ -34,4 +39,4 @@
 
 ## 当前技术债
 1. 语义诊断仍是 `print` 文本，未统一 Reporter。
-2. 非 builtin 函数当前仅有 arity 签名，参数/返回类型尚未进入语义类型系统。
+2. 函数签名当前仅支持基础内建类型 token，自定义类型名尚未接入签名语义。

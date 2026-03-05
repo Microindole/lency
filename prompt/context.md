@@ -63,8 +63,10 @@
 - 语义约束增量：`lencyc` resolver 已加入 builtin 调用参数个数校验（固定 arity），`test_entry` 已覆盖正/负例回归。
 - 语义约束增量：`resolve_function_body` 已加入最小 return 合法性检查（value-return 函数禁止 `return` 空值，且要求可达 value-return），并已接入正/负例回归。
 - 语义约束增量：`lencyc` resolver 已加入最小类型一致性检查（`int/bool/string/float`），覆盖赋值、一元、二元、逻辑表达式路径，并已接入 `test_entry` Step 16 回归。
-- 声明解析增量：parser 已支持最小函数声明骨架（`int/string/bool/void name(...) { ... }`），参数类型 token 先消费，暂未进入类型系统（见 `TODO`）。
-- 调用语义增量：resolver 已支持用户函数最小 arity 预扫描与校验（含“先调用后声明”场景），并已接入 `test_entry` Step 17 回归。
+- 声明解析增量：parser 已支持最小函数声明骨架（`int/string/bool/void/float name(...) { ... }`），并在 AST 中记录参数类型 token kind。
+- 调用语义增量：resolver 已支持用户函数签名预扫描（返回类型 + 参数类型 + arity），并支持“先调用后声明”场景。
+- 语义约束增量：用户函数调用已接入参数类型校验，函数 `return` 已接入返回类型校验，并已接入 `test_entry` Step 18 回归。
+- 架构演进：`resolver` 已按 `resolver.lcy + resolver/core.lcy + resolver/expr.lcy` 拆分，规避单文件超 500 行限制。
 - 兼容性约束：当前 self-host runtime builtin 仍有 pointer-as-value 历史语义，`arg_at/int_to_string/float_to_string/bool_to_string` 在 resolver 中暂按 `unknown` 返回类型处理，避免误杀现有运行闭环用例。
 - 文档治理增量：`docs/` 已清理过时实现状态与坏链接（补齐 `types/primitives.md`、`stdlib/hashmap.md`，同步脚本文档到当前检查链路）。
 - 当前策略：按语法特性小步增量推进，每次增量后立刻跑 Lency 检查，避免回归。

@@ -7,8 +7,13 @@ import lencyc.syntax.ast
 import lencyc.syntax.parser
 
 impl Parser {
+    bool is_signature_type_token(int kind) {
+        // TODO: 后续接入自定义类型签名（T_IDENTIFIER 作为参数/返回类型）。
+        return kind == T_INT() || kind == T_STRING() || kind == T_BOOL() || kind == T_VOID() || kind == T_FLOAT()
+    }
+
     bool is_function_return_type_start() {
-        return this.check(T_INT()) || this.check(T_STRING()) || this.check(T_BOOL()) || this.check(T_VOID())
+        return this.is_signature_type_token(this.current.kind)
     }
 
     Stmt function_declaration(Token return_type) {
@@ -17,10 +22,11 @@ impl Parser {
         this.consume(T_LEFT_PAREN(), "Expect '(' after function name.")
 
         var params = vec![]
+        var param_kinds = vec![]
         if !this.check(T_RIGHT_PAREN()) {
             while true {
-                // TODO: 当前仅做最小函数签名骨架；参数类型 token 先消费但暂不进入语义类型系统。
-                if this.check(T_INT()) || this.check(T_STRING()) || this.check(T_BOOL()) || this.check(T_VOID()) || this.check(T_IDENTIFIER()) {
+                if this.is_signature_type_token(this.current.kind) {
+                    param_kinds.push(this.current.kind)
                     this.advance()
                 } else {
                     this.error("Expect parameter type.")
@@ -35,7 +41,7 @@ impl Parser {
         this.consume(T_RIGHT_PAREN(), "Expect ')' after parameters.")
         this.consume(T_LEFT_BRACE(), "Expect '{' before function body.")
         var body = this.block()
-        return make_stmt_function(name, return_type.kind, params, body)
+        return make_stmt_function(name, return_type.kind, params, param_kinds, body)
     }
 
     Stmt var_declaration() {

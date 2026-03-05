@@ -1,0 +1,181 @@
+// lencyc/sema/resolver/expr.lcy
+// Expression type resolution for bootstrap resolver.
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    int resolve_expr(Expr expr) {
+        if expr.kind == EXPR_LITERAL() {
+            if expr.literal_value.kind == T_NUMBER() {
+                if contains(expr.literal_value.lexeme, ".") || contains(expr.literal_value.lexeme, "e") || contains(expr.literal_value.lexeme, "E") {
+                    return TYPE_FLOAT()
+                }
+                return TYPE_INT()
+            }
+            if expr.literal_value.kind == T_TRUE() || expr.literal_value.kind == T_FALSE() {
+                return TYPE_BOOL()
+            }
+            if expr.literal_value.kind == T_STRING_LITERAL() {
+                return TYPE_STRING()
+            }
+            return TYPE_UNKNOWN()
+        }
+        if expr.kind == EXPR_VARIABLE() {
+            if !this.table.resolve(expr.literal_value.lexeme) {
+                this.error("undefined variable: " + expr.literal_value.lexeme)
+                return TYPE_UNKNOWN()
+            }
+            return this.lookup_typed_symbol(expr.literal_value.lexeme)
+        }
+        if expr.kind == EXPR_ASSIGN() {
+            if !this.table.resolve(expr.literal_value.lexeme) {
+                this.error("assignment to undefined variable: " + expr.literal_value.lexeme)
+            }
+            if expr.children.len() > 0 {
+                var rhs_ty = this.resolve_expr(expr.children[0])
+                var lhs_ty = this.lookup_typed_symbol(expr.literal_value.lexeme)
+                if !this.types_match_or_unknown(lhs_ty, rhs_ty) {
+                    this.error(
+                        "type mismatch in assignment to " + expr.literal_value.lexeme +
+                        ": expected " + this.type_to_string(lhs_ty) + ", got " + this.type_to_string(rhs_ty)
+                    )
+                }
+                return rhs_ty
+            }
+            return TYPE_UNKNOWN()
+        }
+        if expr.kind == EXPR_GET() {
+            if expr.children.len() > 0 {
+                this.resolve_expr(expr.children[0])
+            }
+            return TYPE_UNKNOWN()
+        }
+        if expr.kind == EXPR_UNARY() {
+            if expr.children.len() == 0 {
+                return TYPE_UNKNOWN()
+            }
+            var right_ty = this.resolve_expr(expr.children[0])
+            if expr.operator.kind == T_BANG() {
+                if right_ty != TYPE_UNKNOWN() && right_ty != TYPE_BOOL() {
+                    this.error("unary '!' expects bool, got " + this.type_to_string(right_ty))
+                }
+                return TYPE_BOOL()
+            }
+            if expr.operator.kind == T_MINUS() {
+                if right_ty != TYPE_UNKNOWN() && !this.is_numeric_type(right_ty) {
+                    this.error("unary '-' expects int/float, got " + this.type_to_string(right_ty))
+                }
+                return right_ty
+            }
+            return TYPE_UNKNOWN()
+        }
+        if expr.kind == EXPR_BINARY() || expr.kind == EXPR_LOGICAL() {
+            if expr.children.len() < 2 {
+                return TYPE_UNKNOWN()
+            }
+            var left_ty = this.resolve_expr(expr.children[0])
+            var right_ty = this.resolve_expr(expr.children[1])
+            var op = expr.operator.kind
+            if op == T_PLUS() || op == T_MINUS() || op == T_STAR() || op == T_SLASH() {
+                if left_ty != TYPE_UNKNOWN() && !this.is_numeric_type(left_ty) {
+                    this.error("arithmetic left operand must be int/float, got " + this.type_to_string(left_ty))
+                }
+                if right_ty != TYPE_UNKNOWN() && !this.is_numeric_type(right_ty) {
+                    this.error("arithmetic right operand must be int/float, got " + this.type_to_string(right_ty))
+                }
+                if left_ty != TYPE_UNKNOWN() && right_ty != TYPE_UNKNOWN() && left_ty != right_ty {
+                    this.error("arithmetic operands must share same type: left " + this.type_to_string(left_ty) + ", right " + this.type_to_string(right_ty))
+                }
+                if left_ty != TYPE_UNKNOWN() {
+                    return left_ty
+                }
+                return right_ty
+            }
+            if op == T_GREATER() || op == T_GREATER_EQUAL() || op == T_LESS() || op == T_LESS_EQUAL() {
+                if left_ty != TYPE_UNKNOWN() && !this.is_numeric_type(left_ty) {
+                    this.error("comparison left operand must be int/float, got " + this.type_to_string(left_ty))
+                }
+                if right_ty != TYPE_UNKNOWN() && !this.is_numeric_type(right_ty) {
+                    this.error("comparison right operand must be int/float, got " + this.type_to_string(right_ty))
+                }
+                if left_ty != TYPE_UNKNOWN() && right_ty != TYPE_UNKNOWN() && left_ty != right_ty {
+                    this.error("comparison operands must share same type: left " + this.type_to_string(left_ty) + ", right " + this.type_to_string(right_ty))
+                }
+                return TYPE_BOOL()
+            }
+            if op == T_EQUAL_EQUAL() || op == T_BANG_EQUAL() {
+                if !this.types_match_or_unknown(left_ty, right_ty) {
+                    this.error("equality operands type mismatch: left " + this.type_to_string(left_ty) + ", right " + this.type_to_string(right_ty))
+                }
+                return TYPE_BOOL()
+            }
+            if op == T_AND_AND() || op == T_OR_OR() {
+                if left_ty != TYPE_UNKNOWN() && left_ty != TYPE_BOOL() {
+                    this.error("logical left operand must be bool, got " + this.type_to_string(left_ty))
+                }
+                if right_ty != TYPE_UNKNOWN() && right_ty != TYPE_BOOL() {
+                    this.error("logical right operand must be bool, got " + this.type_to_string(right_ty))
+                }
+                return TYPE_BOOL()
+            }
+            return TYPE_UNKNOWN()
+        }
+        if expr.kind == EXPR_CALL() {
+            var call_ty = TYPE_UNKNOWN()
+            var callee_name = ""
+            var has_user_signature = false
+            if expr.children.len() > 0 {
+                var callee = expr.children[0]
+                if callee.kind == EXPR_VARIABLE() {
+                    callee_name = callee.literal_value.lexeme
+                    call_ty = this.lookup_builtin_type(callee_name)
+                    var expected = this.lookup_builtin_arity(callee_name)
+                    var user_expected = this.lookup_user_function_arity(callee_name)
+                    if user_expected >= 0 {
+                        has_user_signature = true
+                        call_ty = this.lookup_user_function_return_type(callee_name)
+                        if expected < 0 {
+                            expected = user_expected
+                        }
+                    }
+                    if expected >= 0 {
+                        var actual = expr.children.len() - 1
+                        if actual != expected {
+                            this.error(
+                                "call arity mismatch for " + callee_name +
+                                ": expected " + int_to_string(expected) + ", got " + int_to_string(actual)
+                            )
+                        }
+                    }
+                }
+            }
+            if expr.children.len() > 0 {
+                this.resolve_expr(expr.children[0])
+            }
+            var j = 1
+            while j < expr.children.len() {
+                var arg_ty = this.resolve_expr(expr.children[j])
+                if has_user_signature {
+                    var expected_arg_ty = this.lookup_user_function_param_type(callee_name, j - 1)
+                    if !this.types_match_or_unknown(expected_arg_ty, arg_ty) {
+                        this.error(
+                            "call argument type mismatch for " + callee_name +
+                            " arg #" + int_to_string(j) +
+                            ": expected " + this.type_to_string(expected_arg_ty) +
+                            ", got " + this.type_to_string(arg_ty)
+                        )
+                    }
+                }
+                j = j + 1
+            }
+            return call_ty
+        }
+        var i = 0
+        while i < expr.children.len() {
+            this.resolve_expr(expr.children[i])
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+}

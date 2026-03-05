@@ -22,6 +22,7 @@ struct Stmt {
     bool has_expr     // expr 字段是否有效（用于 return void 等节点）
     int return_kind   // FunctionDecl 返回类型 token kind（非函数为 0）
     Vec<string> params // FunctionDecl 参数名列表（非函数为空）
+    Vec<int> param_kinds // FunctionDecl 参数类型 token kind 列表（非函数为空）
     Vec<Stmt> body    // 用于嵌套结构, 以及 If 的 then 分支
     Vec<Stmt> else_body // 用于 If 的 else 分支
 }

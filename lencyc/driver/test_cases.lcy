@@ -61,3 +61,7 @@ string src_resolver_type_arithmetic_bad() { return "var n = 1\nvar s = \"x\"\nva
 string src_resolver_type_logical_bad() { return "var n = 1\nvar bad = n && true"; }
 string src_resolver_user_function_arity_ok() { return "var x = add(1, 2)\nint add(int a, int b) {\n  return a + b\n}\nreturn x"; }
 string src_resolver_user_function_arity_bad() { return "int add(int a, int b) {\n  return a + b\n}\nvar x = add(1)\nreturn x"; }
+string src_resolver_user_function_type_ok() { return "var x = add(1, 2)\nint add(int a, int b) {\n  return a + b\n}\nreturn x"; }
+string src_resolver_user_function_arg_type_bad() { return "int add(int a, int b) {\n  return a + b\n}\nvar x = add(1, true)\nreturn x"; }
+string src_resolver_user_function_return_type_bad() { return "int bad(int a) {\n  return true\n}\nvar x = bad(1)\nreturn x"; }
+string src_resolver_user_function_float_signature_ok() { return "float sum(float a, float b) {\n  return a + b\n}\nvar x = sum(1.0, 2.0)\nreturn x"; }

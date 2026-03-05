@@ -53,6 +53,7 @@ int T_CONTINUE() { return 40; }
 int T_FOR()    { return 41; }
 int T_STRING_LITERAL() { return 42; }
 int T_CHAR_LITERAL() { return 43; }
+int T_FLOAT()  { return 44; }
 
 struct Token {
     int kind

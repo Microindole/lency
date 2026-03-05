@@ -15,9 +15,10 @@
 - [x] 函数体 return 约束（禁止 void-return，要求可达 value-return）
 - [x] 基础类型一致性校验（最小 `int/bool/string/float`，覆盖赋值/一元/二元/逻辑）
 - [x] 用户函数最小 arity 校验（含“先调用后声明”）
+- [x] 用户函数类型签名校验（参数类型 + 返回类型）
 
 ### 待完成
-- [ ] 非 builtin 函数类型签名接入（参数/返回类型尚未进入语义类型系统）
+- [ ] 自定义类型签名接入（`T_IDENTIFIER` 类型名的参数/返回类型解析与校验）
 
 ---
 
@@ -99,6 +100,11 @@
 13. resolver 新增最小类型一致性检查：字面量与局部变量类型跟踪（`int/bool/string/float`），并在赋值/算术/比较/逻辑/一元运算做一致性约束。
 14. `test_cases` + `test_entry` 新增 Step 16 类型一致性回归（正例 + 赋值/算术/逻辑负例）。
 15. 为兼容现有自举 runtime pointer-as-value 链路，`arg_at/int_to_string/float_to_string/bool_to_string` 在 resolver builtin 返回类型中先按 `unknown` 处理，避免误伤现有运行回归。
-16. parser 新增最小函数声明骨架（`int/string/bool/void name(...) { ... }`），并在参数类型消费处保留 `TODO`（未接入类型系统）。
+16. parser 新增最小函数声明骨架（`int/string/bool/void/float name(...) { ... }`），参数类型写入 AST（`param_kinds`）。
 17. resolver 新增用户函数 arity 预扫描与调用校验，覆盖“先调用后声明”路径。
 18. `test_cases` + `test_entry` 新增 Step 17 用户函数 arity 正/负例回归，并通过 `run_lency_checks.sh` 全链路验证。
+19. token/lexer 新增 `float` 关键字支持（`T_FLOAT`），函数签名语法补齐 `float`。
+20. AST 函数节点新增 `param_kinds`，parser 函数声明保留参数类型信息。
+21. resolver 新增用户函数类型签名预扫描与调用参数类型校验，并新增 return 返回类型校验。
+22. `test_cases` + `test_entry` 新增 Step 18（用户函数签名正/负例），全链路通过。
+23. resolver 模块拆分为 `resolver.lcy + resolver/core.lcy + resolver/expr.lcy`，满足单文件行数约束。

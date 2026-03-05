@@ -24,6 +24,7 @@ Stmt make_stmt_expr(Expr expr) {
         has_expr: true,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: vec![]
     }
 }
@@ -36,6 +37,7 @@ Stmt make_stmt_var_decl(Token name, Expr initializer) {
         has_expr: true,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -49,6 +51,7 @@ Stmt make_stmt_if(Expr condition, Vec<Stmt> then_branch, Vec<Stmt> else_branch) 
         has_expr: true,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: then_branch,
         else_body: else_branch
     }
@@ -62,6 +65,7 @@ Stmt make_stmt_block(Vec<Stmt> statements) {
         has_expr: false,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: statements,
         else_body: vec![]
     }
@@ -75,6 +79,7 @@ Stmt make_stmt_while(Expr condition, Vec<Stmt> body) {
         has_expr: true,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: body,
         else_body: vec![]
     }
@@ -88,6 +93,7 @@ Stmt make_stmt_return(Expr value) {
         has_expr: true,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -101,6 +107,7 @@ Stmt make_stmt_return_void() {
         has_expr: false,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -114,6 +121,7 @@ Stmt make_stmt_break() {
         has_expr: false,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -127,12 +135,13 @@ Stmt make_stmt_continue() {
         has_expr: false,
         return_kind: 0,
         params: vec![],
+        param_kinds: vec![],
         body: vec![],
         else_body: vec![]
     }
 }
 
-Stmt make_stmt_function(Token name, int return_kind, Vec<string> params, Vec<Stmt> body) {
+Stmt make_stmt_function(Token name, int return_kind, Vec<string> params, Vec<int> param_kinds, Vec<Stmt> body) {
     return Stmt {
         kind: STMT_FUNCTION(),
         name: name,
@@ -140,6 +149,7 @@ Stmt make_stmt_function(Token name, int return_kind, Vec<string> params, Vec<Stm
         has_expr: false,
         return_kind: return_kind,
         params: params,
+        param_kinds: param_kinds,
         body: body,
         else_body: vec![]
     }

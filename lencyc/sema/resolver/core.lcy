@@ -1,0 +1,346 @@
+// lencyc/sema/resolver/core.lcy
+// Resolver methods split to keep file size under lency meta limits.
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.scope
+import lencyc.sema.resolver
+impl Resolver {
+    void begin_scope() {
+        this.table.begin_scope()
+    }
+    void end_scope() {
+        var depth = this.table.current_depth
+        while this.typed_symbols.len() > 0 {
+            var i = this.typed_symbols.len() - 1
+            if this.typed_symbols[i].depth != depth {
+                break
+            }
+            var popped = this.typed_symbols.pop()
+        }
+        this.table.end_scope()
+    }
+    void preload_builtin_arity(string name, int argc) {
+        this.builtin_arities.push(make_builtin_arity(name, argc))
+    }
+    void preload_builtin_arities() {
+        this.preload_builtin_arity("arg_count", 0)
+        this.preload_builtin_arity("arg_at", 1)
+        this.preload_builtin_arity("int_to_string", 1)
+        this.preload_builtin_arity("float_to_string", 1)
+        this.preload_builtin_arity("parse_int", 1)
+        this.preload_builtin_arity("parse_float", 1)
+        this.preload_builtin_arity("file_exists", 1)
+        this.preload_builtin_arity("is_dir", 1)
+        this.preload_builtin_arity("read_to_string", 1)
+        this.preload_builtin_arity("write_string", 2)
+        this.preload_builtin_arity("bool_to_string", 1)
+        this.preload_builtin_arity("int_to_bool", 1)
+    }
+    void preload_builtin_type(string name, int ty) {
+        this.builtin_types.push(make_builtin_type(name, ty))
+    }
+    void preload_builtin_types() {
+        this.preload_builtin_type("arg_count", TYPE_INT())
+        this.preload_builtin_type("arg_at", TYPE_UNKNOWN())
+        this.preload_builtin_type("int_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("float_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("parse_int", TYPE_INT())
+        this.preload_builtin_type("parse_float", TYPE_FLOAT())
+        this.preload_builtin_type("file_exists", TYPE_BOOL())
+        this.preload_builtin_type("is_dir", TYPE_BOOL())
+        this.preload_builtin_type("bool_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("int_to_bool", TYPE_BOOL())
+    }
+    int lookup_builtin_type(string name) {
+        var i = 0
+        while i < this.builtin_types.len() {
+            if this.builtin_types[i].name == name {
+                return this.builtin_types[i].ty
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+    void define_typed_symbol(string name, int ty) {
+        this.typed_symbols.push(make_typed_symbol(name, ty, this.table.current_depth))
+    }
+    int lookup_typed_symbol(string name) {
+        var i = this.typed_symbols.len() - 1
+        while i >= 0 {
+            if this.typed_symbols[i].name == name {
+                return this.typed_symbols[i].ty
+            }
+            i = i - 1
+        }
+        return TYPE_UNKNOWN()
+    }
+    bool is_numeric_type(int ty) {
+        return ty == TYPE_INT() || ty == TYPE_FLOAT()
+    }
+    string type_to_string(int ty) {
+        if ty == TYPE_INT() {
+            return "int"
+        }
+        if ty == TYPE_BOOL() {
+            return "bool"
+        }
+        if ty == TYPE_STRING() {
+            return "string"
+        }
+        if ty == TYPE_FLOAT() {
+            return "float"
+        }
+        if ty == TYPE_VOID() {
+            return "void"
+        }
+        return "unknown"
+    }
+    bool types_match_or_unknown(int left, int right) {
+        if left == TYPE_UNKNOWN() || right == TYPE_UNKNOWN() {
+            return true
+        }
+        return left == right
+    }
+    int token_kind_to_type(int kind) {
+        if kind == T_INT() { return TYPE_INT() }
+        if kind == T_BOOL() { return TYPE_BOOL() }
+        if kind == T_STRING() { return TYPE_STRING() }
+        if kind == T_FLOAT() { return TYPE_FLOAT() }
+        if kind == T_VOID() { return TYPE_VOID() }
+        // TODO: 后续支持 T_IDENTIFIER 类型名映射到语义类型系统。
+        return TYPE_UNKNOWN()
+    }
+    int lookup_user_function_arity(string name) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                return this.function_signatures[i].param_tys.len()
+            }
+            i = i + 1
+        }
+        return -1
+    }
+    int lookup_user_function_return_type(string name) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                return this.function_signatures[i].return_ty
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+    int lookup_user_function_param_type(string name, int arg_index) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                if arg_index < this.function_signatures[i].param_tys.len() {
+                    return this.function_signatures[i].param_tys[arg_index]
+                }
+                return TYPE_UNKNOWN()
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+    int lookup_builtin_arity(string name) {
+        var i = 0
+        while i < this.builtin_arities.len() {
+            if this.builtin_arities[i].name == name {
+                return this.builtin_arities[i].argc
+            }
+            i = i + 1
+        }
+        return -1
+    }
+    void preload_prelude_symbol(string name) {
+        if !this.table.resolve(name) {
+            this.table.define(name)
+        }
+    }
+    void preload_prelude_symbols() {
+        // Bootstrap prelude: keep target source usable without explicit import handling.
+        this.preload_prelude_symbol("int")
+        this.preload_prelude_symbol("bool")
+        this.preload_prelude_symbol("string")
+        this.preload_prelude_symbol("float")
+        this.preload_prelude_symbol("Result")
+        this.preload_prelude_symbol("int_to_string")
+        this.preload_prelude_symbol("float_to_string")
+        this.preload_prelude_symbol("parse_int")
+        this.preload_prelude_symbol("parse_float")
+        this.preload_prelude_symbol("file_exists")
+        this.preload_prelude_symbol("is_dir")
+        this.preload_prelude_symbol("arg_count")
+        this.preload_prelude_symbol("arg_at")
+        this.preload_prelude_symbol("read_to_string")
+        this.preload_prelude_symbol("write_string")
+        this.preload_prelude_symbol("bool_to_string")
+        this.preload_prelude_symbol("int_to_bool")
+    }
+    void error(string message) {
+        print("Resolver error: " + message + "\n")
+        this.has_error = true
+        this.error_count = this.error_count + 1
+    }
+    void resolve_stmt_list(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            this.resolve_stmt(statements[i])
+            i = i + 1
+        }
+    }
+    void resolve_in_new_scope(Vec<Stmt> statements) {
+        this.begin_scope()
+        this.resolve_stmt_list(statements)
+        this.end_scope()
+    }
+    void preload_user_function_signatures(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            if statements[i].kind == STMT_FUNCTION() {
+                if this.table.is_defined_in_current_scope(statements[i].name.lexeme) {
+                    this.error("duplicate function in same scope: " + statements[i].name.lexeme)
+                } else {
+                    this.table.define(statements[i].name.lexeme)
+                    this.preload_builtin_arity(statements[i].name.lexeme, statements[i].params.len())
+                    var param_tys = vec![]
+                    var j = 0
+                    while j < statements[i].param_kinds.len() {
+                        param_tys.push(this.token_kind_to_type(statements[i].param_kinds[j]))
+                        j = j + 1
+                    }
+                    this.function_signatures.push(
+                        make_function_signature(
+                            statements[i].name.lexeme,
+                            this.token_kind_to_type(statements[i].return_kind),
+                            param_tys
+                        )
+                    )
+                }
+            }
+            i = i + 1
+        }
+    }
+    void resolve_function(Vec<string> params, Vec<int> param_tys, Vec<Stmt> body, bool require_value_return, int function_return_ty) {
+        this.begin_scope()
+        var prev_in_function = this.in_function
+        var prev_require_value_return = this.require_value_return
+        var prev_function_return_ty = this.current_function_return_type
+        this.in_function = true
+        this.require_value_return = require_value_return
+        this.current_function_return_type = function_return_ty
+        var i = 0
+        while i < params.len() {
+            if this.table.is_defined_in_current_scope(params[i]) {
+                this.error("duplicate parameter in function scope: " + params[i])
+            } else {
+                this.table.define(params[i])
+                var param_ty = TYPE_UNKNOWN()
+                if i < param_tys.len() {
+                    param_ty = param_tys[i]
+                }
+                this.define_typed_symbol(params[i], param_ty)
+            }
+            i = i + 1
+        }
+        this.resolve_stmt_list(body)
+        if this.require_value_return && !this.block_guarantees_value_return(body) {
+            this.error("function body may exit without returning a value")
+        }
+        this.in_function = prev_in_function
+        this.require_value_return = prev_require_value_return
+        this.current_function_return_type = prev_function_return_ty
+        this.end_scope()
+    }
+    bool block_guarantees_value_return(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            if this.stmt_guarantees_value_return(statements[i]) {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+    bool stmt_guarantees_value_return(Stmt stmt) {
+        if stmt.kind == STMT_RETURN() {
+            return true
+        }
+        if stmt.kind == STMT_BLOCK() {
+            return this.block_guarantees_value_return(stmt.body)
+        }
+        if stmt.kind == STMT_IF() {
+            if stmt.body.len() == 0 || stmt.else_body.len() == 0 {
+                return false
+            }
+            return this.block_guarantees_value_return(stmt.body) && this.block_guarantees_value_return(stmt.else_body)
+        }
+        return false
+    }
+    void resolve_stmt(Stmt stmt) {
+        if stmt.kind == STMT_VAR_DECL() {
+            var value_ty = this.resolve_expr(stmt.expr)
+            if this.table.is_defined_in_current_scope(stmt.name.lexeme) {
+                this.error("duplicate variable in same scope: " + stmt.name.lexeme)
+            } else {
+                this.table.define(stmt.name.lexeme)
+                this.define_typed_symbol(stmt.name.lexeme, value_ty)
+            }
+            return
+        }
+        if stmt.kind == STMT_EXPR() {
+            this.resolve_expr(stmt.expr)
+            return
+        }
+        if stmt.kind == STMT_RETURN() {
+            var ret_ty = this.resolve_expr(stmt.expr)
+            if this.in_function && this.require_value_return && !this.types_match_or_unknown(this.current_function_return_type, ret_ty) {
+                this.error(
+                    "return type mismatch: expected " +
+                    this.type_to_string(this.current_function_return_type) +
+                    ", got " + this.type_to_string(ret_ty)
+                )
+            }
+            return
+        }
+        if stmt.kind == STMT_RETURN_VOID() || stmt.kind == STMT_BREAK() || stmt.kind == STMT_CONTINUE() {
+            if stmt.kind == STMT_RETURN_VOID() && this.in_function && this.require_value_return {
+                this.error("void return is not allowed in value-return function")
+            }
+            return
+        }
+        if stmt.kind == STMT_BLOCK() {
+            this.resolve_in_new_scope(stmt.body)
+            return
+        }
+        if stmt.kind == STMT_WHILE() {
+            this.resolve_expr(stmt.expr)
+            this.resolve_in_new_scope(stmt.body)
+            return
+        }
+        if stmt.kind == STMT_IF() {
+            this.resolve_expr(stmt.expr)
+            this.resolve_in_new_scope(stmt.body)
+            this.resolve_in_new_scope(stmt.else_body)
+            return
+        }
+        if stmt.kind == STMT_FUNCTION() {
+            var fn_param_tys = vec![]
+            var i = 0
+            while i < stmt.param_kinds.len() {
+                fn_param_tys.push(this.token_kind_to_type(stmt.param_kinds[i]))
+                i = i + 1
+            }
+            this.resolve_function(
+                stmt.params,
+                fn_param_tys,
+                stmt.body,
+                stmt.return_kind != T_VOID(),
+                this.token_kind_to_type(stmt.return_kind)
+            )
+            return
+        }
+        this.error("unsupported statement kind: " + int_to_string(stmt.kind))
+    }
+}
