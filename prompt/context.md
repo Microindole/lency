@@ -62,6 +62,10 @@
 - 解析可用性修复：`lencyc` resolver 已预载最小 prelude 符号，目标源码中的 `arg_count()/arg_at()` 等内建符号不再因未声明而解析失败。
 - 语义约束增量：`lencyc` resolver 已加入 builtin 调用参数个数校验（固定 arity），`test_entry` 已覆盖正/负例回归。
 - 语义约束增量：`resolve_function_body` 已加入最小 return 合法性检查（value-return 函数禁止 `return` 空值，且要求可达 value-return），并已接入正/负例回归。
+- 语义约束增量：`lencyc` resolver 已加入最小类型一致性检查（`int/bool/string/float`），覆盖赋值、一元、二元、逻辑表达式路径，并已接入 `test_entry` Step 16 回归。
+- 声明解析增量：parser 已支持最小函数声明骨架（`int/string/bool/void name(...) { ... }`），参数类型 token 先消费，暂未进入类型系统（见 `TODO`）。
+- 调用语义增量：resolver 已支持用户函数最小 arity 预扫描与校验（含“先调用后声明”场景），并已接入 `test_entry` Step 17 回归。
+- 兼容性约束：当前 self-host runtime builtin 仍有 pointer-as-value 历史语义，`arg_at/int_to_string/float_to_string/bool_to_string` 在 resolver 中暂按 `unknown` 返回类型处理，避免误杀现有运行闭环用例。
 - 文档治理增量：`docs/` 已清理过时实现状态与坏链接（补齐 `types/primitives.md`、`stdlib/hashmap.md`，同步脚本文档到当前检查链路）。
 - 当前策略：按语法特性小步增量推进，每次增量后立刻跑 Lency 检查，避免回归。
 - 下一阶段：在保持可运行的前提下逐步补齐语句与语义能力。

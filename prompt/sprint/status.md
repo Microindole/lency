@@ -13,10 +13,11 @@
 - [x] 内建符号 prelude 预载（`arg_count/arg_at/...`）
 - [x] 内建函数调用参数个数校验（builtin arity）
 - [x] 函数体 return 约束（禁止 void-return，要求可达 value-return）
+- [x] 基础类型一致性校验（最小 `int/bool/string/float`，覆盖赋值/一元/二元/逻辑）
+- [x] 用户函数最小 arity 校验（含“先调用后声明”）
 
 ### 待完成
-- [ ] 基础类型一致性校验（最小 `int/bool/string/float`）
-- [ ] 非 builtin 函数签名来源与调用校验（待函数声明语义接入）
+- [ ] 非 builtin 函数类型签名接入（参数/返回类型尚未进入语义类型系统）
 
 ---
 
@@ -80,9 +81,9 @@
 | 自举组件 | Lexer (Done), Parser (Closeout), Sema (WIP) |
 | 自举准备度 | ~98% |
 
-*更新时间: 2026-03-04*
+*更新时间: 2026-03-05*
 
-### 今日增量（2026-03-04）
+### 今日增量（2026-03-05）
 1. 自举 Lexer 新增字符串字面量扫描：`"` 开始与结束，产出 `T_STRING_LITERAL`。
 2. 自举 Parser `primary` 新增字符串字面量分支，AST 走 `EXPR_LITERAL` 统一路径。
 3. 自举回归新增字符串正例：`var msg = "hello"` 与 `print("done")` 的 AST 断言。
@@ -95,3 +96,9 @@
 10. 自举最小“完整流程”可执行：`lencyc_main` 运行后可生成 `lencyc_selfhost_ast.txt`。
 11. resolver 新增 builtin 参数个数校验：对 `arg_count/arg_at/write_string/...` 固定签名做调用 arity 检查，并补充正/负例回归。
 12. resolver 新增函数体 return 约束：value-return 函数禁止 `return` 空值，且要求函数体可达 value-return；`test_entry` 已补齐正/负例回归。
+13. resolver 新增最小类型一致性检查：字面量与局部变量类型跟踪（`int/bool/string/float`），并在赋值/算术/比较/逻辑/一元运算做一致性约束。
+14. `test_cases` + `test_entry` 新增 Step 16 类型一致性回归（正例 + 赋值/算术/逻辑负例）。
+15. 为兼容现有自举 runtime pointer-as-value 链路，`arg_at/int_to_string/float_to_string/bool_to_string` 在 resolver builtin 返回类型中先按 `unknown` 处理，避免误伤现有运行回归。
+16. parser 新增最小函数声明骨架（`int/string/bool/void name(...) { ... }`），并在参数类型消费处保留 `TODO`（未接入类型系统）。
+17. resolver 新增用户函数 arity 预扫描与调用校验，覆盖“先调用后声明”路径。
+18. `test_cases` + `test_entry` 新增 Step 17 用户函数 arity 正/负例回归，并通过 `run_lency_checks.sh` 全链路验证。

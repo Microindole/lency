@@ -12,12 +12,13 @@
 
 - [ ] **语义下一步**
   - [x] return 语义约束（value-return / void-return）
-  - [ ] 最小类型一致性检查（int / bool / string / float）
-  - [ ] 非 builtin 函数签名接入与调用校验
+  - [x] 最小类型一致性检查（int / bool / string / float）
+  - [x] 非 builtin 函数最小 arity 接入与调用校验
+  - [ ] 非 builtin 函数参数/返回类型签名接入（当前仅 arity）
 
 - [x] **验证 & 驱动**
   - [x] `lencyc/driver/test_cases.lcy` 新增 builtin arity 与 function-return 约束正/负例
-  - [x] `lencyc/driver/test_entry.lcy` 接入 Step 15 与函数体语义约束回归
+  - [x] `lencyc/driver/test_entry.lcy` 接入 Step 15/16/17 语义约束回归
   - [x] 运行 `./scripts/run_checks.sh`
   - [x] 运行 `./scripts/run_lency_checks.sh`
 

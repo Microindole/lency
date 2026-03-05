@@ -1,10 +1,12 @@
-# Sprint 18 Walkthrough (2026-03-04)
+# Sprint 18 Walkthrough (2026-03-05)
 
 ## 当前进度
 1. 语义层已具备最小 name resolution 与函数体作用域入口。
 2. 本轮新增 builtin 调用参数个数校验，解析后可直接阻断明显非法调用。
 3. 本轮新增函数体 return 约束（禁止 void-return、要求可达 value-return）。
 4. 自举回归已覆盖 builtin arity 与 function-return 正/负路径。
+5. 本轮补齐最小类型一致性检查（`int/bool/string/float`）并接入回归。
+6. 本轮接入最小函数声明骨架解析 + 用户函数 arity 校验（含先调用后声明）。
 
 ## 本轮改动明细
 1. `lencyc/sema/resolver.lcy`
@@ -21,10 +23,17 @@
 3. `lencyc/driver/test_entry.lcy`
    - 新增 Step 15 builtin arity 回归，接入统一通过/失败断言。
    - 新增函数体语义断言 helper，并接入 function-return 正/负例。
+   - 新增 Step 16 类型一致性回归（正例 + 负例）。
+   - 新增 Step 17 用户函数 arity 回归（正例 + 负例）。
+4. builtin 返回类型兼容策略
+   - `arg_at/int_to_string/float_to_string/bool_to_string` 暂按 `unknown` 处理，兼容当前 runtime pointer-as-value 用例。
+5. `lencyc/syntax/parser/decl.lcy`
+   - 新增最小函数声明骨架解析：`int/string/bool/void name(type p, ...) { ... }`。
+   - 参数类型 token 当前仅消费，未接入语义类型系统（已显式 `TODO`）。
 
 ## 验证方式
 1. 运行 `./scripts/run_checks.sh`。
 2. 运行 `./scripts/run_lency_checks.sh`。
 
 ## 未尽事宜
-1. 类型一致性校验仍未落地（int/bool/string/float）。
+1. 非 builtin 函数参数/返回类型签名尚未接入（当前只做 arity 校验）。

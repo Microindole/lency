@@ -37,19 +37,22 @@ int main() {
 
 ---
 
-## 实现状态（2026-03-04）
+## 实现状态（2026-03-05）
 
 Lency 当前是双链路并行：
 - Rust 主编译器链路：功能更完整，作为稳定构建与验证主体。
 - Lency 自举编译器链路（`lencyc/`）：按最小闭环持续补齐语法与语义能力。
 
-### 自举阶段能力快照（2026-03-04）
+### 自举阶段能力快照（2026-03-05）
 
 - Lexer: 已支持 `int/float/scientific/string/char` 字面量。
-- Parser: 已支持 `var/if/while/for/block/return/break/continue` 与 `call/member` 链。
+- Parser: 已支持 `var/if/while/for/block/return/break/continue` 与 `call/member` 链，并已接入最小函数声明骨架（`int/string/bool/void` 起始）。
 - Sema: 已支持最小 name resolution（undefined/duplicate/out-of-scope/shadowing）。
 - Sema: 已支持 builtin 调用参数个数校验（arity）。
+- Sema: 已支持用户函数最小 arity 校验（含先调用后声明）。
 - Sema: 已支持函数体最小 return 约束（禁止 `return` 空值，要求可达 value-return）。
+- Sema: 已支持最小类型一致性检查（`int/bool/string/float`，覆盖赋值/一元/二元/逻辑）。
+- Sema: 对 `arg_at/int_to_string/float_to_string/bool_to_string` 暂按 `unknown` 返回类型处理，以兼容现有 self-host runtime pointer-as-value 回归。
 - Pipeline: 已打通 `Read -> Lex -> Parse -> Resolve -> Emit(AST/LIR)`。
 - Tooling: `run_lency_checks.sh`、`lency_selfhost_build.sh`、`lency_selfhost_run.sh` 已接入回归闭环。
 
