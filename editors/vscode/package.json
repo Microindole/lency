@@ -8,7 +8,13 @@
     "scripts": {
         "build": "tsc -p .",
         "watch": "tsc -watch -p .",
-        "test": "tsc -p . && node dist/test/index.js"
+        "test": "tsc -p . && node dist/test/index.js",
+        "dev:ide": "node ../scripts/dev_ide.mjs",
+        "dev:ide:check": "node ../scripts/dev_ide.mjs --check-only",
+        "check:editor": "npm run build && node dist/test/index.js",
+        "check:all:fast": "npm run check:editor && node ../scripts/dev_ide.mjs --check-only --skip-install && node ../scripts/run_python_checks.mjs",
+        "check:all": "npm ci --cache ../.npm-cache && npm run check:all:fast",
+        "check:all:ci": "npm run check:all"
     },
     "engines": {
         "vscode": "^1.75.0"
@@ -31,7 +37,7 @@
                 "lency.serverPath": {
                     "type": "string",
                     "default": "",
-                    "description": "Path to lency_ls executable. Supports ${workspaceFolder}. Empty means auto-detect under target/{debug,release}/lency_ls."
+                    "description": "Path to lency_ls executable. Supports ${workspaceFolder}. Empty means auto-detect under target/{debug,release}/lency_ls(.exe on Windows)."
                 }
             }
         },

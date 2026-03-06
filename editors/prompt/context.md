@@ -10,7 +10,9 @@
 
 ## 2. 检查约束（Editors 专用）
 - 每次修改 `editors/**` 后必须运行：
-  - `./editors/scripts/run_checks.sh`
+  - `npm --prefix editors/vscode run check:all`
+- 本地插件开发宿主统一入口：
+  - `npm --prefix editors/vscode run dev:ide`
 - Editors 流程不要求运行：
   - `./scripts/run_checks.sh`
   - `./scripts/run_lency_checks.sh`

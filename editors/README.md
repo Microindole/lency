@@ -28,7 +28,7 @@
 ## 开发与调试
 
 ```bash
-./editors/scripts/dev_ide.sh
+npm --prefix editors/vscode run dev:ide
 ```
 
 该脚本用于本地扩展开发调试。
@@ -45,7 +45,7 @@ npm run build
 
 1. 启动扩展开发宿主：
 ```bash
-./editors/scripts/dev_ide.sh
+npm --prefix editors/vscode run dev:ide
 ```
 2. 在新开的 VS Code/Cursor 窗口打开任意 `.lcy` 文件，状态栏看到语言为 `Lency` 即已启用扩展。
 3. 看左下角状态栏模式：
@@ -57,7 +57,11 @@ cargo build -p lency_ls
 ```
 5. 如需手工指定路径，在编辑器设置中配置：
 ```json
-"lency.serverPath": "/home/indolyn/beryl/target/debug/lency_ls"
+"lency.serverPath": "${workspaceFolder}/target/debug/lency_ls"
+```
+Windows 示例：
+```json
+"lency.serverPath": "D:\\works\\lency\\target\\debug\\lency_ls.exe"
 ```
 6. 现在支持热更新：修改 `lency.serverPath` 后会自动重连并切换模式，不再要求手动 Reload Window。
 
@@ -73,7 +77,11 @@ cargo build -p lency_ls
 2. `lency.serverPath` 已设置但仍是 `Fallback`  
 确认路径存在且可执行：
 ```bash
-ls -l /home/indolyn/beryl/target/debug/lency_ls
+ls -l target/debug/lency_ls
+```
+PowerShell:
+```powershell
+Get-Item .\target\debug\lency_ls.exe
 ```
 
 3. 修改 `lency.serverPath` 后模式没切换  
@@ -93,7 +101,7 @@ ls -l /home/indolyn/beryl/target/debug/lency_ls
 ## 检查
 
 ```bash
-./editors/scripts/run_checks.sh
+npm --prefix editors/vscode run check:all
 ```
 
-Editors 任务只运行这一个检查入口，不和自举/Rust 主流程混跑。
+Editors 任务只运行这一个 Node 入口，不和自举/Rust 主流程混跑。

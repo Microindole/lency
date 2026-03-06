@@ -16,6 +16,7 @@ export interface LspStartResult {
 export function resolveServerPath(context: vscode.ExtensionContext): string | undefined {
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     const configured = vscode.workspace.getConfiguration('lency').get<string>('serverPath');
+    const executableName = process.platform === 'win32' ? 'lency_ls.exe' : 'lency_ls';
 
     if (configured && configured.trim().length > 0) {
         const trimmed = configured.trim();
@@ -35,10 +36,10 @@ export function resolveServerPath(context: vscode.ExtensionContext): string | un
     }
 
     const candidates = [
-        context.asAbsolutePath('../../target/debug/lency_ls'),
-        context.asAbsolutePath('../../target/release/lency_ls'),
-        workspaceRoot ? path.join(workspaceRoot, 'target/debug/lency_ls') : undefined,
-        workspaceRoot ? path.join(workspaceRoot, 'target/release/lency_ls') : undefined
+        context.asAbsolutePath(`../../target/debug/${executableName}`),
+        context.asAbsolutePath(`../../target/release/${executableName}`),
+        workspaceRoot ? path.join(workspaceRoot, 'target/debug', executableName) : undefined,
+        workspaceRoot ? path.join(workspaceRoot, 'target/release', executableName) : undefined
     ].filter((value): value is string => typeof value === 'string');
 
     return candidates.find(candidate => fs.existsSync(candidate));

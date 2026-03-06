@@ -15,20 +15,31 @@ on:
 
 jobs:
   check-extension:
-    runs-on: ubuntu-latest
+    name: Editor Checks (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Use Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '16.x'
+        node-version: '20.x'
         cache: 'npm'
         cache-dependency-path: editors/vscode/package-lock.json
 
-    - name: Run Editor Check
-      run: bash editors/scripts/run_checks.sh
+    - name: Use Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Run editor all checks
+      working-directory: editors/vscode
+      run: npm run check:all:ci
 
     - name: Scope Summary
       run: |
@@ -36,5 +47,6 @@ jobs:
           echo "### CI Scope"
           echo "- workflow: editor.yml"
           echo "- scope: editors"
-          echo "- command: \`editors/scripts/run_checks.sh\`"
+          echo "- os: ${{ matrix.os }}"
+          echo "- command: \`npm run check:all:ci\`"
         } >> "$GITHUB_STEP_SUMMARY"
