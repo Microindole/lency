@@ -50,15 +50,16 @@ jobs:
       run: npm run check:all:ci
 
     - name: Scope Summary
+      shell: pwsh
       run: |
-        {
-          echo "### CI Scope"
-          echo "- workflow: editor.yml"
-          echo "- scope: editors"
-          echo "- os: ubuntu-latest"
-          echo "- trigger: default"
-          echo "- command: \`npm run check:all:ci\`"
-        } >> "$GITHUB_STEP_SUMMARY"
+        @'
+        ### CI Scope
+        - workflow: editor.yml
+        - scope: editors
+        - os: ubuntu-latest
+        - trigger: default
+        - command: `npm run check:all:ci`
+        '@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
   check-extension-windows:
     name: Editor Checks (Windows)
@@ -85,12 +86,13 @@ jobs:
       run: npm run check:all:ci
 
     - name: Scope Summary
+      shell: pwsh
       run: |
-        {
-          echo "### CI Scope"
-          echo "- workflow: editor.yml"
-          echo "- scope: editors"
-          echo "- os: windows-latest"
-          echo "- trigger: main or workflow_dispatch(run_windows=true)"
-          echo "- command: \`npm run check:all:ci\`"
-        } >> "$GITHUB_STEP_SUMMARY"
+        @'
+        ### CI Scope
+        - workflow: editor.yml
+        - scope: editors
+        - os: windows-latest
+        - trigger: main or workflow_dispatch(run_windows=true)
+        - command: `npm run check:all:ci`
+        '@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
