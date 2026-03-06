@@ -27,14 +27,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check-extension:
-    name: Editor Checks (${{ matrix.os }})
-    if: matrix.os != 'windows-latest' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_windows == 'true')
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+  check-extension-linux:
+    name: Editor Checks (Linux)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: editors/vscode/package-lock.json
+
+    - name: Use Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Run editor all checks
+      working-directory: editors/vscode
+      run: npm run check:all:ci
+
+    - name: Scope Summary
+      run: |
+        {
+          echo "### CI Scope"
+          echo "- workflow: editor.yml"
+          echo "- scope: editors"
+          echo "- os: ubuntu-latest"
+          echo "- trigger: default"
+          echo "- command: \`npm run check:all:ci\`"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+  check-extension-windows:
+    name: Editor Checks (Windows)
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_windows == 'true')
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -61,6 +90,7 @@ jobs:
           echo "### CI Scope"
           echo "- workflow: editor.yml"
           echo "- scope: editors"
-          echo "- os: ${{ matrix.os }}"
+          echo "- os: windows-latest"
+          echo "- trigger: main or workflow_dispatch(run_windows=true)"
           echo "- command: \`npm run check:all:ci\`"
         } >> "$GITHUB_STEP_SUMMARY"
