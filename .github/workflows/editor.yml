@@ -12,10 +12,24 @@ on:
       - 'editors/**'
       - '.github/workflows/editor.yml'
   workflow_dispatch:
+    inputs:
+      run_windows:
+        description: "Also run Windows editor checks"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+concurrency:
+  group: editor-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check-extension:
     name: Editor Checks (${{ matrix.os }})
+    if: matrix.os != 'windows-latest' || github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_windows == 'true')
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

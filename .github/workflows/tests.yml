@@ -18,10 +18,23 @@ on:
       - '**.md'
       - '.gitignore'
   workflow_dispatch:
+    inputs:
+      run_full_matrix:
+        description: "Run heavy jobs (release + macOS + Windows)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 env:
   CARGO_TERM_COLOR: always
   RUST_MIN_STACK: 8388608
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -46,6 +59,7 @@ jobs:
               - 'Cargo.lock'
               - 'xtask/**'
               - 'scripts/linux/run_checks.sh'
+              - 'scripts/win/setup-dev.ps1'
               - 'scripts/check_*.py'
               - '.github/workflows/tests.yml'
             lency:
@@ -109,7 +123,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
-    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || github.event_name == 'workflow_dispatch'
+    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || (github.event_name == 'workflow_dispatch' && inputs.run_full_matrix == 'true')
     steps:
       - uses: actions/checkout@v4
       - name: Install LLVM
@@ -126,7 +140,7 @@ jobs:
     name: MacOS Test
     needs: changes
     runs-on: macos-latest
-    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || github.event_name == 'workflow_dispatch'
+    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || (github.event_name == 'workflow_dispatch' && inputs.run_full_matrix == 'true')
     env:
       LLVM_SYS_150_PREFIX: /opt/homebrew/opt/llvm@15
       # Use Rust v0 symbol mangling to avoid macOS ld64 symbol name length bug
@@ -140,19 +154,41 @@ jobs:
       - name: Build & Test
         run: cargo test --verbose
 
-  # 5. Windows Check (暂时禁用 - llvm-sys 在 Windows 上配置复杂)
-  # windows-check:
-  #   name: Windows Test
-  #   runs-on: windows-latest
-  #   continue-on-error: true
-  #   if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-  #   env:
-  #     LLVM_SYS_150_PREFIX: C:\Program Files\LLVM
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Install LLVM via Chocolatey
-  #       run: choco install llvm --version=15.0.7 --force -y
-  #     - uses: dtolnay/rust-toolchain@stable
-  #     - uses: Swatinem/rust-cache@v2
-  #     - name: Build & Test
-  #       run: cargo test --verbose
+  # 5. Windows Check
+  windows-check:
+    name: Windows Test
+    needs: changes
+    runs-on: windows-latest
+    if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || (github.event_name == 'workflow_dispatch' && inputs.run_full_matrix == 'true')
+    env:
+      LLVM15_WINDOWS_URL: https://github.com/Microindole/lency/releases/download/llvm-15.0.7-custom-v1/llvm-15.0.7-custom-windows-x86_64-msvc-x86only.zip
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate LLVM release URL
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:LLVM15_WINDOWS_URL)) {
+            throw "LLVM15_WINDOWS_URL is empty."
+          }
+      - name: Download LLVM 15 (custom release)
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "llvm15-win.zip"
+          Invoke-WebRequest -Uri $env:LLVM15_WINDOWS_URL -OutFile $archive
+          $extractDir = Join-Path $env:RUNNER_TEMP "llvm15"
+          New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+          Expand-Archive -Path $archive -DestinationPath $extractDir -Force
+      - name: Resolve LLVM prefix
+        shell: pwsh
+        run: |
+          .\scripts\win\setup-dev.ps1 -SearchRoots (Join-Path $env:RUNNER_TEMP "llvm15")
+          if ([string]::IsNullOrWhiteSpace($env:LLVM_SYS_150_PREFIX)) {
+            throw "Failed to resolve LLVM_SYS_150_PREFIX from downloaded archive."
+          }
+          "LLVM_SYS_150_PREFIX=$env:LLVM_SYS_150_PREFIX" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$env:LLVM_SYS_150_PREFIX\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build & Test
+        shell: pwsh
+        run: cargo test --verbose
