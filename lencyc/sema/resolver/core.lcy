@@ -207,6 +207,19 @@ impl Resolver {
         this.resolve_stmt_list(statements)
         this.end_scope()
     }
+    void preload_user_type_declarations(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            if statements[i].kind == STMT_STRUCT() {
+                if this.table.is_defined_in_current_scope(statements[i].name.lexeme) {
+                    this.error("duplicate type in same scope: " + statements[i].name.lexeme)
+                } else {
+                    this.table.define(statements[i].name.lexeme)
+                }
+            }
+            i = i + 1
+        }
+    }
     void preload_user_function_signatures(Vec<Stmt> statements) {
         var i = 0
         while i < statements.len() {
@@ -359,6 +372,12 @@ impl Resolver {
                 stmt.return_kind != T_VOID(),
                 this.resolve_signature_type_or_error(stmt.return_kind, stmt.return_type_name)
             )
+            return
+        }
+        if stmt.kind == STMT_STRUCT() {
+            return
+        }
+        if stmt.kind == STMT_IMPL() {
             return
         }
         this.error("unsupported statement kind: " + int_to_string(stmt.kind))

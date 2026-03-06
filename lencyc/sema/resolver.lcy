@@ -91,6 +91,7 @@ Resolver make_resolver() {
 }
 ResolveResult resolve_statements(Vec<Stmt> statements) {
     var resolver = make_resolver()
+    resolver.preload_user_type_declarations(statements)
     resolver.preload_user_function_signatures(statements)
     var i = 0
     while i < statements.len() {

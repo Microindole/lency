@@ -102,5 +102,11 @@ string stmt_to_string(Stmt stmt) {
     if stmt.kind == STMT_FUNCTION() {
         return "(func " + stmt.name.lexeme + "/" + int_to_string(stmt.params.len()) + " " + stmt_list_to_string(stmt.body) + ")"
     }
+    if stmt.kind == STMT_STRUCT() {
+        return "(struct " + stmt.name.lexeme + ")"
+    }
+    if stmt.kind == STMT_IMPL() {
+        return "(impl " + stmt.name.lexeme + " " + stmt_list_to_string(stmt.body) + ")"
+    }
     return "(stmt_unknown)"
 }

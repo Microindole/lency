@@ -385,6 +385,56 @@ int main() {
         return 1
     }
 
+    print("Step 20: Type declaration skeleton tests...\n")
+    var struct_source = src_parser_struct_decl_program()
+    var struct_parser = make_parser(struct_source)
+    var struct_stmts = struct_parser.parse()
+    if struct_parser.has_error {
+        print("Type declaration parse failed unexpectedly.\n")
+        return 1
+    }
+    if struct_stmts.len() < 1 || !contains(stmt_to_string(struct_stmts[0]), "(struct Boxed)") {
+        print("Type declaration AST shape mismatch.\n")
+        return 1
+    }
+    if !expect_resolve_success(src_resolver_custom_type_signature_with_struct_ok(), "custom type signature with type declaration positive") {
+        return 1
+    }
+
+    print("Step 21: Impl declaration skeleton tests...\n")
+    var impl_source = src_parser_impl_decl_program()
+    var impl_parser = make_parser(impl_source)
+    var impl_stmts = impl_parser.parse()
+    if impl_parser.has_error {
+        print("Impl declaration parse failed unexpectedly.\n")
+        return 1
+    }
+    if impl_stmts.len() < 2 || !contains(stmt_to_string(impl_stmts[1]), "(impl Boxed ") {
+        print("Impl declaration AST shape mismatch.\n")
+        return 1
+    }
+    if !expect_resolve_success(src_resolver_custom_type_signature_with_impl_ok(), "custom type signature with impl declaration positive") {
+        return 1
+    }
+
+    print("Step 22: Impl member function skeleton parsing tests...\n")
+    var impl_method_source = src_parser_impl_method_decl_program()
+    var impl_method_parser = make_parser(impl_method_source)
+    var impl_method_stmts = impl_method_parser.parse()
+    if impl_method_parser.has_error {
+        print("Impl member function parse failed unexpectedly.\n")
+        return 1
+    }
+    if impl_method_stmts.len() < 2 {
+        print("Impl member function AST size mismatch.\n")
+        return 1
+    }
+    var impl_ast = stmt_to_string(impl_method_stmts[1])
+    if !contains(impl_ast, "(impl Boxed ") || !contains(impl_ast, "(func value/0") {
+        print("Impl member function AST shape mismatch.\n")
+        return 1
+    }
+
     print("Tests completed successfully.\n")
     return 0
 }

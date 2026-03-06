@@ -15,6 +15,8 @@ int STMT_RETURN_VOID() { return 7; }
 int STMT_BREAK()     { return 8; }
 int STMT_CONTINUE()  { return 9; }
 int STMT_FUNCTION()  { return 10; }
+int STMT_STRUCT()    { return 11; }
+int STMT_IMPL()      { return 12; }
 
 Stmt make_stmt_expr(Expr expr) {
     return Stmt {
@@ -178,6 +180,38 @@ Stmt make_stmt_function(
         params: params,
         param_kinds: param_kinds,
         param_type_names: param_type_names,
+        body: body,
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_struct(Token name) {
+    return Stmt {
+        kind: STMT_STRUCT(),
+        name: name,
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        return_kind: 0,
+        return_type_name: "",
+        params: vec![],
+        param_kinds: vec![],
+        param_type_names: vec![],
+        body: vec![],
+        else_body: vec![]
+    }
+}
+
+Stmt make_stmt_impl(Token name, Vec<Stmt> body) {
+    return Stmt {
+        kind: STMT_IMPL(),
+        name: name,
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        return_kind: 0,
+        return_type_name: "",
+        params: vec![],
+        param_kinds: vec![],
+        param_type_names: vec![],
         body: body,
         else_body: vec![]
     }

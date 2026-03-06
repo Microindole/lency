@@ -63,6 +63,36 @@ impl Parser {
         )
     }
 
+    Stmt struct_declaration() {
+        this.consume(T_IDENTIFIER(), "Expect type name after 'struct'.")
+        var name = this.previous
+        this.consume(T_LEFT_BRACE(), "Expect '{' after type name.")
+        while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
+            // Minimal skeleton: accept and skip member section for now.
+            this.advance()
+        }
+        this.consume(T_RIGHT_BRACE(), "Expect '}' after type body.")
+        return make_stmt_struct(name)
+    }
+
+    Stmt impl_declaration() {
+        this.consume(T_IDENTIFIER(), "Expect type name after 'impl'.")
+        var name = this.previous
+        this.consume(T_LEFT_BRACE(), "Expect '{' after impl target.")
+        var members = vec![]
+        while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
+            if this.is_function_return_type_start() {
+                this.advance()
+                members.push(this.function_declaration(this.previous))
+            } else {
+                this.error("Expect function declaration in impl body.")
+                this.advance()
+            }
+        }
+        this.consume(T_RIGHT_BRACE(), "Expect '}' after impl body.")
+        return make_stmt_impl(name, members)
+    }
+
     Stmt var_declaration() {
         this.consume(T_IDENTIFIER(), "Expect variable name.")
         var name = this.previous
@@ -75,6 +105,13 @@ impl Parser {
     }
 
     Stmt declaration() {
+        if this.match_token(T_STRUCT()) {
+            return this.struct_declaration()
+        }
+        if this.match_token(T_IMPL()) {
+            return this.impl_declaration()
+        }
+
         if this.is_function_return_type_start() {
             this.advance()
             return this.function_declaration(this.previous)

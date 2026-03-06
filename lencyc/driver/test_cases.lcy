@@ -68,3 +68,8 @@ string src_resolver_user_function_return_type_bad() { return "int bad(int a) {\n
 string src_resolver_user_function_float_signature_ok() { return "float sum(float a, float b) {\n  return a + b\n}\nvar x = sum(1.0, 2.0)\nreturn x"; }
 string src_resolver_custom_type_signature_ok() { return "Result id(Result x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
 string src_resolver_custom_type_signature_bad() { return "Mystery id(Mystery x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
+string src_parser_struct_decl_program() { return "struct Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
+string src_resolver_custom_type_signature_with_struct_ok() { return "struct Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
+string src_parser_impl_decl_program() { return "struct Boxed {\n}\nimpl Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
+string src_resolver_custom_type_signature_with_impl_ok() { return "struct Boxed {\n}\nimpl Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
+string src_parser_impl_method_decl_program() { return "struct Boxed {\n}\nimpl Boxed {\n  int value() {\n    return 1\n  }\n}\nvar y = 1\nreturn y"; }

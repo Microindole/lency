@@ -15,6 +15,11 @@ struct Expr {
     Vec<Expr> children
 }
 
+struct TypeRef {
+    int kind
+    string name
+}
+
 struct Stmt {
     int kind
     Token name        // 用于 VarDecl, FunctionDecl 等

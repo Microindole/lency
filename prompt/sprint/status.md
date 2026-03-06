@@ -113,3 +113,21 @@
 26. resolver 新增签名类型校验：`T_IDENTIFIER` 类型名需已声明（未声明报 `unknown type in signature`）。
 27. `test_cases` + `test_entry` 新增 Step 19（自定义类型签名正/负例），`check-lency` 全链路通过。
 28. parser 新增最小错误恢复同步点（declaration 级 recover），不再首错即终止；新增回归用例验证“前一条语句错误后仍可继续解析后续语句”。
+
+### 今日增量（2026-03-06）
+1. AST 新增最小 `TypeRef` 结构表示，为后续类型节点落地预留稳定入口。
+2. parser 声明层新增 `struct` 最小骨架解析：支持 `struct Name { ... }` 入 AST（当前成员体先跳过解析）。
+3. AST 新增 `STMT_STRUCT` 与 `make_stmt_struct`，printer 新增 `(struct Name)` 文本输出。
+4. resolver 新增类型声明预扫描 `preload_user_type_declarations`：在函数签名校验前先注册 `struct` 类型名。
+5. resolver 语句分派新增 `STMT_STRUCT` 分支（声明节点不报 unsupported）。
+6. `test_cases` + `test_entry` 新增 Step 20（type declaration skeleton），覆盖 parse AST 形态与“struct + 自定义类型签名”正例。
+7. `cargo run -p xtask -- check-lency` 全链路通过。
+8. parser 声明层新增 `impl` 最小骨架解析：支持 `impl Type { ... }` 入 AST（当前成员体先跳过解析）。
+9. AST 新增 `STMT_IMPL` 与 `make_stmt_impl`，printer 新增 `(impl Type)` 文本输出。
+10. resolver 语句分派新增 `STMT_IMPL` 分支（声明节点不报 unsupported）。
+11. `test_cases` + `test_entry` 新增 Step 21（impl declaration skeleton），覆盖 parse AST 形态与“struct + impl + 自定义类型签名”正例。
+12. 再次执行 `cargo run -p xtask -- check-lency`，全链路通过。
+13. `impl` 声明解析升级为“成员函数骨架”模式：`impl Type { int f(...) { ... } }` 可解析为 `impl` 节点下的函数声明列表。
+14. `AST printer` 的 `impl` 输出改为包含成员列表：`(impl Type [...])`。
+15. `test_cases` + `test_entry` 新增 Step 22，固定校验 `impl` 成员函数骨架 AST 形态（包含 `(func value/0 ...)`）。
+16. 再次执行 `cargo run -p xtask -- check-lency`，全链路通过。
