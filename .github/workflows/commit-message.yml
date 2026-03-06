@@ -1,0 +1,29 @@
+name: Commit Message Check
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main", "dev" ]
+  workflow_dispatch:
+
+jobs:
+  validate-commit-subjects:
+    name: Validate Commit Subjects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Commit Subjects
+        run: python3 scripts/check_commit_messages.py
+
+      - name: Scope Summary
+        run: |
+          {
+            echo "### CI Scope"
+            echo "- workflow: commit-message.yml"
+            echo "- check: commit subjects for every commit in push/PR range"
+            echo "- script: scripts/check_commit_messages.py"
+          } >> "$GITHUB_STEP_SUMMARY"

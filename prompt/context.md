@@ -30,6 +30,8 @@
 - CI 先按路径判定改动作用域，再触发对应 job。
 - Rust 作用域：`crates/**`、`tests/integration/**`、以及共享项（如 `lib/**`、部分脚本/workflow）。
 - Lency 作用域：`lencyc/**`、`tests/example/**`、以及共享项（如 `lib/**`、部分脚本/workflow）。
+- 提交信息门禁：新增 `.github/workflows/commit-message.yml`，在 `push`/`pull_request` 中按事件 SHA 范围逐条校验提交主题（不是只校验最新一条）。
+- 提交信息门禁细化：Conventional type 白名单包含 `chore`；merge 主题额外允许 `Merge tag '...' of ...`；失败输出为中英文双语并附示例，且按 push/PR 范围给出“第 N 条提交”定位。
 - `macos-check` 当前仅跟随 Rust 作用域触发（main 分支或手动触发）。
 - Release 自动化：新增 `.github/workflows/release.yml`，当 push `v*` tag 时自动构建 Linux 产物并创建 GitHub Release（附 `tar.gz` 与 `sha256`）。
 
