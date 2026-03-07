@@ -79,9 +79,12 @@ function Resolve-LlvmPrefix {
 
     foreach ($root in ($roots | Select-Object -Unique)) {
         if (-not (Test-Path $root)) { continue }
+        if (Test-LlvmPrefix -Prefix $root) {
+            return (Resolve-Path $root).Path
+        }
         try {
             $dirs = Get-ChildItem -Path $root -Directory -Depth 3 -ErrorAction SilentlyContinue |
-                Where-Object { $_.Name -like "llvm*" -or $_.FullName -like "*\\LLVM*" }
+                Where-Object { $_.Name -match "(?i)llvm" -or $_.FullName -match "(?i)\\LLVM" }
             foreach ($dir in $dirs) {
                 if (Test-LlvmPrefix -Prefix $dir.FullName) {
                     return (Resolve-Path $dir.FullName).Path

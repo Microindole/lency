@@ -178,6 +178,26 @@ jobs:
           $extractDir = Join-Path $env:RUNNER_TEMP "llvm15"
           New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
           Expand-Archive -Path $archive -DestinationPath $extractDir -Force
+      - name: Debug LLVM archive layout
+        shell: pwsh
+        run: |
+          $extractDir = Join-Path $env:RUNNER_TEMP "llvm15"
+          Write-Host "LLVM extract root: $extractDir"
+          if (-not (Test-Path $extractDir)) {
+            throw "LLVM extract directory not found: $extractDir"
+          }
+          Write-Host "Top-level entries:"
+          Get-ChildItem -Path $extractDir -Force | ForEach-Object {
+            Write-Host ("  {0}" -f $_.FullName)
+          }
+          Write-Host "Directories up to depth 3:"
+          Get-ChildItem -Path $extractDir -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host ("  {0}" -f $_.FullName)
+          }
+          Write-Host "llvm-config candidates:"
+          Get-ChildItem -Path $extractDir -Filter "llvm-config*.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host ("  {0}" -f $_.FullName)
+          }
       - name: Resolve LLVM prefix
         shell: pwsh
         run: |
