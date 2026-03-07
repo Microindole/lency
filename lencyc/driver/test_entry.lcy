@@ -435,6 +435,17 @@ int main() {
         return 1
     }
 
+    print("Step 23: Impl semantic resolution tests...\n")
+    if !expect_resolve_success(src_resolver_impl_methods_ok(), "impl method semantic positive") {
+        return 1
+    }
+    if !expect_resolve_error(src_resolver_impl_unknown_type_bad(), "impl unknown target type negative") {
+        return 1
+    }
+    if !expect_resolve_error(src_resolver_impl_duplicate_method_bad(), "impl duplicate method negative") {
+        return 1
+    }
+
     print("Tests completed successfully.\n")
     return 0
 }

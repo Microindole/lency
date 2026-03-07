@@ -15,7 +15,8 @@
   - [x] 最小类型一致性检查（int / bool / string / float）
   - [x] 非 builtin 函数最小 arity 接入与调用校验
   - [x] 非 builtin 函数参数/返回类型签名接入（基础 `int/bool/string/float/void`）
-  - [ ] 自定义类型（`T_IDENTIFIER`）签名接入与校验
+  - [x] 自定义类型（`T_IDENTIFIER`）签名接入与校验
+  - [x] `impl` 最小语义约束（目标类型存在 + 同一 impl 方法名去重）
 
 - [x] **验证 & 驱动**
   - [x] `lencyc/driver/test_cases.lcy` 新增 builtin arity 与 function-return 约束正/负例

@@ -165,6 +165,16 @@ impl Resolver {
         }
         return -1
     }
+    bool contains_name(Vec<string> names, string target) {
+        var i = 0
+        while i < names.len() {
+            if names[i] == target {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
     void preload_prelude_symbol(string name) {
         if !this.table.resolve(name) {
             this.table.define(name)
@@ -378,6 +388,43 @@ impl Resolver {
             return
         }
         if stmt.kind == STMT_IMPL() {
+            if !this.table.resolve(stmt.name.lexeme) {
+                this.error("unknown type in impl target: " + stmt.name.lexeme)
+            }
+            var method_names = vec![]
+            var i = 0
+            while i < stmt.body.len() {
+                var member = stmt.body[i]
+                if member.kind != STMT_FUNCTION() {
+                    this.error("unsupported impl member kind: " + int_to_string(member.kind))
+                    i = i + 1
+                    continue
+                }
+                if this.contains_name(method_names, member.name.lexeme) {
+                    this.error("duplicate method in impl: " + member.name.lexeme)
+                    i = i + 1
+                    continue
+                }
+                method_names.push(member.name.lexeme)
+                var fn_param_tys = vec![]
+                var j = 0
+                while j < member.param_kinds.len() {
+                    var param_type_name = ""
+                    if j < member.param_type_names.len() {
+                        param_type_name = member.param_type_names[j]
+                    }
+                    fn_param_tys.push(this.resolve_signature_type_or_error(member.param_kinds[j], param_type_name))
+                    j = j + 1
+                }
+                this.resolve_function(
+                    member.params,
+                    fn_param_tys,
+                    member.body,
+                    member.return_kind != T_VOID(),
+                    this.resolve_signature_type_or_error(member.return_kind, member.return_type_name)
+                )
+                i = i + 1
+            }
             return
         }
         this.error("unsupported statement kind: " + int_to_string(stmt.kind))

@@ -28,9 +28,24 @@
 12. 在 `lencyc/sema/resolver` 目录完成模块拆分（`resolver.lcy`/`core.lcy`/`expr.lcy`），规避单文件超限。
 13. 在 `test_cases/test_entry` 新增 Step 18：用户函数类型签名正例、参数类型负例、返回类型负例、float 签名正例。
 
+## 本轮已完成补充 (2026-03-07)
+1. 在 `lencyc/sema/resolver/core.lcy` 为 `STMT_IMPL` 增加最小语义约束：
+   - impl 目标类型必须可解析（unknown type in impl target）。
+   - 同一 `impl` 内方法名去重（duplicate method in impl）。
+   - impl 成员函数体进入既有函数语义路径（参数/返回签名与 return 约束复用）。
+2. 在 `lencyc/driver/test_cases.lcy` 新增 `impl` 语义正/负例：
+   - `src_resolver_impl_methods_ok`
+   - `src_resolver_impl_unknown_type_bad`
+   - `src_resolver_impl_duplicate_method_bad`
+3. 在 `lencyc/driver/test_entry.lcy` 新增 Step 23，接入上述 `impl` 语义回归。
+4. 在 `scripts/win/setup-dev.ps1` 修复 LLVM 15 前缀解析：
+   - `-SearchRoots` 传入根目录时先直接校验该目录是否为可用前缀。
+   - 扩大目录匹配范围（兼容 `clang+llvm-*` 等命名）。
+5. 在 `.github/workflows/tests.yml` 增加临时调试步骤 `Debug LLVM archive layout`，输出解压目录与 `llvm-config*.exe` 候选路径，便于 CI 排障。
+
 ## 下一步 (按优先级)
 1. 调用语义扩展
-   - 自定义类型（`T_IDENTIFIER`）参数/返回签名接入与类型级调用校验。
+   - `impl` 方法调用语义接入（最小接收者模型与方法签名查找）。
 
 ## 质量门禁
 每次改动结束必须执行：

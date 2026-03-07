@@ -82,7 +82,7 @@
 | 自举组件 | Lexer (Done), Parser (Closeout), Sema (WIP) |
 | 自举准备度 | ~98% |
 
-*更新时间: 2026-03-05*
+*更新时间: 2026-03-07*
 
 ### 今日增量（2026-03-05）
 1. 自举 Lexer 新增字符串字面量扫描：`"` 开始与结束，产出 `T_STRING_LITERAL`。
@@ -131,3 +131,11 @@
 14. `AST printer` 的 `impl` 输出改为包含成员列表：`(impl Type [...])`。
 15. `test_cases` + `test_entry` 新增 Step 22，固定校验 `impl` 成员函数骨架 AST 形态（包含 `(func value/0 ...)`）。
 16. 再次执行 `cargo run -p xtask -- check-lency`，全链路通过。
+
+### 今日增量（2026-03-07）
+1. resolver `STMT_IMPL` 接入最小语义约束：`impl` 目标类型必须可解析，否则报 `unknown type in impl target`。
+2. resolver `STMT_IMPL` 接入同一 `impl` 内方法名去重校验：重复方法报 `duplicate method in impl`。
+3. `impl` 成员函数体复用既有函数语义路径（参数/返回签名与 return 约束）。
+4. `test_cases` + `test_entry` 新增 Step 23（impl 语义正/负例）：目标类型不存在、方法重名负例。
+5. Windows CI 修复：`scripts/win/setup-dev.ps1` 支持 `-SearchRoots` 根目录直接命中 LLVM 前缀，并放宽 LLVM 目录名匹配（兼容 `clang+llvm-*`）。
+6. Windows CI 排障增强：`.github/workflows/tests.yml` 新增 `Debug LLVM archive layout` 步骤，输出解压目录结构与 `llvm-config*.exe` 候选路径。
