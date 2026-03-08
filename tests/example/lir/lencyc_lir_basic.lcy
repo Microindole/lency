@@ -1,4 +1,4 @@
-// tests/example/lencyc_lir_basic.lcy
+// tests/example/lir/lencyc_lir_basic.lcy
 // Minimal statement-only source for self-host LIR emission smoke test.
 
 var x = 1

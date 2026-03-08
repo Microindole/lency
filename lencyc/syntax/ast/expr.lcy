@@ -14,13 +14,15 @@ int EXPR_ASSIGN()   { return 6; }
 int EXPR_LOGICAL()  { return 7; }
 int EXPR_CALL()     { return 8; }
 int EXPR_GET()      { return 9; }
+int EXPR_MATCH()    { return 10; }
 
 Expr make_expr_literal(Token v) {
     return Expr {
         kind: EXPR_LITERAL(),
         literal_value: v,
         operator: make_token(0, "", 0, 0),
-        children: vec![]
+        children: vec![],
+        arm_patterns: vec![]
     }
 }
 
@@ -30,7 +32,8 @@ Expr make_expr_binary(Expr left, Token op, Expr right) {
         kind: EXPR_BINARY(),
         literal_value: make_token(0, "", 0, 0),
         operator: op,
-        children: children
+        children: children,
+        arm_patterns: vec![]
     }
 }
 
@@ -39,7 +42,8 @@ Expr make_expr_variable(Token name) {
         kind: EXPR_VARIABLE(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![]
+        children: vec![],
+        arm_patterns: vec![]
     }
 }
 
@@ -48,7 +52,8 @@ Expr make_expr_grouping(Expr expression) {
         kind: EXPR_GROUPING(),
         literal_value: make_token(0, "", 0, 0),
         operator: make_token(0, "", 0, 0),
-        children: vec![expression]
+        children: vec![expression],
+        arm_patterns: vec![]
     }
 }
 
@@ -57,7 +62,8 @@ Expr make_expr_unary(Token op, Expr right) {
         kind: EXPR_UNARY(),
         literal_value: make_token(0, "", 0, 0),
         operator: op,
-        children: vec![right]
+        children: vec![right],
+        arm_patterns: vec![]
     }
 }
 
@@ -66,7 +72,8 @@ Expr make_expr_assign(Token name, Expr value) {
         kind: EXPR_ASSIGN(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![value]
+        children: vec![value],
+        arm_patterns: vec![]
     }
 }
 
@@ -76,7 +83,8 @@ Expr make_expr_logical(Expr left, Token op, Expr right) {
         kind: EXPR_LOGICAL(),
         literal_value: make_token(0, "", 0, 0),
         operator: op,
-        children: children
+        children: children,
+        arm_patterns: vec![]
     }
 }
 
@@ -91,7 +99,8 @@ Expr make_expr_call(Expr callee, Vec<Expr> args) {
         kind: EXPR_CALL(),
         literal_value: make_token(0, "", 0, 0),
         operator: make_token(0, "", 0, 0),
-        children: children
+        children: children,
+        arm_patterns: vec![]
     }
 }
 
@@ -100,6 +109,23 @@ Expr make_expr_get(Expr object, Token name) {
         kind: EXPR_GET(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![object]
+        children: vec![object],
+        arm_patterns: vec![]
+    }
+}
+
+Expr make_expr_match(Expr target, Vec<Token> patterns, Vec<Expr> arm_values) {
+    var children = vec![target]
+    var i = 0
+    while i < arm_values.len() {
+        children.push(arm_values[i])
+        i = i + 1
+    }
+    return Expr {
+        kind: EXPR_MATCH(),
+        literal_value: make_token(0, "", 0, 0),
+        operator: make_token(0, "match", 0, 0),
+        children: children,
+        arm_patterns: patterns
     }
 }

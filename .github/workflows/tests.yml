@@ -53,14 +53,13 @@ jobs:
           filters: |
             rust:
               - 'crates/**'
-              - 'lib/**'
               - 'tests/integration/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
-              - 'xtask/**'
               - 'scripts/linux/run_checks.sh'
-              - 'scripts/win/setup-dev.ps1'
-              - 'scripts/check_*.py'
+              - 'scripts/win/run_checks.ps1'
+              - 'scripts/linux/run_lcy_tests.sh'
+              - 'scripts/win/run_lcy_tests.ps1'
               - '.github/workflows/tests.yml'
             lency:
               - 'lencyc/**'

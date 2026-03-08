@@ -1,4 +1,4 @@
-// lencyc/driver/test_support.lcy
+// tests/example/selfhost/driver/test_support.lcy
 // Shared helper utilities for self-host driver step tests.
 
 import std.core

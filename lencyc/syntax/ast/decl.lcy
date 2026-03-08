@@ -20,6 +20,7 @@ struct Decl {
     Vec<string> params
     Vec<TypeRef> param_types
     Vec<StructField> struct_fields
+    Vec<EnumVariant> enum_variants
     Vec<Stmt> body
 }
 
@@ -31,6 +32,7 @@ Decl make_decl_base(int kind) {
         params: vec![],
         param_types: vec![],
         struct_fields: vec![],
+        enum_variants: vec![],
         body: vec![]
     }
 }
@@ -75,9 +77,20 @@ Decl make_decl_extern(Token name, TypeRef return_type, Vec<string> params, Vec<T
 }
 
 Decl make_decl_enum(Token name, Vec<string> variants) {
+    var enum_variants = vec![]
+    var i = 0
+    while i < variants.len() {
+        enum_variants.push(make_enum_variant(variants[i], vec![]))
+        i = i + 1
+    }
+    return make_decl_enum_with_variants(name, variants, enum_variants)
+}
+
+Decl make_decl_enum_with_variants(Token name, Vec<string> variants, Vec<EnumVariant> enum_variants) {
     var decl = make_decl_base(DECL_ENUM())
     decl.name = name
     decl.params = variants
+    decl.enum_variants = enum_variants
     return decl
 }
 

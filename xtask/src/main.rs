@@ -14,6 +14,10 @@ fn main() -> Result<()> {
 
     let rest: Vec<String> = args.collect();
     match cmd.as_str() {
+        "auto-check" => {
+            ensure_no_args("auto-check", &rest)?;
+            checks::auto_check()
+        }
         "check-rust" => {
             ensure_no_args("check-rust", &rest)?;
             checks::check_rust()
@@ -40,6 +44,7 @@ fn ensure_no_args(cmd: &str, rest: &[String]) -> Result<()> {
 
 fn print_usage() {
     eprintln!("Usage:");
+    eprintln!("  cargo run -p xtask -- auto-check");
     eprintln!("  cargo run -p xtask -- check-rust");
     eprintln!("  cargo run -p xtask -- check-lency");
     eprintln!(

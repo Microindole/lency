@@ -130,6 +130,7 @@ impl Lexer {
         if text == "import" { kind = T_IMPORT(); }
         if text == "extern" { kind = T_EXTERN(); }
         if text == "enum" { kind = T_ENUM(); }
+        if text == "match" { kind = T_MATCH(); }
         if text == "true" { kind = T_TRUE(); }
         if text == "false" { kind = T_FALSE(); }
         if text == "while" { kind = T_WHILE(); }

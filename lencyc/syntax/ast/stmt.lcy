@@ -134,7 +134,17 @@ Stmt make_stmt_extern(
 }
 
 Stmt make_stmt_enum(Token name, Vec<string> variants) {
+    var enum_variants = vec![]
+    var i = 0
+    while i < variants.len() {
+        enum_variants.push(make_enum_variant(variants[i], vec![]))
+        i = i + 1
+    }
+    return make_stmt_enum_with_variants(name, variants, enum_variants)
+}
+
+Stmt make_stmt_enum_with_variants(Token name, Vec<string> variants, Vec<EnumVariant> enum_variants) {
     var stmt = make_stmt_base(STMT_ENUM())
-    stmt.decl = make_decl_enum(name, variants)
+    stmt.decl = make_decl_enum_with_variants(name, variants, enum_variants)
     return stmt
 }

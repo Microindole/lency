@@ -151,15 +151,30 @@ impl Parser {
         var name = this.previous
         this.consume(T_LEFT_BRACE(), "Expect '{' after EnumName.")
         var variants = vec![]
+        var enum_variants = vec![]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             this.consume(T_IDENTIFIER(), "Expect EnumVariant name.")
-            variants.push(this.previous.lexeme)
+            var variant_name = this.previous.lexeme
+            variants.push(variant_name)
+            var payload_types = vec![]
+            if this.match_token(T_LEFT_PAREN()) {
+                if !this.check(T_RIGHT_PAREN()) {
+                    while true {
+                        payload_types.push(this.parse_signature_type_ref())
+                        if !this.match_token(T_COMMA()) {
+                            break
+                        }
+                    }
+                }
+                this.consume(T_RIGHT_PAREN(), "Expect ')' after payload types of variants.")
+            }
+            enum_variants.push(make_enum_variant(variant_name, payload_types))
             if this.match_token(T_COMMA()) || this.match_token(T_SEMICOLON()) {
                 // Optional delimiter in bootstrap grammar.
             }
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after EnumBody.")
-        return make_stmt_enum(name, variants)
+        return make_stmt_enum_with_variants(name, variants, enum_variants)
     }
 
     Stmt var_declaration(bool is_const) {

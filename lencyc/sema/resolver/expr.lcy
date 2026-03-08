@@ -175,6 +175,37 @@ impl Resolver {
             }
             return call_ty
         }
+        if expr.kind == EXPR_MATCH() {
+            if expr.children.len() == 0 {
+                this.error("match expression missing target")
+                return TYPE_UNKNOWN()
+            }
+            this.resolve_expr(expr.children[0])
+            var result_ty = TYPE_UNKNOWN()
+            var i = 0
+            while i < expr.arm_patterns.len() {
+                if i + 1 >= expr.children.len() {
+                    this.error("match arm expression missing for pattern: " + expr.arm_patterns[i].lexeme)
+                    i = i + 1
+                    continue
+                }
+                var arm_ty = this.resolve_expr(expr.children[i + 1])
+                if result_ty == TYPE_UNKNOWN() {
+                    result_ty = arm_ty
+                } else {
+                    if !this.types_match_or_unknown(result_ty, arm_ty) {
+                        this.error(
+                            "match arm type mismatch for pattern " + expr.arm_patterns[i].lexeme +
+                            ": expected " + this.type_to_string(result_ty) +
+                            ", got " + this.type_to_string(arm_ty)
+                        )
+                    }
+                }
+                i = i + 1
+            }
+            // TODO: match 分支穷尽性与模式重复检查在 enum+match 语义阶段补齐。
+            return result_ty
+        }
         var i = 0
         while i < expr.children.len() {
             this.resolve_expr(expr.children[i])

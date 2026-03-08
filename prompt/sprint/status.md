@@ -13,8 +13,8 @@
   - `tests/integration/` 文件：74
   - 能力层级：语法/语义/单态化/LLVM codegen/CLI 已成体系
 - Lency 自举链路：
-  - `lencyc/` 源码文件：27
-  - `tests/example/` 文件：10
+  - `lencyc/` 源码文件：25
+  - `tests/example/` 文件：23（已按 `lir/runtime/parser/modules/selfhost` 分层）
   - 能力层级：最小语法与最小语义可运行，后端与类型系统仍是子集
 
 ## 2. Sprint 状态
@@ -32,7 +32,8 @@
 - [x] parser declaration 级错误恢复同步点
 - [x] `const` 声明语法接入（lexer/parser/AST）与 for-init 支持
 - [x] `import/extern` 声明语法接入（含 AST/打印与同步点）
-- [x] `enum` 声明语法接入（unit variant 子集 + parser 回归）
+- [x] `enum` 声明语法接入（含 payload variant 语法 + parser 回归）
+- [x] `match` 最小可用语法接入（lexer/parser/AST/resolver smoke）
 - [x] AST `Stmt` 构造器工厂化（`make_stmt_base`），降低节点扩展时的全局修改面
 - [x] Parser 声明参数解析公共化（`parse_signature_param_list`）
 - [x] 过渡入口打通：`parse_program()` + `resolve_program()`（保留 `parse()/resolve_statements()` 兼容）
@@ -68,8 +69,6 @@
 - [x] `parse-error` 断言已切换到 `test_support` 共享 helper（`parser_frontend/import_extern`）
 
 未完成：
-- [ ] TODO: `match` 最小可用语法接入
-- [ ] TODO: `enum` payload variant 语法接入
 - [ ] TODO: 声明层与表达式层的泛型语法入口统一
 
 ### Sprint 18：自举 Semantic Analysis（进行中）
@@ -92,7 +91,7 @@
 - [ ] TODO: nullable/result 语义规则落地（不是 `unknown` 兜底）
 - [ ] TODO: `enum + match` 语义一致性与穷尽性检查
 - [ ] TODO: import 模块加载与符号导入规则（当前仅 alias 绑定）
-- [ ] TODO: `enum` payload 类型与构造/匹配语义（当前仅 unit variant）
+- [ ] TODO: `enum` payload 类型与构造/匹配语义（语法已接入，语义与穷尽性未完成）
 
 ## 3. 与 Rust 使用水平的差距评估（2026-03-07）
 - 前端语法能力：约 35%
@@ -109,7 +108,7 @@
   - 每项状态统一为 `NotStarted/InProgress/Done`
 - 验收：
   - [x] 矩阵文件提交
-  - [x] `check-lency` + `check-rust` 通过
+  - [x] `auto-check`（按改动范围）通过；涉及双侧变更时需 `check-lency` + `check-rust` 均通过
 
 ### Phase 1：语法补齐第一批（2~3 周）
 - 范围：`const/import/extern/enum/match/null` 与 AST 对齐
@@ -147,7 +146,7 @@
 3. [x] Phase 1 子项 2：`import/extern`（语法 + parser 回归 + resolver 绑定骨架）已完成（Step 27）。
 4. [ ] TODO: 每个子项都配正/负例，并执行双检查。
 5. [x] Phase 1 子项 3（部分）：`enum` 最小可用语法与 AST 接入已完成（Step 28）。
-6. [ ] TODO: 完成 Phase 1 子项 3 剩余：`match` + `enum payload` 语法与回归。
+6. [x] Phase 1 子项 3：`match` + `enum payload` 语法与回归已落地（Step 29）。
 
 ## 6. 已知风险
 - FIXME: 文档与实现存在历史错位，若不强制每次同步会继续漂移。
@@ -160,4 +159,4 @@
 - [x] 设计模式核心问题已收敛：声明数据不再扩散在 `Stmt` 字段中，改为 `stmt.decl` payload。
 - [x] resolver 已完成“普通语句处理 vs 声明语义处理”职责分层，声明路径统一消费 `Decl` 视图。
 - [x] parser 已去除声明二次扫描，`parse_program()` 单趟构建 `Program(decls + statements)`。
-- [ ] TODO: `match`/`enum payload` 语法与语义尚未接入，不属于本次模式重构完成条件，但属于后续主线阻塞项。
+- [ ] TODO: `match`/`enum payload` 语义（穷尽性、绑定与类型一致性）尚未接入，属于后续主线阻塞项。

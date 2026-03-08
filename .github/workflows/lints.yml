@@ -39,11 +39,9 @@ jobs:
           filters: |
             rust:
               - 'crates/**'
-              - 'lib/**'
               - 'tests/integration/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
-              - 'scripts/check_*.py'
               - '.github/workflows/lints.yml'
       - name: Scope Summary
         run: |

@@ -14,6 +14,7 @@ struct Expr {
     Token literal_value
     Token operator
     Vec<Expr> children
+    Vec<Token> arm_patterns // EXPR_MATCH 分支模式（与 children[1..] 一一对应）
 }
 
 struct TypeRef {
@@ -37,6 +38,18 @@ StructField make_struct_field(Token name, TypeRef type_ref) {
     return StructField {
         name: name,
         type_ref: type_ref
+    }
+}
+
+struct EnumVariant {
+    string name
+    Vec<TypeRef> payload_types
+}
+
+EnumVariant make_enum_variant(string name, Vec<TypeRef> payload_types) {
+    return EnumVariant {
+        name: name,
+        payload_types: payload_types
     }
 }
 

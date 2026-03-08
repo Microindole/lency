@@ -1,0 +1,10 @@
+// tests/example/parser/match_expr.lcy
+// Parser regression: basic match expression.
+
+var x = 1
+var y = match (x) {
+  0 => 10,
+  1 => 20,
+  _ => 30
+}
+return y

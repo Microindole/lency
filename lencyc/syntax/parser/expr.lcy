@@ -7,6 +7,37 @@ import lencyc.syntax.ast
 import lencyc.syntax.parser
 
 impl Parser {
+    Token parse_match_pattern_token() {
+        if this.match_token(T_IDENTIFIER()) || this.match_token(T_NUMBER()) || this.match_token(T_STRING_LITERAL()) || this.match_token(T_TRUE()) || this.match_token(T_FALSE()) {
+            return this.previous
+        }
+        this.error("Expect match pattern.")
+        return make_token(T_ERROR(), "", this.current.line, this.current.column)
+    }
+
+    Expr match_expression() {
+        this.consume(T_LEFT_PAREN(), "Expect '(' after 'match'.")
+        var target = this.expression()
+        this.consume(T_RIGHT_PAREN(), "Expect ')' after match target.")
+        this.consume(T_LEFT_BRACE(), "Expect '{' before match arms.")
+
+        var patterns = vec![]
+        var arm_values = vec![]
+        while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
+            var pattern = this.parse_match_pattern_token()
+            this.consume(T_EQUAL(), "Expect '=>' in match arm.")
+            this.consume(T_GREATER(), "Expect '=>' in match arm.")
+            var arm_value = this.expression()
+            patterns.push(pattern)
+            arm_values.push(arm_value)
+            if this.match_token(T_COMMA()) || this.match_token(T_SEMICOLON()) {
+                // Optional arm delimiter.
+            }
+        }
+        this.consume(T_RIGHT_BRACE(), "Expect '}' after match arms.")
+        return make_expr_match(target, patterns, arm_values)
+    }
+
     Expr expression() {
         return this.assignment()
     }
@@ -125,6 +156,9 @@ impl Parser {
     }
     
     Expr primary() {
+        if this.match_token(T_MATCH()) {
+            return this.match_expression()
+        }
         if this.match_token(T_NUMBER()) {
             return make_expr_literal(this.previous)
         }

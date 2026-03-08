@@ -2,22 +2,22 @@
 
 ## 0. 最高准则
 - 语言与设计哲学：`assets/Lency.txt`、`assets/design_spec.md`（冲突时以这两个文件为准）。
-- `xtask` 是规范主入口：`cargo run -p xtask -- check-rust`、`cargo run -p xtask -- check-lency`。
+- `xtask` 是规范主入口：`cargo run -p xtask -- auto-check`（按改动范围自动执行 `check-rust`/`check-lency`）。
 - `prompt/sprint/status.md` 是唯一状态真相来源，本文件只保留长期协作上下文与基线。
 - Phase 0 能力矩阵真表：`prompt/artifacts/capability_matrix.md`。
 
 ## 1. 当前基线（2026-03-08）
 - Rust 主编译器（`crates/`）源码文件数：175。
-- Lency 自举编译器（`lencyc/`）源码文件数：27。
+- Lency 自举编译器（`lencyc/`）源码文件数：25。
 - Rust 集成测试文件数（`tests/integration/`）：74。
-- Lency 示例测试文件数（`tests/example/`）：10。
+- Lency 示例测试文件数（`tests/example/`）：23（已按 `lir/runtime/parser/modules/selfhost` 分层）。
 - 当前判断：`lencyc` 已打通最小闭环，但能力远未接近 Rust 主链路；此前“~98% 准备度”判定失真，已废弃。
 
 ## 2. 能力对照（Rust vs Lency 自举）
 - 词法/语法：
   - Rust：已覆盖 `const/import/extern/trait/enum/match/null/?. /??/vec/Ok/Err` 等。
-  - Lency：当前聚焦 `var/if/while/for/struct/impl/return` 与基础字面量/运算。
-  - TODO: 补齐 `match/null` 与相关语法节点（`enum` 当前为 unit variant 子集）。
+  - Lency：当前聚焦 `var/if/while/for/struct/impl/return/match` 与基础字面量/运算，`enum payload variant` 语法已接入。
+  - TODO: 补齐 `null` 与模式匹配语义（穷尽性/绑定规则）。
 - 语义：
   - Rust：Resolver + TypeInfer + TypeCheck + NullSafety 分层较完整。
   - Lency：当前为最小语义约束（name resolution、基础类型一致性、函数签名与 arity、impl/struct 最小校验）。
@@ -37,8 +37,12 @@
 - resolver 已接入 `struct` 字段重复与未知类型校验。
 - `const` 声明已接入 lexer/parser/AST/resolver，禁止对 `const` 变量赋值。
 - `import/extern` 声明已接入 lexer/parser/AST/resolver，`extern` 可参与调用 arity 校验。
-- `enum` 声明已接入 lexer/parser/AST/resolver（当前仅 unit variant，payload/match 待后续）。
-- 回归已扩展到 Step 28，并通过 `check-lency` 全链路验证。
+- `enum` 声明已接入 lexer/parser/AST/resolver，`enum payload variant` 语法已接入 parser/AST 路径。
+- `match` 表达式语法已接入 lexer/parser/AST/resolver 最小路径。
+- 回归已扩展到 Step 29，并通过 `check-lency` 全链路验证。
+- Step 29 用例已从内嵌字符串迁移到 `tests/example/parser/*.lcy` 文件。
+- selfhost 测试驱动已迁移到 `tests/example/selfhost/driver/`，`lencyc/driver` 仅保留生产入口（`main/pipeline_sample`）。
+- `tests/example` 目录已按 `lir/runtime/parser/modules` 分层，消除单层平铺混乱。
 - AST 构造器已切换为 `make_stmt_base + 局部覆写` 工厂模式，新增 `Stmt` 字段时只需集中修改基座，显著降低连锁改动面。
 - parser 声明路径已抽出 `parse_signature_param_list()` 公共 helper，减少 `function/extern` 参数解析重复逻辑。
 - 已引入 `Program(decls + statements)` 过渡模型与 `parse_program()/resolve_program()` 入口，为后续 Decl/Stmt 解耦与 payload 化迁移提供兼容路径。
@@ -87,7 +91,6 @@
 ## 5. 协作与验收规则
 - 进度只在 `prompt/sprint/status.md` 更新，不在多处维护冲突状态。
 - 每次改动后必须执行：
-  - `cargo run -p xtask -- check-lency`
-  - `cargo run -p xtask -- check-rust`
+  - `cargo run -p xtask -- auto-check`
 - TODO: 任何新增未完成设计项必须在对应模块或文档明确 `TODO`，禁止口头挂账。
 - FIXME: 任何已知错误路径必须明确 `FIXME` 与收敛计划，禁止“先过再说”。

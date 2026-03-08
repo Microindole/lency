@@ -1,4 +1,4 @@
-// tests/example/lencyc_lir_break_continue.lcy
+// tests/example/lir/lencyc_lir_break_continue.lcy
 // Loop control-flow regression case for break/continue lowering.
 
 var i = 0

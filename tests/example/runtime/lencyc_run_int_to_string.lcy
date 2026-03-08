@@ -1,5 +1,6 @@
-// tests/example/lencyc_run_int_to_string.lcy
+// tests/example/runtime/lencyc_run_int_to_string.lcy
 // Runtime smoke case for int_to_string() builtin mapping.
+// @expect-exit: 0
 
 var s = int_to_string(42)
 if s == 0 {

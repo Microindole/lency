@@ -1,7 +1,7 @@
 // main.lcy - Entry point
 import std.core
-import tests.example.math
-import tests.example.printer
+import tests.example.modules.math
+import tests.example.modules.printer
 
 int main() {
     print("Running math operations...\n")

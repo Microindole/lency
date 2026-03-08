@@ -1,0 +1,9 @@
+// tests/example/parser/match_missing_arrow_bad.lcy
+// Parser negative regression: missing '=>' in match arm.
+// @expect-error: parse should fail
+
+var x = 1
+var y = match (x) {
+  0 10
+}
+return y

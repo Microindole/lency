@@ -1,4 +1,4 @@
-// lencyc/driver/test_cases.lcy
+// tests/example/selfhost/driver/test_cases.lcy
 // Structured test case sources for self-host bootstrap checks.
 
 import std.core

@@ -1,18 +1,19 @@
-// lencyc/driver/test_entry.lcy
+// tests/example/selfhost/driver/test_entry.lcy
 // Self-host lencyc lexer/parser test entry.
 
 import std.core
 import std.fs
 import std.convert
 import std.str
-import lencyc.driver.test_cases
-import lencyc.driver.test_steps_const
-import lencyc.driver.test_steps_enum
-import lencyc.driver.test_steps_import_extern
-import lencyc.driver.test_steps_parser_frontend
-import lencyc.driver.test_steps_signature
-import lencyc.driver.test_steps_struct
-import lencyc.driver.test_support
+import tests.example.selfhost.driver.test_cases
+import tests.example.selfhost.driver.test_steps_const
+import tests.example.selfhost.driver.test_steps_enum
+import tests.example.selfhost.driver.test_steps_import_extern
+import tests.example.selfhost.driver.test_steps_match
+import tests.example.selfhost.driver.test_steps_parser_frontend
+import tests.example.selfhost.driver.test_steps_signature
+import tests.example.selfhost.driver.test_steps_struct
+import tests.example.selfhost.driver.test_support
 import lencyc.syntax.lexer
 import lencyc.syntax.parser
 import lencyc.syntax.ast
@@ -249,6 +250,9 @@ int main() {
         return 1
     }
     if !run_enum_declaration_tests() {
+        return 1
+    }
+    if !run_match_and_enum_payload_tests() {
         return 1
     }
 

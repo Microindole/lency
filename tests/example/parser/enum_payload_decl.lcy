@@ -1,0 +1,10 @@
+// tests/example/parser/enum_payload_decl.lcy
+// Parser regression: enum payload variants.
+
+enum Message {
+  Quit,
+  Text(string),
+  Pair(int, string)
+}
+var x = 1
+return x

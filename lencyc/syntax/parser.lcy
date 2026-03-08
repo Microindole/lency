@@ -100,7 +100,7 @@ impl Parser {
     // Recover to next plausible statement boundary after a parse error.
     void synchronize() {
         while !this.is_at_end() {
-            if this.current.kind == T_VAR() || this.current.kind == T_CONST() || this.current.kind == T_IF() || this.current.kind == T_WHILE() || this.current.kind == T_FOR() || this.current.kind == T_RETURN() || this.current.kind == T_BREAK() || this.current.kind == T_CONTINUE() || this.current.kind == T_STRUCT() || this.current.kind == T_IMPL() || this.current.kind == T_IMPORT() || this.current.kind == T_EXTERN() || this.current.kind == T_ENUM() || this.current.kind == T_IDENTIFIER() || this.is_function_return_type_start() {
+            if this.current.kind == T_VAR() || this.current.kind == T_CONST() || this.current.kind == T_IF() || this.current.kind == T_WHILE() || this.current.kind == T_FOR() || this.current.kind == T_RETURN() || this.current.kind == T_BREAK() || this.current.kind == T_CONTINUE() || this.current.kind == T_STRUCT() || this.current.kind == T_IMPL() || this.current.kind == T_IMPORT() || this.current.kind == T_EXTERN() || this.current.kind == T_ENUM() || this.current.kind == T_MATCH() || this.current.kind == T_IDENTIFIER() || this.is_function_return_type_start() {
                 return
             }
             this.advance()

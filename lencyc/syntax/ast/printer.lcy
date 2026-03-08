@@ -54,6 +54,26 @@ string expr_to_string(Expr expr) {
         }
         return "(" + expr.operator.lexeme + " ? ?)"
     }
+    if expr.kind == EXPR_MATCH() {
+        if expr.children.len() == 0 {
+            return "(match ? {})"
+        }
+        var out = "(match " + expr_to_string(expr.children[0]) + " {"
+        var i = 0
+        while i < expr.arm_patterns.len() {
+            var arm_expr = "?"
+            if i + 1 < expr.children.len() {
+                arm_expr = expr_to_string(expr.children[i + 1])
+            }
+            out = out + expr.arm_patterns[i].lexeme + " => " + arm_expr
+            if i + 1 < expr.arm_patterns.len() {
+                out = out + ", "
+            }
+            i = i + 1
+        }
+        out = out + "})"
+        return out
+    }
     return "(expr_unknown)"
 }
 
@@ -104,6 +124,32 @@ string names_to_string(Vec<string> names) {
     while i < names.len() {
         out = out + names[i]
         if i + 1 < names.len() {
+            out = out + ", "
+        }
+        i = i + 1
+    }
+    out = out + "]"
+    return out
+}
+
+string enum_variants_to_string(Vec<EnumVariant> variants) {
+    var out = "["
+    var i = 0
+    while i < variants.len() {
+        out = out + variants[i].name
+        if variants[i].payload_types.len() > 0 {
+            out = out + "("
+            var j = 0
+            while j < variants[i].payload_types.len() {
+                out = out + variants[i].payload_types[j].name
+                if j + 1 < variants[i].payload_types.len() {
+                    out = out + ", "
+                }
+                j = j + 1
+            }
+            out = out + ")"
+        }
+        if i + 1 < variants.len() {
             out = out + ", "
         }
         i = i + 1
@@ -165,6 +211,9 @@ string stmt_to_string(Stmt stmt) {
     }
     if stmt.kind == STMT_ENUM() {
         var decl = stmt_to_decl(stmt)
+        if decl.enum_variants.len() > 0 {
+            return "(enum " + decl.name.lexeme + " " + enum_variants_to_string(decl.enum_variants) + ")"
+        }
         return "(enum " + decl.name.lexeme + " " + names_to_string(decl.params) + ")"
     }
     return "(stmt_unknown)"

@@ -1,10 +1,10 @@
-// lencyc/driver/test_steps_const.lcy
+// tests/example/selfhost/driver/test_steps_const.lcy
 // Const declaration step checks split from test_entry to keep file size under meta limits.
 
 import std.core
 import std.str
-import lencyc.driver.test_cases
-import lencyc.driver.test_support
+import tests.example.selfhost.driver.test_cases
+import tests.example.selfhost.driver.test_support
 import lencyc.syntax.parser
 import lencyc.syntax.ast
 

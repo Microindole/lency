@@ -1,4 +1,4 @@
-// tests/example/lencyc_lir_loop_if.lcy
+// tests/example/lir/lencyc_lir_loop_if.lcy
 // Loop-heavy source for self-host LIR branch/loop shape checks.
 
 var sum = 0

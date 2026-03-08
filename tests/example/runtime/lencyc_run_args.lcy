@@ -1,6 +1,8 @@
-// tests/example/lencyc_run_args.lcy
+// tests/example/runtime/lencyc_run_args.lcy
 // Runtime run smoke case for self-host run flow.
 // Ensure both arg_count() and arg_at() builtins are wired in self-host pipeline.
+// @expect-exit: 1
+// @run-args: sample_arg
 
 var argc = arg_count()
 var argv0 = arg_at(0)

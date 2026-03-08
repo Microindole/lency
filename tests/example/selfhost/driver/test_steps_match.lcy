@@ -1,0 +1,98 @@
+// tests/example/selfhost/driver/test_steps_match.lcy
+// Match syntax and payload parsing checks.
+
+import std.core
+import std.fs
+import std.str
+import tests.example.selfhost.driver.test_support
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+
+string read_match_case_or_empty(string path) {
+    var source_res = read_to_string(path)
+    if source_res.is_err() {
+        print("Failed to read test case: " + path + "\n")
+        return ""
+    }
+    return source_res.unwrap()
+}
+
+bool run_match_and_enum_payload_tests() {
+    print("Step 29: Match syntax and payload parsing tests...\n")
+
+    var enum_source = read_match_case_or_empty("tests/example/parser/enum_payload_decl.lcy")
+    if enum_source == "" {
+        return false
+    }
+    var enum_parser = make_parser(enum_source)
+    var enum_program = enum_parser.parse_program()
+    if enum_parser.has_error {
+        print("Enum payload declaration parse failed unexpectedly.\n")
+        return false
+    }
+    if enum_program.statements.len() < 1 || enum_program.statements[0].kind != STMT_ENUM() {
+        print("Enum payload declaration AST kind mismatch.\n")
+        return false
+    }
+    var enum_decl = stmt_to_decl(enum_program.statements[0])
+    if enum_decl.enum_variants.len() != 3 {
+        print("Enum payload variant count mismatch.\n")
+        return false
+    }
+    if enum_decl.enum_variants[1].name != "Text" || enum_decl.enum_variants[1].payload_types.len() != 1 {
+        print("Enum payload variant #2 mismatch.\n")
+        return false
+    }
+    if enum_decl.enum_variants[1].payload_types[0].name != "string" {
+        print("Enum payload variant #2 type mismatch.\n")
+        return false
+    }
+    if enum_decl.enum_variants[2].name != "Pair" || enum_decl.enum_variants[2].payload_types.len() != 2 {
+        print("Enum payload variant #3 mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(enum_program.statements[0]), "(enum Message [Quit, Text(string), Pair(int, string)])") {
+        print("Enum payload declaration AST shape mismatch.\n")
+        return false
+    }
+
+    var match_source = read_match_case_or_empty("tests/example/parser/match_expr.lcy")
+    if match_source == "" {
+        return false
+    }
+    var match_parser = make_parser(match_source)
+    var match_program = match_parser.parse_program()
+    if match_parser.has_error {
+        print("Match expression parse failed unexpectedly.\n")
+        return false
+    }
+    if match_program.statements.len() < 2 || match_program.statements[1].kind != STMT_VAR_DECL() {
+        print("Match expression AST kind mismatch.\n")
+        return false
+    }
+    var match_expr = match_program.statements[1].expr
+    if match_expr.kind != EXPR_MATCH() {
+        print("Match expression AST node kind mismatch.\n")
+        return false
+    }
+    if match_expr.arm_patterns.len() != 3 {
+        print("Match expression arm count mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(match_program.statements[1]), "(var y = (match x {0 => 10, 1 => 20, _ => 30}))") {
+        print("Match expression AST shape mismatch.\n")
+        return false
+    }
+
+    var bad_match_source = read_match_case_or_empty("tests/example/parser/match_missing_arrow_bad.lcy")
+    if bad_match_source == "" {
+        return false
+    }
+    if !expect_shared_parse_error(bad_match_source, "match missing '=>'") {
+        return false
+    }
+    if !expect_shared_resolve_success(match_source, "match resolver smoke positive") {
+        return false
+    }
+    return true
+}

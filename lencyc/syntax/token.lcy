@@ -58,6 +58,7 @@ int T_CONST()  { return 45; }
 int T_IMPORT() { return 46; }
 int T_EXTERN() { return 47; }
 int T_ENUM()   { return 48; }
+int T_MATCH()  { return 49; }
 
 struct Token {
     int kind
