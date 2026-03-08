@@ -30,6 +30,7 @@
 - 工具链：
   - Rust：`compile/run/check/build/repl` 路径稳定。
   - Lency：`lencyc` + `xtask check-lency` 闭环可用，但语言特性覆盖不足。
+  - CI：`lints.yml` 已新增 PR 场景 `cargo fmt` 自动修复提交（`style(fmt): 自动格式化`），并通过防循环条件避免机器人反复触发。
 
 ## 3. 已落地的自举关键增量
 - `TypeRef` 已接入函数签名（`return_type + param_types`），替代旧并行字段。

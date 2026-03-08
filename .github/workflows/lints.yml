@@ -19,6 +19,9 @@ env:
   RUST_MIN_STACK: 8388608
   LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
 
+permissions:
+  contents: read
+
 concurrency:
   group: lints-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -52,10 +55,43 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # 1. Linux Static Checks & Lints
+  auto-fmt-pr:
+    name: Auto Format (PR)
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true' && github.actor != 'github-actions[bot]' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Run cargo fmt
+        run: cargo fmt --all
+      - name: Commit fmt changes
+        id: commit
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style(fmt): 自动格式化"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
   static-checks:
     name: Static Checks & Quality
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    needs: [changes, auto-fmt-pr]
+    if: needs.changes.outputs.rust == 'true' && (github.event_name != 'pull_request' || needs.auto-fmt-pr.outputs.changed != 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
