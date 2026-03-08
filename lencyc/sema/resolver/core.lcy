@@ -109,8 +109,9 @@ impl Resolver {
         if kind == T_VOID() { return TYPE_VOID() }
         return TYPE_UNKNOWN()
     }
-    int resolve_signature_type_or_error(int kind, string type_name) {
-        if kind == T_IDENTIFIER() {
+    int resolve_signature_type_or_error(TypeRef type_ref) {
+        if type_ref.kind == T_IDENTIFIER() {
+            var type_name = type_ref.name
             if type_name == "" {
                 this.error("empty custom type name in signature")
                 return TYPE_UNKNOWN()
@@ -120,7 +121,7 @@ impl Resolver {
             }
             return TYPE_UNKNOWN()
         }
-        return this.token_kind_to_type(kind)
+        return this.token_kind_to_type(type_ref.kind)
     }
     int lookup_user_function_arity(string name) {
         var i = 0
@@ -241,18 +242,14 @@ impl Resolver {
                     this.preload_builtin_arity(statements[i].name.lexeme, statements[i].params.len())
                     var param_tys = vec![]
                     var j = 0
-                    while j < statements[i].param_kinds.len() {
-                        var param_type_name = ""
-                        if j < statements[i].param_type_names.len() {
-                            param_type_name = statements[i].param_type_names[j]
-                        }
-                        param_tys.push(this.resolve_signature_type_or_error(statements[i].param_kinds[j], param_type_name))
+                    while j < statements[i].param_types.len() {
+                        param_tys.push(this.resolve_signature_type_or_error(statements[i].param_types[j]))
                         j = j + 1
                     }
                     this.function_signatures.push(
                         make_function_signature(
                             statements[i].name.lexeme,
-                            this.resolve_signature_type_or_error(statements[i].return_kind, statements[i].return_type_name),
+                            this.resolve_signature_type_or_error(statements[i].return_type),
                             param_tys
                         )
                     )
@@ -367,20 +364,16 @@ impl Resolver {
         if stmt.kind == STMT_FUNCTION() {
             var fn_param_tys = vec![]
             var i = 0
-            while i < stmt.param_kinds.len() {
-                var param_type_name = ""
-                if i < stmt.param_type_names.len() {
-                    param_type_name = stmt.param_type_names[i]
-                }
-                fn_param_tys.push(this.resolve_signature_type_or_error(stmt.param_kinds[i], param_type_name))
+            while i < stmt.param_types.len() {
+                fn_param_tys.push(this.resolve_signature_type_or_error(stmt.param_types[i]))
                 i = i + 1
             }
             this.resolve_function(
                 stmt.params,
                 fn_param_tys,
                 stmt.body,
-                stmt.return_kind != T_VOID(),
-                this.resolve_signature_type_or_error(stmt.return_kind, stmt.return_type_name)
+                stmt.return_type.kind != T_VOID(),
+                this.resolve_signature_type_or_error(stmt.return_type)
             )
             return
         }
@@ -408,20 +401,16 @@ impl Resolver {
                 method_names.push(member.name.lexeme)
                 var fn_param_tys = vec![]
                 var j = 0
-                while j < member.param_kinds.len() {
-                    var param_type_name = ""
-                    if j < member.param_type_names.len() {
-                        param_type_name = member.param_type_names[j]
-                    }
-                    fn_param_tys.push(this.resolve_signature_type_or_error(member.param_kinds[j], param_type_name))
+                while j < member.param_types.len() {
+                    fn_param_tys.push(this.resolve_signature_type_or_error(member.param_types[j]))
                     j = j + 1
                 }
                 this.resolve_function(
                     member.params,
                     fn_param_tys,
                     member.body,
-                    member.return_kind != T_VOID(),
-                    this.resolve_signature_type_or_error(member.return_kind, member.return_type_name)
+                    member.return_type.kind != T_VOID(),
+                    this.resolve_signature_type_or_error(member.return_type)
                 )
                 i = i + 1
             }

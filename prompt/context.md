@@ -31,6 +31,7 @@
   - Rust 侧改动：`cargo run -p xtask -- check-rust`
   - Lency 自举侧改动：`cargo run -p xtask -- check-lency`
   - 平台入口：`./scripts/linux/run_checks.sh`、`./scripts/linux/run_lency_checks.sh`、`.\scripts\win\run_checks.ps1`、`.\scripts\win\run_lency_checks.ps1`
+- 本地协作约定（`AGENTS.md`）：`xtask` 是规范主入口（`check-rust` / `check-lency`）；平台脚本仅作为便捷包装。禁止再使用不存在的 `./scripts/run_checks.sh` / `./scripts/run_lency_checks.sh` 路径。
 
 ## 3. CI 触发约定（摘要）
 - CI 先按路径判定改动作用域，再触发对应 job。
@@ -74,6 +75,8 @@
 - 声明解析增量：parser 已支持最小函数声明骨架（`int/string/bool/void/float name(...) { ... }`），并在 AST 中记录参数类型 token kind。
 - 调用语义增量：resolver 已支持用户函数签名预扫描（返回类型 + 参数类型 + arity），并支持“先调用后声明”场景。
 - 语义约束增量：用户函数调用已接入参数类型校验，函数 `return` 已接入返回类型校验，并已接入 `test_entry` Step 18 回归。
+- AST 类型表示增量：函数签名类型已统一为 `TypeRef`（`return_type` + `param_types`），移除旧的并行 kind/name 字段组合。
+- 回归增量：`test_entry` 已新增 Step 24，固定校验函数签名 `TypeRef` AST 结构。
 - 架构演进：`resolver` 已按 `resolver.lcy + resolver/core.lcy + resolver/expr.lcy` 拆分，规避单文件超 500 行限制。
 - 兼容性约束：当前 self-host runtime builtin 仍有 pointer-as-value 历史语义，`arg_at/int_to_string/float_to_string/bool_to_string` 在 resolver 中暂按 `unknown` 返回类型处理，避免误杀现有运行闭环用例。
 - 文档治理增量：`docs/` 已清理过时实现状态与坏链接（补齐 `types/primitives.md`、`stdlib/hashmap.md`，同步脚本文档到当前检查链路）。

@@ -20,16 +20,21 @@ struct TypeRef {
     string name
 }
 
+TypeRef make_type_ref(int kind, string name) {
+    return TypeRef {
+        kind: kind,
+        name: name
+    }
+}
+
 struct Stmt {
     int kind
     Token name        // 用于 VarDecl, FunctionDecl 等
     Expr expr         // 用于 ExprStmt 等单一表达式语句, 以及 If 的条件
     bool has_expr     // expr 字段是否有效（用于 return void 等节点）
-    int return_kind   // FunctionDecl 返回类型 token kind（非函数为 0）
-    string return_type_name // FunctionDecl 返回类型名称（关键字或自定义类型）
+    TypeRef return_type // FunctionDecl 返回类型（非函数为 kind=0, name=""）
     Vec<string> params // FunctionDecl 参数名列表（非函数为空）
-    Vec<int> param_kinds // FunctionDecl 参数类型 token kind 列表（非函数为空）
-    Vec<string> param_type_names // FunctionDecl 参数类型名称列表（关键字或自定义类型）
+    Vec<TypeRef> param_types // FunctionDecl 参数类型列表（非函数为空）
     Vec<Stmt> body    // 用于嵌套结构, 以及 If 的 then 分支
     Vec<Stmt> else_body // 用于 If 的 else 分支
 }

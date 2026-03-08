@@ -76,3 +76,4 @@ string src_parser_impl_method_decl_program() { return "struct Boxed {\n}\nimpl B
 string src_resolver_impl_methods_ok() { return "struct Boxed {\n}\nimpl Boxed {\n  int value() {\n    return 1\n  }\n}\nvar y = 1\nreturn y"; }
 string src_resolver_impl_unknown_type_bad() { return "impl Mystery {\n  int value() {\n    return 1\n  }\n}\nvar y = 1\nreturn y"; }
 string src_resolver_impl_duplicate_method_bad() { return "struct Boxed {\n}\nimpl Boxed {\n  int value() {\n    return 1\n  }\n  int value() {\n    return 2\n  }\n}\nvar y = 1\nreturn y"; }
+string src_parser_function_typeref_program() { return "Result mix(int a, string b, float c, Boxed d) {\n  return d\n}"; }

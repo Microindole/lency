@@ -24,11 +24,9 @@ Stmt make_stmt_expr(Expr expr) {
         name: make_token(0, "", 0, 0),
         expr: expr,
         has_expr: true,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![]
     }
 }
@@ -39,11 +37,9 @@ Stmt make_stmt_var_decl(Token name, Expr initializer) {
         name: name,
         expr: initializer,
         has_expr: true,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -55,11 +51,9 @@ Stmt make_stmt_if(Expr condition, Vec<Stmt> then_branch, Vec<Stmt> else_branch) 
         name: make_token(0, "", 0, 0),
         expr: condition,
         has_expr: true,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: then_branch,
         else_body: else_branch
     }
@@ -71,11 +65,9 @@ Stmt make_stmt_block(Vec<Stmt> statements) {
         name: make_token(0, "", 0, 0),
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: statements,
         else_body: vec![]
     }
@@ -87,11 +79,9 @@ Stmt make_stmt_while(Expr condition, Vec<Stmt> body) {
         name: make_token(0, "", 0, 0),
         expr: condition,
         has_expr: true,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: body,
         else_body: vec![]
     }
@@ -103,11 +93,9 @@ Stmt make_stmt_return(Expr value) {
         name: make_token(0, "", 0, 0),
         expr: value,
         has_expr: true,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -119,11 +107,9 @@ Stmt make_stmt_return_void() {
         name: make_token(0, "", 0, 0),
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -135,11 +121,9 @@ Stmt make_stmt_break() {
         name: make_token(0, "", 0, 0),
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -151,11 +135,9 @@ Stmt make_stmt_continue() {
         name: make_token(0, "", 0, 0),
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -163,11 +145,9 @@ Stmt make_stmt_continue() {
 
 Stmt make_stmt_function(
     Token name,
-    int return_kind,
-    string return_type_name,
+    TypeRef return_type,
     Vec<string> params,
-    Vec<int> param_kinds,
-    Vec<string> param_type_names,
+    Vec<TypeRef> param_types,
     Vec<Stmt> body
 ) {
     return Stmt {
@@ -175,11 +155,9 @@ Stmt make_stmt_function(
         name: name,
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: return_kind,
-        return_type_name: return_type_name,
+        return_type: return_type,
         params: params,
-        param_kinds: param_kinds,
-        param_type_names: param_type_names,
+        param_types: param_types,
         body: body,
         else_body: vec![]
     }
@@ -191,11 +169,9 @@ Stmt make_stmt_struct(Token name) {
         name: name,
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: vec![],
         else_body: vec![]
     }
@@ -207,11 +183,9 @@ Stmt make_stmt_impl(Token name, Vec<Stmt> body) {
         name: name,
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
-        return_kind: 0,
-        return_type_name: "",
+        return_type: make_type_ref(0, ""),
         params: vec![],
-        param_kinds: vec![],
-        param_type_names: vec![],
+        param_types: vec![],
         body: body,
         else_body: vec![]
     }

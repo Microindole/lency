@@ -28,7 +28,7 @@
 实现递归下降解析器，将 Token 流转换为 AST，并维持可测试的模块化结构。
 
 ### 收尾项
-- [ ] AST 定义补全（Type representation 等未落地部分）
+- [x] AST 定义补全（Type representation 已落地：`TypeRef` 已接入函数签名）
 - [ ] 声明解析扩展（`func/struct/impl` 最小骨架）
 - [x] Parser 错误恢复同步点（当前仍偏 fail-fast）
 
@@ -69,9 +69,9 @@
 
 ## 下一步计划
 
-### 优先级 1: Sprint 18 -- Semantic Analysis（类型/调用/返回约束）
+### 优先级 1: Sprint 17 -- Parser 收尾（声明解析从“最小骨架”推进到可用级）
 
-### 优先级 2: Sprint 17 -- Parser 收尾（声明解析最小骨架）
+### 优先级 2: Sprint 18 -- Semantic Analysis（在已完成基础上做类型系统增量）
 
 ---
 
@@ -139,3 +139,8 @@
 4. `test_cases` + `test_entry` 新增 Step 23（impl 语义正/负例）：目标类型不存在、方法重名负例。
 5. Windows CI 修复：`scripts/win/setup-dev.ps1` 支持 `-SearchRoots` 根目录直接命中 LLVM 前缀，并放宽 LLVM 目录名匹配（兼容 `clang+llvm-*`）。
 6. Windows CI 排障增强：`.github/workflows/tests.yml` 新增 `Debug LLVM archive layout` 步骤，输出解压目录结构与 `llvm-config*.exe` 候选路径。
+7. AST `Stmt` 函数签名字段完成 `TypeRef` 落地：`return_type + param_types` 替代分离的 `return_kind/return_type_name/param_kinds/param_type_names`。
+8. parser 函数声明路径改为直接构建 `TypeRef`（返回类型与参数类型统一表示），`impl` 成员函数声明同步沿用该路径。
+9. resolver 签名解析改为消费 `TypeRef`，用户函数/impl 方法的签名预扫描与语义校验路径保持一致。
+10. `test_cases` + `test_entry` 新增 Step 24（Function signature TypeRef AST tests），固定校验函数签名类型节点结构。
+11. 执行 `cargo run -p xtask -- check-lency` 与 `cargo run -p xtask -- check-rust`，全链路通过。

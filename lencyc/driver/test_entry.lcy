@@ -9,6 +9,7 @@ import lencyc.driver.test_cases
 import lencyc.syntax.lexer
 import lencyc.syntax.parser
 import lencyc.syntax.ast
+import lencyc.syntax.token
 import lencyc.sema.resolver
 
 bool expect_parse_error(string source, string label) {
@@ -443,6 +444,44 @@ int main() {
         return 1
     }
     if !expect_resolve_error(src_resolver_impl_duplicate_method_bad(), "impl duplicate method negative") {
+        return 1
+    }
+
+    print("Step 24: Function signature TypeRef AST tests...\n")
+    var typeref_source = src_parser_function_typeref_program()
+    var typeref_parser = make_parser(typeref_source)
+    var typeref_stmts = typeref_parser.parse()
+    if typeref_parser.has_error {
+        print("Function signature TypeRef parse failed unexpectedly.\n")
+        return 1
+    }
+    if typeref_stmts.len() < 1 || typeref_stmts[0].kind != STMT_FUNCTION() {
+        print("Function signature TypeRef AST kind mismatch.\n")
+        return 1
+    }
+    var fn_stmt = typeref_stmts[0]
+    if fn_stmt.return_type.kind != T_IDENTIFIER() || fn_stmt.return_type.name != "Result" {
+        print("Function signature TypeRef return type mismatch.\n")
+        return 1
+    }
+    if fn_stmt.param_types.len() != 4 {
+        print("Function signature TypeRef param count mismatch.\n")
+        return 1
+    }
+    if fn_stmt.param_types[0].kind != T_INT() || fn_stmt.param_types[0].name != "int" {
+        print("Function signature TypeRef param #1 mismatch.\n")
+        return 1
+    }
+    if fn_stmt.param_types[1].kind != T_STRING() || fn_stmt.param_types[1].name != "string" {
+        print("Function signature TypeRef param #2 mismatch.\n")
+        return 1
+    }
+    if fn_stmt.param_types[2].kind != T_FLOAT() || fn_stmt.param_types[2].name != "float" {
+        print("Function signature TypeRef param #3 mismatch.\n")
+        return 1
+    }
+    if fn_stmt.param_types[3].kind != T_IDENTIFIER() || fn_stmt.param_types[3].name != "Boxed" {
+        print("Function signature TypeRef param #4 mismatch.\n")
         return 1
     }
 

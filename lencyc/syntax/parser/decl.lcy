@@ -7,6 +7,17 @@ import lencyc.syntax.ast
 import lencyc.syntax.parser
 
 impl Parser {
+    TypeRef parse_signature_type_ref() {
+        if this.is_signature_type_token(this.current.kind) {
+            var kind = this.current.kind
+            var name = this.current.lexeme
+            this.advance()
+            return make_type_ref(kind, name)
+        }
+        this.error("Expect type in signature.")
+        return make_type_ref(0, "")
+    }
+
     bool is_signature_type_token(int kind) {
         return kind == T_INT() || kind == T_STRING() || kind == T_BOOL() || kind == T_VOID() || kind == T_FLOAT() || kind == T_IDENTIFIER()
     }
@@ -25,23 +36,16 @@ impl Parser {
         return false
     }
 
-    Stmt function_declaration(Token return_type) {
+    Stmt function_declaration(TypeRef return_type) {
         this.consume(T_IDENTIFIER(), "Expect function name.")
         var name = this.previous
         this.consume(T_LEFT_PAREN(), "Expect '(' after function name.")
 
         var params = vec![]
-        var param_kinds = vec![]
-        var param_type_names = vec![]
+        var param_types = vec![]
         if !this.check(T_RIGHT_PAREN()) {
             while true {
-                if this.is_signature_type_token(this.current.kind) {
-                    param_kinds.push(this.current.kind)
-                    param_type_names.push(this.current.lexeme)
-                    this.advance()
-                } else {
-                    this.error("Expect parameter type.")
-                }
+                param_types.push(this.parse_signature_type_ref())
                 this.consume(T_IDENTIFIER(), "Expect parameter name.")
                 params.push(this.previous.lexeme)
                 if !this.match_token(T_COMMA()) {
@@ -54,11 +58,9 @@ impl Parser {
         var body = this.block()
         return make_stmt_function(
             name,
-            return_type.kind,
-            return_type.lexeme,
+            return_type,
             params,
-            param_kinds,
-            param_type_names,
+            param_types,
             body
         )
     }
@@ -82,8 +84,8 @@ impl Parser {
         var members = vec![]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.is_function_return_type_start() {
-                this.advance()
-                members.push(this.function_declaration(this.previous))
+                var member_return_type = this.parse_signature_type_ref()
+                members.push(this.function_declaration(member_return_type))
             } else {
                 this.error("Expect function declaration in impl body.")
                 this.advance()
@@ -113,8 +115,8 @@ impl Parser {
         }
 
         if this.is_function_return_type_start() {
-            this.advance()
-            return this.function_declaration(this.previous)
+            var return_type = this.parse_signature_type_ref()
+            return this.function_declaration(return_type)
         }
 
         if this.match_token(T_VAR()) {
