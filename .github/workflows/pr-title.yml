@@ -1,0 +1,35 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: ["main", "dev"]
+
+concurrency:
+  group: pr-title-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-pr-title:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title (Conventional Commit style)
+        shell: bash
+        run: |
+          title='${{ github.event.pull_request.title }}'
+          re='^(feat|fix|style|refactor|build|ci|docs|perf|test|chore)(\([a-z0-9][a-z0-9._/-]*\))?[：:][[:space:]]*\S+([[:space:]]+\(#([0-9]+)\))?$'
+          if [[ ! "$title" =~ $re ]]; then
+            echo "PR 标题不符合约定式提交格式: $title"
+            echo "允许格式: <type>: <subject> 或 <type>(scope): <subject>，可选尾缀 (#123)"
+            exit 1
+          fi
+          echo "PR 标题格式校验通过: $title"
+
+      - name: Scope Summary
+        run: |
+          {
+            echo "### CI Scope"
+            echo "- workflow: pr-title.yml"
+            echo "- check: pull_request.title uses Conventional style"
+          } >> "$GITHUB_STEP_SUMMARY"

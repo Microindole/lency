@@ -28,7 +28,7 @@ TYPE_PATTERN = "|".join(ALLOWED_TYPES)
 # - feat: add parser support
 # - feat(vscode): improve completion
 CONVENTIONAL_SUBJECT = re.compile(
-    rf"^({TYPE_PATTERN})(\([a-z0-9][a-z0-9._/-]*\))?[：:]\s*\S+"
+    rf"^({TYPE_PATTERN})(\([a-z0-9][a-z0-9._/-]*\))?[：:]\s*\S(?:.*\S)?(?:\s+\(#\d+\))?$"
 )
 
 # GitHub merge subjects (default merge commit titles)
@@ -68,8 +68,23 @@ def list_commits_for_push(event: dict) -> List[str]:
     if before == zero_sha:
         return [after]
 
-    output = run_git("rev-list", "--reverse", f"{before}..{after}")
-    return [line for line in output.splitlines() if line]
+    try:
+        output = run_git("rev-list", "--reverse", f"{before}..{after}")
+        commits = [line for line in output.splitlines() if line]
+        if commits:
+            return commits
+    except subprocess.CalledProcessError:
+        # 在 force-push / 重写历史场景中，before..after 可能在本地不可达。
+        # 降级到事件负载中的 commits 列表，避免校验流程直接崩溃。
+        pass
+
+    payload_commits = event.get("commits", [])
+    commits = [c.get("id", "") for c in payload_commits if c.get("id")]
+    if commits:
+        return commits
+
+    # 最后兜底：至少校验当前 after 提交本身。
+    return [after]
 
 
 def list_commits_for_pr(event: dict) -> List[str]:
@@ -134,11 +149,14 @@ def main() -> int:
     print(f"   <type>: <subject>  where <type> in [{allowed}]")
     print("2) <type>(scope): <subject>  ，scope 仅允许 [a-z0-9._/-]")
     print("   <type>(scope): <subject>  with scope chars [a-z0-9._/-]")
+    print("   允许尾缀 / Optional suffix: (#123)（用于 squash merge 生成标题）")
+    print("   Optional suffix: (#123) (for squash-merge generated subjects)")
     print("3) 合并提交：Merge pull request / Merge branch / Merge remote-tracking branch / Merge tag ... of ...")
     print("   Merge subjects: Merge pull request / Merge branch / Merge remote-tracking branch / Merge tag ... of ...")
     print("\n示例 / Examples:")
     print("- feat: add parser diagnostics")
     print("- feat(vscode): improve completion cache")
+    print("- feat(parser): support match expression (#123)")
     print("- Merge pull request #1 from Microindole/main")
     print("- Merge tag 'fsverity-for-linus' of git://git.kernel.org/pub/scm/fs/fsverity/linux")
     return 1
