@@ -6,6 +6,7 @@ import std.core
 import lencyc.syntax.token
 import lencyc.syntax.ast.expr
 import lencyc.syntax.ast.stmt
+import lencyc.syntax.ast.decl
 import lencyc.syntax.ast.printer
 
 struct Expr {
@@ -27,14 +28,37 @@ TypeRef make_type_ref(int kind, string name) {
     }
 }
 
+struct StructField {
+    Token name
+    TypeRef type_ref
+}
+
+StructField make_struct_field(Token name, TypeRef type_ref) {
+    return StructField {
+        name: name,
+        type_ref: type_ref
+    }
+}
+
 struct Stmt {
     int kind
-    Token name        // 用于 VarDecl, FunctionDecl 等
-    Expr expr         // 用于 ExprStmt 等单一表达式语句, 以及 If 的条件
-    bool has_expr     // expr 字段是否有效（用于 return void 等节点）
-    TypeRef return_type // FunctionDecl 返回类型（非函数为 kind=0, name=""）
-    Vec<string> params // FunctionDecl 参数名列表（非函数为空）
-    Vec<TypeRef> param_types // FunctionDecl 参数类型列表（非函数为空）
-    Vec<Stmt> body    // 用于嵌套结构, 以及 If 的 then 分支
-    Vec<Stmt> else_body // 用于 If 的 else 分支
+    Token name          // 仅用于 VarDecl 标识符
+    bool is_const       // VarDecl 是否为 const（非 VarDecl 为 false）
+    Expr expr           // 用于 ExprStmt 与控制流条件
+    bool has_expr       // expr 字段是否有效（用于 return void 等节点）
+    Decl decl           // 声明语句的 payload（非声明语句为 DECL_UNKNOWN）
+    Vec<Stmt> body      // 用于 block/if/while 等语句体
+    Vec<Stmt> else_body // 用于 if 的 else 分支
+}
+
+struct Program {
+    Vec<Decl> decls
+    Vec<Stmt> statements
+}
+
+Program make_program(Vec<Decl> decls, Vec<Stmt> statements) {
+    return Program {
+        decls: decls,
+        statements: statements
+    }
 }

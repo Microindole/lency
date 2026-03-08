@@ -1,0 +1,56 @@
+// lencyc/driver/test_steps_import_extern.lcy
+// Import/extern declaration step checks split from test_entry to keep file size under meta limits.
+
+import std.core
+import std.str
+import lencyc.driver.test_cases
+import lencyc.driver.test_support
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+
+bool run_import_extern_declaration_tests() {
+    print("Step 27: Import/extern declaration parsing and semantic tests...\n")
+
+    var import_source = src_parser_import_decl_program()
+    var import_parser = make_parser(import_source)
+    var import_program = import_parser.parse_program()
+    if import_parser.has_error {
+        print("Import declaration parse failed unexpectedly.\n")
+        return false
+    }
+    if import_program.statements.len() < 1 || import_program.statements[0].kind != STMT_IMPORT() {
+        print("Import declaration AST kind mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(import_program.statements[0]), "(import std.core)") {
+        print("Import declaration AST shape mismatch.\n")
+        return false
+    }
+
+    var extern_source = src_parser_extern_decl_program()
+    var extern_parser = make_parser(extern_source)
+    var extern_program = extern_parser.parse_program()
+    if extern_parser.has_error {
+        print("Extern declaration parse failed unexpectedly.\n")
+        return false
+    }
+    if extern_program.statements.len() < 1 || extern_program.statements[0].kind != STMT_EXTERN() {
+        print("Extern declaration AST kind mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(extern_program.statements[0]), "(extern int strlen/1)") {
+        print("Extern declaration AST shape mismatch.\n")
+        return false
+    }
+
+    if !expect_shared_parse_error(src_parser_import_missing_segment_bad(), "import missing path segment") {
+        return false
+    }
+    if !expect_shared_resolve_success(src_resolver_extern_call_ok(), "extern call positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_extern_call_arity_bad(), "extern call arity mismatch negative") {
+        return false
+    }
+    return true
+}

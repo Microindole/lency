@@ -1,0 +1,35 @@
+// lencyc/sema/resolver/return_flow.lcy
+// Return-flow analysis helpers split from core module to keep file size bounded.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    bool block_guarantees_value_return(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            if this.stmt_guarantees_value_return(statements[i]) {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+
+    bool stmt_guarantees_value_return(Stmt stmt) {
+        if stmt.kind == STMT_RETURN() {
+            return true
+        }
+        if stmt.kind == STMT_BLOCK() {
+            return this.block_guarantees_value_return(stmt.body)
+        }
+        if stmt.kind == STMT_IF() {
+            if stmt.body.len() == 0 || stmt.else_body.len() == 0 {
+                return false
+            }
+            return this.block_guarantees_value_return(stmt.body) && this.block_guarantees_value_return(stmt.else_body)
+        }
+        return false
+    }
+}

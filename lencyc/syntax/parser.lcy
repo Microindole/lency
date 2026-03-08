@@ -74,20 +74,23 @@ impl Parser {
         return true
     }
 
-    // Parser Entry Point
-    Vec<Stmt> parse() {
+    Program parse_program() {
         var statements = vec![]
+        var decls = vec![]
         this.advance() // 启动 parser
         
         while !this.is_at_end() {
             var before_error_count = this.error_count
             var stmt = this.declaration()
             statements.push(stmt)
+            if is_declaration_stmt(stmt) {
+                decls.push(stmt_to_decl(stmt))
+            }
             if this.error_count > before_error_count {
                 this.synchronize()
             }
         }
-        return statements
+        return make_program(decls, statements)
     }
     
     bool is_at_end() {
@@ -97,7 +100,7 @@ impl Parser {
     // Recover to next plausible statement boundary after a parse error.
     void synchronize() {
         while !this.is_at_end() {
-            if this.current.kind == T_VAR() || this.current.kind == T_IF() || this.current.kind == T_WHILE() || this.current.kind == T_FOR() || this.current.kind == T_RETURN() || this.current.kind == T_BREAK() || this.current.kind == T_CONTINUE() || this.current.kind == T_STRUCT() || this.current.kind == T_IMPL() || this.current.kind == T_IDENTIFIER() || this.is_function_return_type_start() {
+            if this.current.kind == T_VAR() || this.current.kind == T_CONST() || this.current.kind == T_IF() || this.current.kind == T_WHILE() || this.current.kind == T_FOR() || this.current.kind == T_RETURN() || this.current.kind == T_BREAK() || this.current.kind == T_CONTINUE() || this.current.kind == T_STRUCT() || this.current.kind == T_IMPL() || this.current.kind == T_IMPORT() || this.current.kind == T_EXTERN() || this.current.kind == T_ENUM() || this.current.kind == T_IDENTIFIER() || this.is_function_return_type_start() {
                 return
             }
             this.advance()

@@ -17,130 +17,79 @@ int STMT_CONTINUE()  { return 9; }
 int STMT_FUNCTION()  { return 10; }
 int STMT_STRUCT()    { return 11; }
 int STMT_IMPL()      { return 12; }
+int STMT_IMPORT()    { return 13; }
+int STMT_EXTERN()    { return 14; }
+int STMT_ENUM()      { return 15; }
 
-Stmt make_stmt_expr(Expr expr) {
+Stmt make_stmt_base(int kind) {
     return Stmt {
-        kind: STMT_EXPR(),
+        kind: kind,
         name: make_token(0, "", 0, 0),
-        expr: expr,
-        has_expr: true,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: vec![]
-    }
-}
-
-Stmt make_stmt_var_decl(Token name, Expr initializer) {
-    return Stmt {
-        kind: STMT_VAR_DECL(),
-        name: name,
-        expr: initializer,
-        has_expr: true,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
+        is_const: false,
+        expr: make_expr_literal(make_token(0, "", 0, 0)),
+        has_expr: false,
+        decl: make_decl_base(DECL_UNKNOWN()),
         body: vec![],
         else_body: vec![]
     }
+}
+
+Stmt make_stmt_expr(Expr expr) {
+    var stmt = make_stmt_base(STMT_EXPR())
+    stmt.expr = expr
+    stmt.has_expr = true
+    return stmt
+}
+
+Stmt make_stmt_var_decl(Token name, Expr initializer, bool is_const) {
+    var stmt = make_stmt_base(STMT_VAR_DECL())
+    stmt.name = name
+    stmt.is_const = is_const
+    stmt.expr = initializer
+    stmt.has_expr = true
+    return stmt
 }
 
 Stmt make_stmt_if(Expr condition, Vec<Stmt> then_branch, Vec<Stmt> else_branch) {
-    return Stmt {
-        kind: STMT_IF(),
-        name: make_token(0, "", 0, 0),
-        expr: condition,
-        has_expr: true,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: then_branch,
-        else_body: else_branch
-    }
+    var stmt = make_stmt_base(STMT_IF())
+    stmt.expr = condition
+    stmt.has_expr = true
+    stmt.body = then_branch
+    stmt.else_body = else_branch
+    return stmt
 }
 
 Stmt make_stmt_block(Vec<Stmt> statements) {
-    return Stmt {
-        kind: STMT_BLOCK(),
-        name: make_token(0, "", 0, 0),
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: statements,
-        else_body: vec![]
-    }
+    var stmt = make_stmt_base(STMT_BLOCK())
+    stmt.body = statements
+    return stmt
 }
 
 Stmt make_stmt_while(Expr condition, Vec<Stmt> body) {
-    return Stmt {
-        kind: STMT_WHILE(),
-        name: make_token(0, "", 0, 0),
-        expr: condition,
-        has_expr: true,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: body,
-        else_body: vec![]
-    }
+    var stmt = make_stmt_base(STMT_WHILE())
+    stmt.expr = condition
+    stmt.has_expr = true
+    stmt.body = body
+    return stmt
 }
 
 Stmt make_stmt_return(Expr value) {
-    return Stmt {
-        kind: STMT_RETURN(),
-        name: make_token(0, "", 0, 0),
-        expr: value,
-        has_expr: true,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: vec![],
-        else_body: vec![]
-    }
+    var stmt = make_stmt_base(STMT_RETURN())
+    stmt.expr = value
+    stmt.has_expr = true
+    return stmt
 }
 
 Stmt make_stmt_return_void() {
-    return Stmt {
-        kind: STMT_RETURN_VOID(),
-        name: make_token(0, "", 0, 0),
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: vec![],
-        else_body: vec![]
-    }
+    return make_stmt_base(STMT_RETURN_VOID())
 }
 
 Stmt make_stmt_break() {
-    return Stmt {
-        kind: STMT_BREAK(),
-        name: make_token(0, "", 0, 0),
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: vec![],
-        else_body: vec![]
-    }
+    return make_stmt_base(STMT_BREAK())
 }
 
 Stmt make_stmt_continue() {
-    return Stmt {
-        kind: STMT_CONTINUE(),
-        name: make_token(0, "", 0, 0),
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: vec![],
-        else_body: vec![]
-    }
+    return make_stmt_base(STMT_CONTINUE())
 }
 
 Stmt make_stmt_function(
@@ -150,43 +99,42 @@ Stmt make_stmt_function(
     Vec<TypeRef> param_types,
     Vec<Stmt> body
 ) {
-    return Stmt {
-        kind: STMT_FUNCTION(),
-        name: name,
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: return_type,
-        params: params,
-        param_types: param_types,
-        body: body,
-        else_body: vec![]
-    }
+    var stmt = make_stmt_base(STMT_FUNCTION())
+    stmt.decl = make_decl_function(name, return_type, params, param_types, body)
+    return stmt
 }
 
-Stmt make_stmt_struct(Token name) {
-    return Stmt {
-        kind: STMT_STRUCT(),
-        name: name,
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: vec![],
-        else_body: vec![]
-    }
+Stmt make_stmt_struct(Token name, Vec<StructField> struct_fields) {
+    var stmt = make_stmt_base(STMT_STRUCT())
+    stmt.decl = make_decl_struct(name, struct_fields)
+    return stmt
 }
 
 Stmt make_stmt_impl(Token name, Vec<Stmt> body) {
-    return Stmt {
-        kind: STMT_IMPL(),
-        name: name,
-        expr: make_expr_literal(make_token(0, "", 0, 0)),
-        has_expr: false,
-        return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        body: body,
-        else_body: vec![]
-    }
+    var stmt = make_stmt_base(STMT_IMPL())
+    stmt.decl = make_decl_impl(name, body)
+    return stmt
+}
+
+Stmt make_stmt_import(Vec<string> path_segments) {
+    var stmt = make_stmt_base(STMT_IMPORT())
+    stmt.decl = make_decl_import(path_segments)
+    return stmt
+}
+
+Stmt make_stmt_extern(
+    Token name,
+    TypeRef return_type,
+    Vec<string> params,
+    Vec<TypeRef> param_types
+) {
+    var stmt = make_stmt_base(STMT_EXTERN())
+    stmt.decl = make_decl_extern(name, return_type, params, param_types)
+    return stmt
+}
+
+Stmt make_stmt_enum(Token name, Vec<string> variants) {
+    var stmt = make_stmt_base(STMT_ENUM())
+    stmt.decl = make_decl_enum(name, variants)
+    return stmt
 }

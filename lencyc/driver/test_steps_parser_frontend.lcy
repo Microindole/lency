@@ -1,0 +1,178 @@
+// lencyc/driver/test_steps_parser_frontend.lcy
+// Parser frontend step checks split from test_entry to keep file size under meta limits.
+
+import std.core
+import std.str
+import lencyc.driver.test_cases
+import lencyc.driver.test_support
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+
+bool run_parser_frontend_steps() {
+    print("Step 3: Invalid placement tests...\n")
+    if !expect_shared_parse_error(src_invalid_break_top_level(), "top-level break") {
+        return false
+    }
+    if !expect_shared_parse_error(src_invalid_continue_top_level(), "top-level continue") {
+        return false
+    }
+
+    print("Step 4: Invalid for syntax tests...\n")
+    if !expect_shared_parse_error(src_invalid_for_missing_first_semicolon_expr_init(), "for missing first semicolon") {
+        return false
+    }
+    if !expect_shared_parse_error(src_invalid_for_missing_first_semicolon_var_init(), "for(var) missing first semicolon") {
+        return false
+    }
+    if !expect_shared_parse_error(src_invalid_for_missing_second_semicolon(), "for missing second semicolon") {
+        return false
+    }
+    if !expect_shared_parse_error(src_invalid_for_missing_left_brace(), "for missing left brace") {
+        return false
+    }
+    if !expect_shared_parse_error(src_invalid_unterminated_string_literal(), "unterminated string literal") {
+        return false
+    }
+    if !expect_shared_parse_error(src_invalid_float_missing_fraction_digits(), "float missing fraction digits") {
+        return false
+    }
+    var recovery_source = src_parser_recovery_invalid_then_valid()
+    var recovery_parser = make_parser(recovery_source)
+    var recovery_program = recovery_parser.parse_program()
+    var recovery_stmts = recovery_program.statements
+    if !recovery_parser.has_error {
+        print("Parser recovery test failed: expected parse error for invalid prefix.\n")
+        return false
+    }
+    if recovery_stmts.len() < 2 {
+        print("Parser recovery test failed: expected parser to continue after recovery.\n")
+        return false
+    }
+    print("Parser recovery test passed: parser continued after first error.\n")
+
+    print("Step 5: Call/member parsing tests...\n")
+    var call_member_source = src_call_member_program()
+    var call_member_parser = make_parser(call_member_source)
+    var call_member_program = call_member_parser.parse_program()
+    var call_member_stmts = call_member_program.statements
+    if call_member_parser.has_error {
+        print("Call/member parse failed unexpectedly.\n")
+        return false
+    }
+    print("Call/member AST[1]: " + stmt_to_string(call_member_stmts[1]) + "\n")
+    print("Call/member AST[2]: " + stmt_to_string(call_member_stmts[2]) + "\n")
+    if !contains(stmt_to_string(call_member_stmts[1]), "(call foo obj 2)") {
+        print("Call expression AST shape mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(call_member_stmts[2]), "(call (get obj.to_string))") {
+        print("Member call AST shape mismatch.\n")
+        return false
+    }
+
+    print("Step 6: String literal parsing tests...\n")
+    var string_source = src_string_literal_program()
+    var string_parser = make_parser(string_source)
+    var string_program = string_parser.parse_program()
+    var string_stmts = string_program.statements
+    if string_parser.has_error {
+        print("String literal parse failed unexpectedly.\n")
+        return false
+    }
+    if !contains(stmt_to_string(string_stmts[0]), "(var msg = \"hello\")") {
+        print("String literal var AST shape mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(string_stmts[2]), "(call print \"done\")") {
+        print("String literal call AST shape mismatch.\n")
+        return false
+    }
+
+    print("Step 7: Float literal parsing tests...\n")
+    var float_source = src_float_literal_program()
+    var float_parser = make_parser(float_source)
+    var float_program = float_parser.parse_program()
+    var float_stmts = float_program.statements
+    if float_parser.has_error {
+        print("Float literal parse failed unexpectedly.\n")
+        return false
+    }
+    if !contains(stmt_to_string(float_stmts[0]), "(var pi = 3.14)") {
+        print("Float literal var AST shape mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(float_stmts[2]), "(call print (+ pi half))") {
+        print("Float literal expression AST shape mismatch.\n")
+        return false
+    }
+
+    print("Step 8: Scientific notation parsing tests...\n")
+    var scientific_source = src_scientific_number_program()
+    var scientific_parser = make_parser(scientific_source)
+    var scientific_program = scientific_parser.parse_program()
+    var scientific_stmts = scientific_program.statements
+    if scientific_parser.has_error {
+        print("Scientific notation parse failed unexpectedly.\n")
+        return false
+    }
+    if !contains(stmt_to_string(scientific_stmts[0]), "(var av = 1.23e-4)") {
+        print("Scientific notation AST shape mismatch (av).\n")
+        return false
+    }
+    if !contains(stmt_to_string(scientific_stmts[1]), "(var bv = 9E+2)") {
+        print("Scientific notation AST shape mismatch (bv).\n")
+        return false
+    }
+
+    print("Step 9: Escaped string and char literal parsing tests...\n")
+    var escape_source = src_string_escape_program()
+    var escape_parser = make_parser(escape_source)
+    var escape_program = escape_parser.parse_program()
+    var escape_stmts = escape_program.statements
+    if escape_parser.has_error {
+        print("Escaped string parse failed unexpectedly.\n")
+        return false
+    }
+    if !contains(stmt_to_string(escape_stmts[0]), "(var msg = \"he said \\\"ok\\\"\")") {
+        print("Escaped string AST shape mismatch.\n")
+        return false
+    }
+
+    var char_source = src_char_literal_program()
+    var char_parser = make_parser(char_source)
+    var char_program = char_parser.parse_program()
+    var char_stmts = char_program.statements
+    if char_parser.has_error {
+        print("Char literal parse failed unexpectedly.\n")
+        return false
+    }
+    if !contains(stmt_to_string(char_stmts[0]), "(var ch = 'a')") {
+        print("Char literal AST shape mismatch.\n")
+        return false
+    }
+
+    print("Step 10: Nested loop rewrite safety tests...\n")
+    var nested_source = src_nested_loop_continue_safety()
+    var nested_parser = make_parser(nested_source)
+    var nested_program = nested_parser.parse_program()
+    var nested_stmts = nested_program.statements
+    if nested_parser.has_error {
+        print("Nested loop parse failed unexpectedly.\n")
+        return false
+    }
+    if nested_stmts.len() == 0 {
+        print("Nested loop parse produced empty AST.\n")
+        return false
+    }
+    var nested_ast = stmt_to_string(nested_stmts[0])
+    print("Nested AST[0]: " + nested_ast + "\n")
+    if !contains(nested_ast, "(while (< i 3) [(continue)])") {
+        print("Nested loop safety failed: inner while continue was rewritten unexpectedly.\n")
+        return false
+    }
+    if !contains(nested_ast, "(block [(expr (assign i (+ i 1))), (continue)])") {
+        print("Nested loop safety failed: outer for continue did not inject increment.\n")
+        return false
+    }
+    return true
+}

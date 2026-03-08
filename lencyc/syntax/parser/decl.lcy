@@ -6,6 +6,11 @@ import lencyc.syntax.token
 import lencyc.syntax.ast
 import lencyc.syntax.parser
 
+struct ParsedParamList {
+    Vec<string> names
+    Vec<TypeRef> types
+}
+
 impl Parser {
     TypeRef parse_signature_type_ref() {
         if this.is_signature_type_token(this.current.kind) {
@@ -36,11 +41,7 @@ impl Parser {
         return false
     }
 
-    Stmt function_declaration(TypeRef return_type) {
-        this.consume(T_IDENTIFIER(), "Expect function name.")
-        var name = this.previous
-        this.consume(T_LEFT_PAREN(), "Expect '(' after function name.")
-
+    ParsedParamList parse_signature_param_list() {
         var params = vec![]
         var param_types = vec![]
         if !this.check(T_RIGHT_PAREN()) {
@@ -53,14 +54,25 @@ impl Parser {
                 }
             }
         }
+        return ParsedParamList {
+            names: params,
+            types: param_types
+        }
+    }
+
+    Stmt function_declaration(TypeRef return_type) {
+        this.consume(T_IDENTIFIER(), "Expect function name.")
+        var name = this.previous
+        this.consume(T_LEFT_PAREN(), "Expect '(' after function name.")
+        var parsed_params = this.parse_signature_param_list()
         this.consume(T_RIGHT_PAREN(), "Expect ')' after parameters.")
         this.consume(T_LEFT_BRACE(), "Expect '{' before function body.")
         var body = this.block()
         return make_stmt_function(
             name,
             return_type,
-            params,
-            param_types,
+            parsed_params.names,
+            parsed_params.types,
             body
         )
     }
@@ -69,12 +81,22 @@ impl Parser {
         this.consume(T_IDENTIFIER(), "Expect type name after 'struct'.")
         var name = this.previous
         this.consume(T_LEFT_BRACE(), "Expect '{' after type name.")
+        var fields = vec![]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
-            // Minimal skeleton: accept and skip member section for now.
+            if this.is_signature_type_token(this.current.kind) {
+                var field_type = this.parse_signature_type_ref()
+                this.consume(T_IDENTIFIER(), "Expect field name after field type.")
+                fields.push(make_struct_field(this.previous, field_type))
+                if this.match_token(T_SEMICOLON()) || this.match_token(T_COMMA()) {
+                    // Optional field delimiter in bootstrap grammar.
+                }
+                continue
+            }
+            this.error("Expect field declaration in type body.")
             this.advance()
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after type body.")
-        return make_stmt_struct(name)
+        return make_stmt_struct(name, fields)
     }
 
     Stmt impl_declaration() {
@@ -95,7 +117,52 @@ impl Parser {
         return make_stmt_impl(name, members)
     }
 
-    Stmt var_declaration() {
+    Stmt import_declaration() {
+        var path_segments = vec![]
+        this.consume(T_IDENTIFIER(), "Expect module path after 'import'.")
+        path_segments.push(this.previous.lexeme)
+        while this.match_token(T_DOT()) {
+            this.consume(T_IDENTIFIER(), "Expect identifier after '.'.")
+            path_segments.push(this.previous.lexeme)
+        }
+        // Optional delimiter for compatibility with semicolon style.
+        if this.match_token(T_SEMICOLON()) {
+            // no-op
+        }
+        return make_stmt_import(path_segments)
+    }
+
+    Stmt extern_declaration() {
+        var return_type = this.parse_signature_type_ref()
+        this.consume(T_IDENTIFIER(), "Expect function name after extern return type.")
+        var name = this.previous
+        this.consume(T_LEFT_PAREN(), "Expect '(' after extern function name.")
+        var parsed_params = this.parse_signature_param_list()
+        this.consume(T_RIGHT_PAREN(), "Expect ')' after extern parameters.")
+        // Optional delimiter for compatibility with semicolon style.
+        if this.match_token(T_SEMICOLON()) {
+            // no-op
+        }
+        return make_stmt_extern(name, return_type, parsed_params.names, parsed_params.types)
+    }
+
+    Stmt enum_declaration() {
+        this.consume(T_IDENTIFIER(), "Expect EnumName after 'enum'.")
+        var name = this.previous
+        this.consume(T_LEFT_BRACE(), "Expect '{' after EnumName.")
+        var variants = vec![]
+        while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
+            this.consume(T_IDENTIFIER(), "Expect EnumVariant name.")
+            variants.push(this.previous.lexeme)
+            if this.match_token(T_COMMA()) || this.match_token(T_SEMICOLON()) {
+                // Optional delimiter in bootstrap grammar.
+            }
+        }
+        this.consume(T_RIGHT_BRACE(), "Expect '}' after EnumBody.")
+        return make_stmt_enum(name, variants)
+    }
+
+    Stmt var_declaration(bool is_const) {
         this.consume(T_IDENTIFIER(), "Expect variable name.")
         var name = this.previous
         
@@ -103,10 +170,19 @@ impl Parser {
         
         var initializer = this.expression()
         
-        return make_stmt_var_decl(name, initializer)
+        return make_stmt_var_decl(name, initializer, is_const)
     }
 
     Stmt declaration() {
+        if this.match_token(T_IMPORT()) {
+            return this.import_declaration()
+        }
+        if this.match_token(T_EXTERN()) {
+            return this.extern_declaration()
+        }
+        if this.match_token(T_ENUM()) {
+            return this.enum_declaration()
+        }
         if this.match_token(T_STRUCT()) {
             return this.struct_declaration()
         }
@@ -120,7 +196,11 @@ impl Parser {
         }
 
         if this.match_token(T_VAR()) {
-            return this.var_declaration()
+            return this.var_declaration(false)
+        }
+
+        if this.match_token(T_CONST()) {
+            return this.var_declaration(true)
         }
         
         if this.match_token(T_IF()) {

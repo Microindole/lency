@@ -1,0 +1,101 @@
+// lencyc/sema/resolver/decl_stmt.lcy
+// Declaration-statement resolver branch split from resolve_stmt.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.syntax.token
+import lencyc.sema.resolver
+
+impl Resolver {
+    void resolve_decl(Decl decl) {
+        if decl.kind == DECL_FUNCTION() {
+            var fn_param_tys = vec![]
+            var i = 0
+            while i < decl.param_types.len() {
+                fn_param_tys.push(this.resolve_signature_type_or_error(decl.param_types[i]))
+                i = i + 1
+            }
+            this.resolve_function(
+                decl.params,
+                fn_param_tys,
+                decl.body,
+                decl.return_type.kind != T_VOID(),
+                this.resolve_signature_type_or_error(decl.return_type)
+            )
+            return
+        }
+        if decl.kind == DECL_STRUCT() {
+            var field_names = vec![]
+            var i = 0
+            while i < decl.struct_fields.len() {
+                var field = decl.struct_fields[i]
+                if this.contains_name(field_names, field.name.lexeme) {
+                    this.error("duplicate field in struct " + decl.name.lexeme + ": " + field.name.lexeme)
+                    i = i + 1
+                    continue
+                }
+                field_names.push(field.name.lexeme)
+                this.resolve_signature_type_or_error(field.type_ref)
+                i = i + 1
+            }
+            return
+        }
+        if decl.kind == DECL_IMPL() {
+            if !this.table.resolve(decl.name.lexeme) {
+                this.error("unknown type in impl target: " + decl.name.lexeme)
+            }
+            var method_names = vec![]
+            var i = 0
+            while i < decl.body.len() {
+                var member_stmt = decl.body[i]
+                var member = stmt_to_decl(member_stmt)
+                if member.kind != DECL_FUNCTION() {
+                    this.error("unsupported impl member kind: " + int_to_string(member_stmt.kind))
+                    i = i + 1
+                    continue
+                }
+                if this.contains_name(method_names, member.name.lexeme) {
+                    this.error("duplicate method in impl: " + member.name.lexeme)
+                    i = i + 1
+                    continue
+                }
+                method_names.push(member.name.lexeme)
+                var fn_param_tys = vec![]
+                var j = 0
+                while j < member.param_types.len() {
+                    fn_param_tys.push(this.resolve_signature_type_or_error(member.param_types[j]))
+                    j = j + 1
+                }
+                this.resolve_function(
+                    member.params,
+                    fn_param_tys,
+                    member.body,
+                    member.return_type.kind != T_VOID(),
+                    this.resolve_signature_type_or_error(member.return_type)
+                )
+                i = i + 1
+            }
+            return
+        }
+        if decl.kind == DECL_IMPORT() {
+            this.resolve_import_decl(decl)
+            return
+        }
+        if decl.kind == DECL_EXTERN() {
+            this.resolve_extern_decl(decl)
+            return
+        }
+        if decl.kind == DECL_ENUM() {
+            this.resolve_enum_decl(decl)
+            return
+        }
+    }
+
+    bool resolve_decl_stmt(Stmt stmt) {
+        if !is_declaration_stmt(stmt) {
+            return false
+        }
+        this.resolve_decl(stmt_to_decl(stmt))
+        return true
+    }
+}

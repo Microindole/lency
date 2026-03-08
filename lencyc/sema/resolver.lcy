@@ -4,7 +4,12 @@ import std.core
 import lencyc.syntax.ast
 import lencyc.sema.scope
 import lencyc.sema.resolver.core
+import lencyc.sema.resolver.decl_extra
+import lencyc.sema.resolver.decl_stmt
+import lencyc.sema.resolver.program
 import lencyc.sema.resolver.expr
+import lencyc.sema.resolver.stmt
+import lencyc.sema.resolver.return_flow
 struct ResolveResult {
     bool has_error
     int error_count
@@ -22,6 +27,10 @@ struct TypedSymbol {
     int ty
     int depth
 }
+struct ConstSymbol {
+    string name
+    int depth
+}
 struct FunctionSignature {
     string name
     int return_ty
@@ -32,6 +41,7 @@ struct Resolver {
     Vec<BuiltinArity> builtin_arities
     Vec<BuiltinType> builtin_types
     Vec<TypedSymbol> typed_symbols
+    Vec<ConstSymbol> const_symbols
     Vec<FunctionSignature> function_signatures
     bool in_function
     bool require_value_return
@@ -64,6 +74,12 @@ TypedSymbol make_typed_symbol(string name, int ty, int depth) {
         depth: depth
     }
 }
+ConstSymbol make_const_symbol(string name, int depth) {
+    return ConstSymbol {
+        name: name,
+        depth: depth
+    }
+}
 FunctionSignature make_function_signature(string name, int return_ty, Vec<int> param_tys) {
     return FunctionSignature {
         name: name,
@@ -77,6 +93,7 @@ Resolver make_resolver() {
         builtin_arities: vec![],
         builtin_types: vec![],
         typed_symbols: vec![],
+        const_symbols: vec![],
         function_signatures: vec![],
         in_function: false,
         require_value_return: false,
@@ -89,13 +106,12 @@ Resolver make_resolver() {
     resolver.preload_builtin_types()
     return resolver
 }
-ResolveResult resolve_statements(Vec<Stmt> statements) {
+ResolveResult resolve_program(Program program) {
     var resolver = make_resolver()
-    resolver.preload_user_type_declarations(statements)
-    resolver.preload_user_function_signatures(statements)
+    resolver.preload_program_declarations(program.decls)
     var i = 0
-    while i < statements.len() {
-        resolver.resolve_stmt(statements[i])
+    while i < program.statements.len() {
+        resolver.resolve_stmt(program.statements[i])
         i = i + 1
     }
     return ResolveResult {
@@ -103,6 +119,7 @@ ResolveResult resolve_statements(Vec<Stmt> statements) {
         error_count: resolver.error_count
     }
 }
+
 ResolveResult resolve_function_body(Vec<string> params, Vec<Stmt> body) {
     var resolver = make_resolver()
     resolver.resolve_function(params, vec![], body, true, TYPE_UNKNOWN())

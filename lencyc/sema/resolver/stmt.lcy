@@ -1,0 +1,65 @@
+// lencyc/sema/resolver/stmt.lcy
+// Statement-level resolver logic split from core module to keep file size bounded.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.syntax.token
+import lencyc.sema.resolver
+
+impl Resolver {
+    void resolve_stmt(Stmt stmt) {
+        if stmt.kind == STMT_VAR_DECL() {
+            var value_ty = this.resolve_expr(stmt.expr)
+            if this.table.is_defined_in_current_scope(stmt.name.lexeme) {
+                this.error("duplicate variable in same scope: " + stmt.name.lexeme)
+            } else {
+                this.table.define(stmt.name.lexeme)
+                this.define_typed_symbol(stmt.name.lexeme, value_ty)
+                if stmt.is_const {
+                    this.define_const_symbol(stmt.name.lexeme)
+                }
+            }
+            return
+        }
+        if stmt.kind == STMT_EXPR() {
+            this.resolve_expr(stmt.expr)
+            return
+        }
+        if stmt.kind == STMT_RETURN() {
+            var ret_ty = this.resolve_expr(stmt.expr)
+            if this.in_function && this.require_value_return && !this.types_match_or_unknown(this.current_function_return_type, ret_ty) {
+                this.error(
+                    "return type mismatch: expected " +
+                    this.type_to_string(this.current_function_return_type) +
+                    ", got " + this.type_to_string(ret_ty)
+                )
+            }
+            return
+        }
+        if stmt.kind == STMT_RETURN_VOID() || stmt.kind == STMT_BREAK() || stmt.kind == STMT_CONTINUE() {
+            if stmt.kind == STMT_RETURN_VOID() && this.in_function && this.require_value_return {
+                this.error("void return is not allowed in value-return function")
+            }
+            return
+        }
+        if stmt.kind == STMT_BLOCK() {
+            this.resolve_in_new_scope(stmt.body)
+            return
+        }
+        if stmt.kind == STMT_WHILE() {
+            this.resolve_expr(stmt.expr)
+            this.resolve_in_new_scope(stmt.body)
+            return
+        }
+        if stmt.kind == STMT_IF() {
+            this.resolve_expr(stmt.expr)
+            this.resolve_in_new_scope(stmt.body)
+            this.resolve_in_new_scope(stmt.else_body)
+            return
+        }
+        if this.resolve_decl_stmt(stmt) {
+            return
+        }
+        this.error("unsupported statement kind: " + int_to_string(stmt.kind))
+    }
+}

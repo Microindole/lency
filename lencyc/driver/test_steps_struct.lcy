@@ -1,0 +1,54 @@
+// lencyc/driver/test_steps_struct.lcy
+// Struct declaration step checks split from test_entry to keep file size under meta limits.
+
+import std.core
+import std.str
+import lencyc.driver.test_cases
+import lencyc.driver.test_support
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+import lencyc.syntax.token
+
+bool run_struct_field_declaration_tests() {
+    print("Step 25: Struct field declaration parsing and semantic tests...\n")
+    var source = src_parser_struct_fields_program()
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Struct field declaration parse failed unexpectedly.\n")
+        return false
+    }
+    if program.statements.len() < 1 || program.statements[0].kind != STMT_STRUCT() {
+        print("Struct field declaration AST kind mismatch.\n")
+        return false
+    }
+    var struct_stmt = program.statements[0]
+    var struct_decl = stmt_to_decl(struct_stmt)
+    if struct_decl.struct_fields.len() != 3 {
+        print("Struct field declaration count mismatch.\n")
+        return false
+    }
+    if struct_decl.struct_fields[0].type_ref.kind != T_INT() || struct_decl.struct_fields[0].name.lexeme != "id" {
+        print("Struct field #1 mismatch.\n")
+        return false
+    }
+    if struct_decl.struct_fields[1].type_ref.kind != T_STRING() || struct_decl.struct_fields[1].name.lexeme != "name" {
+        print("Struct field #2 mismatch.\n")
+        return false
+    }
+    if struct_decl.struct_fields[2].type_ref.kind != T_FLOAT() || struct_decl.struct_fields[2].name.lexeme != "score" {
+        print("Struct field #3 mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(struct_stmt), "(struct Boxed [int id, string name, float score])") {
+        print("Struct field declaration AST shape mismatch.\n")
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_struct_duplicate_field_bad(), "type duplicate field negative") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_struct_unknown_field_type_bad(), "type unknown field type negative") {
+        return false
+    }
+    return true
+}

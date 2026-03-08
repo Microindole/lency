@@ -60,15 +60,16 @@ int main() {
 
     print("Stage 3/4: Parsing...\n")
     var parser = make_parser(source)
-    var statements = parser.parse()
+    var program = parser.parse_program()
     if parser.has_error {
         print("Parse failed.\n")
         return 1
     }
+    var statements = program.statements
     print("Parsed statements: " + int_to_string(statements.len()) + "\n")
 
     print("Stage 4/4: Resolving names...\n")
-    var resolve_result = resolve_statements(statements)
+    var resolve_result = resolve_program(program)
     if resolve_result.has_error {
         print("Resolve failed with " + int_to_string(resolve_result.error_count) + " errors.\n")
         return 1

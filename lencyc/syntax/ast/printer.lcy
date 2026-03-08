@@ -71,11 +71,55 @@ string stmt_list_to_string(Vec<Stmt> statements) {
     return out
 }
 
+string struct_fields_to_string(Vec<StructField> fields) {
+    var out = "["
+    var i = 0
+    while i < fields.len() {
+        out = out + fields[i].type_ref.name + " " + fields[i].name.lexeme
+        if i + 1 < fields.len() {
+            out = out + ", "
+        }
+        i = i + 1
+    }
+    out = out + "]"
+    return out
+}
+
+string path_segments_to_string(Vec<string> segments) {
+    var out = ""
+    var i = 0
+    while i < segments.len() {
+        out = out + segments[i]
+        if i + 1 < segments.len() {
+            out = out + "."
+        }
+        i = i + 1
+    }
+    return out
+}
+
+string names_to_string(Vec<string> names) {
+    var out = "["
+    var i = 0
+    while i < names.len() {
+        out = out + names[i]
+        if i + 1 < names.len() {
+            out = out + ", "
+        }
+        i = i + 1
+    }
+    out = out + "]"
+    return out
+}
+
 string stmt_to_string(Stmt stmt) {
     if stmt.kind == STMT_EXPR() {
         return "(expr " + expr_to_string(stmt.expr) + ")"
     }
     if stmt.kind == STMT_VAR_DECL() {
+        if stmt.is_const {
+            return "(const " + stmt.name.lexeme + " = " + expr_to_string(stmt.expr) + ")"
+        }
         return "(var " + stmt.name.lexeme + " = " + expr_to_string(stmt.expr) + ")"
     }
     if stmt.kind == STMT_RETURN() {
@@ -100,13 +144,28 @@ string stmt_to_string(Stmt stmt) {
         return "(if " + expr_to_string(stmt.expr) + " then " + stmt_list_to_string(stmt.body) + " else " + stmt_list_to_string(stmt.else_body) + ")"
     }
     if stmt.kind == STMT_FUNCTION() {
-        return "(func " + stmt.name.lexeme + "/" + int_to_string(stmt.params.len()) + " " + stmt_list_to_string(stmt.body) + ")"
+        var decl = stmt_to_decl(stmt)
+        return "(func " + decl.name.lexeme + "/" + int_to_string(decl.params.len()) + " " + stmt_list_to_string(decl.body) + ")"
     }
     if stmt.kind == STMT_STRUCT() {
-        return "(struct " + stmt.name.lexeme + ")"
+        var decl = stmt_to_decl(stmt)
+        return "(struct " + decl.name.lexeme + " " + struct_fields_to_string(decl.struct_fields) + ")"
     }
     if stmt.kind == STMT_IMPL() {
-        return "(impl " + stmt.name.lexeme + " " + stmt_list_to_string(stmt.body) + ")"
+        var decl = stmt_to_decl(stmt)
+        return "(impl " + decl.name.lexeme + " " + stmt_list_to_string(decl.body) + ")"
+    }
+    if stmt.kind == STMT_IMPORT() {
+        var decl = stmt_to_decl(stmt)
+        return "(import " + path_segments_to_string(decl.params) + ")"
+    }
+    if stmt.kind == STMT_EXTERN() {
+        var decl = stmt_to_decl(stmt)
+        return "(extern " + decl.return_type.name + " " + decl.name.lexeme + "/" + int_to_string(decl.params.len()) + ")"
+    }
+    if stmt.kind == STMT_ENUM() {
+        var decl = stmt_to_decl(stmt)
+        return "(enum " + decl.name.lexeme + " " + names_to_string(decl.params) + ")"
     }
     return "(stmt_unknown)"
 }

@@ -1,0 +1,59 @@
+// lencyc/sema/resolver/decl_extra.lcy
+// Extra declaration handlers split from resolver core to keep file size under meta limits.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    void resolve_import_decl(Decl decl) {
+        // TODO: import 语义当前只做最小绑定，不做模块加载/符号导入规则。
+        if decl.params.len() == 0 {
+            this.error("empty import path")
+            return
+        }
+        var alias = decl.params[decl.params.len() - 1]
+        if this.table.is_defined_in_current_scope(alias) {
+            this.error("duplicate import alias in same scope: " + alias)
+            return
+        }
+        this.table.define(alias)
+    }
+
+    void resolve_extern_decl(Decl decl) {
+        // extern 签名已在 preload 阶段进入符号表，这里只做类型引用校验。
+        this.resolve_signature_type_or_error(decl.return_type)
+        var i = 0
+        while i < decl.param_types.len() {
+            this.resolve_signature_type_or_error(decl.param_types[i])
+            i = i + 1
+        }
+    }
+
+    void resolve_enum_decl(Decl decl) {
+        var variant_names = vec![]
+        var i = 0
+        while i < decl.params.len() {
+            if this.contains_name(variant_names, decl.params[i]) {
+                this.error("duplicate variant in enum " + decl.name.lexeme + ": " + decl.params[i])
+                i = i + 1
+                continue
+            }
+            variant_names.push(decl.params[i])
+            i = i + 1
+        }
+        // TODO: EnumPayload 类型与构造/匹配语义在后续 match 阶段实现。
+    }
+
+    void resolve_import_stmt(Stmt stmt) {
+        this.resolve_import_decl(stmt_to_decl(stmt))
+    }
+
+    void resolve_extern_stmt(Stmt stmt) {
+        this.resolve_extern_decl(stmt_to_decl(stmt))
+    }
+
+    void resolve_enum_stmt(Stmt stmt) {
+        this.resolve_enum_decl(stmt_to_decl(stmt))
+    }
+}

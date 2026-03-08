@@ -1,0 +1,35 @@
+// lencyc/driver/test_steps_const.lcy
+// Const declaration step checks split from test_entry to keep file size under meta limits.
+
+import std.core
+import std.str
+import lencyc.driver.test_cases
+import lencyc.driver.test_support
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+
+bool run_const_declaration_tests() {
+    print("Step 26: Const declaration parsing and semantic tests...\n")
+    var source = src_parser_const_decl_program()
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Const declaration parse failed unexpectedly.\n")
+        return false
+    }
+    if program.statements.len() < 1 || program.statements[0].kind != STMT_VAR_DECL() || !program.statements[0].is_const {
+        print("Const declaration AST kind mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(program.statements[0]), "(const answer = 42)") {
+        print("Const declaration AST shape mismatch.\n")
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_const_assignment_bad(), "const assignment negative") {
+        return false
+    }
+    if !expect_shared_resolve_success(src_resolver_const_shadowing_ok(), "const shadowing positive") {
+        return false
+    }
+    return true
+}

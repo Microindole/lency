@@ -1,0 +1,82 @@
+// lencyc/driver/test_support.lcy
+// Shared helper utilities for self-host driver step tests.
+
+import std.core
+import std.str
+import lencyc.syntax.parser
+import lencyc.sema.resolver
+
+bool expect_shared_parse_error(string source, string label) {
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if !parser.has_error {
+        print("Invalid test failed: " + label + " should be rejected.\n")
+        return false
+    }
+    print("Invalid test passed: " + label + " rejected (" + int_to_string(program.statements.len()) + " stmt).\n")
+    return true
+}
+
+bool expect_shared_resolve_error(string source, string label) {
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Resolve test setup failed: parser rejected source for " + label + ".\n")
+        return false
+    }
+    var result = resolve_program(program)
+    if !result.has_error {
+        print("Resolve negative test failed: " + label + " should produce resolver error.\n")
+        return false
+    }
+    print("Resolve negative test passed: " + label + " (" + int_to_string(result.error_count) + " errors).\n")
+    return true
+}
+
+bool expect_shared_resolve_success(string source, string label) {
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Resolve test setup failed: parser rejected source for " + label + ".\n")
+        return false
+    }
+    var result = resolve_program(program)
+    if result.has_error {
+        print("Resolve positive test failed: " + label + " should pass.\n")
+        return false
+    }
+    print("Resolve positive test passed: " + label + ".\n")
+    return true
+}
+
+bool expect_shared_function_body_resolve_error(Vec<string> params, string source, string label) {
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Function-body resolve test setup failed: parser rejected source for " + label + ".\n")
+        return false
+    }
+    var result = resolve_function_body(params, program.statements)
+    if !result.has_error {
+        print("Function-body negative test failed: " + label + " should produce resolver error.\n")
+        return false
+    }
+    print("Function-body negative test passed: " + label + " (" + int_to_string(result.error_count) + " errors).\n")
+    return true
+}
+
+bool expect_shared_function_body_resolve_success(Vec<string> params, string source, string label) {
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Function-body resolve test setup failed: parser rejected source for " + label + ".\n")
+        return false
+    }
+    var result = resolve_function_body(params, program.statements)
+    if result.has_error {
+        print("Function-body positive test failed: " + label + " should pass.\n")
+        return false
+    }
+    print("Function-body positive test passed: " + label + ".\n")
+    return true
+}

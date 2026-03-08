@@ -77,3 +77,16 @@ string src_resolver_impl_methods_ok() { return "struct Boxed {\n}\nimpl Boxed {\
 string src_resolver_impl_unknown_type_bad() { return "impl Mystery {\n  int value() {\n    return 1\n  }\n}\nvar y = 1\nreturn y"; }
 string src_resolver_impl_duplicate_method_bad() { return "struct Boxed {\n}\nimpl Boxed {\n  int value() {\n    return 1\n  }\n  int value() {\n    return 2\n  }\n}\nvar y = 1\nreturn y"; }
 string src_parser_function_typeref_program() { return "Result mix(int a, string b, float c, Boxed d) {\n  return d\n}"; }
+string src_parser_struct_fields_program() { return "struct Boxed {\n  int id\n  string name\n  float score\n}"; }
+string src_resolver_struct_duplicate_field_bad() { return "struct Boxed {\n  int id\n  string id\n}\nvar x = 1\nreturn x"; }
+string src_resolver_struct_unknown_field_type_bad() { return "struct Boxed {\n  Mystery id\n}\nvar x = 1\nreturn x"; }
+string src_parser_const_decl_program() { return "const answer = 42\nvar x = answer\nreturn x"; }
+string src_resolver_const_assignment_bad() { return "const answer = 42\nanswer = 7\nreturn answer"; }
+string src_resolver_const_shadowing_ok() { return "const answer = 42\n{ var answer = 7\n  answer = answer + 1\n}\nreturn answer"; }
+string src_parser_import_decl_program() { return "import std.core\nvar x = 1\nreturn x"; }
+string src_parser_extern_decl_program() { return "extern int strlen(string s)\nvar n = strlen(\"ok\")\nreturn n"; }
+string src_parser_import_missing_segment_bad() { return "import std.\nvar x = 1\nreturn x"; }
+string src_resolver_extern_call_ok() { return "extern int strlen(string s)\nvar n = strlen(\"ok\")\nreturn n"; }
+string src_resolver_extern_call_arity_bad() { return "extern int strlen(string s)\nvar n = strlen()\nreturn n"; }
+string src_parser_enum_decl_program() { return "enum Status {\n  Idle,\n  Running,\n  Done\n}\nvar x = 1\nreturn x"; }
+string src_resolver_enum_duplicate_variant_bad() { return "enum Status {\n  Idle,\n  Idle\n}\nvar x = 1\nreturn x"; }

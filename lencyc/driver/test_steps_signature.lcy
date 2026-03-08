@@ -1,0 +1,50 @@
+// lencyc/driver/test_steps_signature.lcy
+// Function signature TypeRef step checks split from test_entry to keep file size under meta limits.
+
+import std.core
+import lencyc.driver.test_cases
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+import lencyc.syntax.token
+
+bool run_function_signature_typeref_tests() {
+    print("Step 24: Function signature TypeRef AST tests...\n")
+    var typeref_source = src_parser_function_typeref_program()
+    var typeref_parser = make_parser(typeref_source)
+    var typeref_program = typeref_parser.parse_program()
+    if typeref_parser.has_error {
+        print("Function signature TypeRef parse failed unexpectedly.\n")
+        return false
+    }
+    if typeref_program.statements.len() < 1 || typeref_program.statements[0].kind != STMT_FUNCTION() {
+        print("Function signature TypeRef AST kind mismatch.\n")
+        return false
+    }
+    var fn_stmt = typeref_program.statements[0]
+    var fn_decl = stmt_to_decl(fn_stmt)
+    if fn_decl.return_type.kind != T_IDENTIFIER() || fn_decl.return_type.name != "Result" {
+        print("Function signature TypeRef return type mismatch.\n")
+        return false
+    }
+    if fn_decl.param_types.len() != 4 {
+        print("Function signature TypeRef param count mismatch.\n")
+        return false
+    }
+    if fn_decl.param_types[0].kind != T_INT() || fn_decl.param_types[0].name != "int" {
+        print("Function signature TypeRef param #1 mismatch.\n")
+        return false
+    }
+    if fn_decl.param_types[1].kind != T_STRING() || fn_decl.param_types[1].name != "string" {
+        print("Function signature TypeRef param #2 mismatch.\n")
+        return false
+    }
+    if fn_decl.param_types[2].kind != T_FLOAT() || fn_decl.param_types[2].name != "float" {
+        print("Function signature TypeRef param #3 mismatch.\n")
+        return false
+    }
+    if fn_decl.param_types[3].kind != T_IDENTIFIER() || fn_decl.param_types[3].name != "Boxed" {
+        print("Function signature TypeRef param #4 mismatch.\n")
+        return false
+    }
+    return true
+}

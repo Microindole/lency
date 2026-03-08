@@ -88,13 +88,17 @@ impl Parser {
     }
 
     Stmt for_statement() {
-        // 支持 C 风格 for 的两种初始化：`var` 声明或表达式初始化。
+        // 支持 C 风格 for 的三种初始化：`var` / `const` 声明或表达式初始化。
         var initializer = make_stmt_block(vec![])
         if this.match_token(T_VAR()) {
-            initializer = this.var_declaration()
+            initializer = this.var_declaration(false)
         } else {
-            var init_expr = this.expression()
-            initializer = make_stmt_expr(init_expr)
+            if this.match_token(T_CONST()) {
+                initializer = this.var_declaration(true)
+            } else {
+                var init_expr = this.expression()
+                initializer = make_stmt_expr(init_expr)
+            }
         }
         this.consume(T_SEMICOLON(), "Expect ';' after for initializer.")
 

@@ -17,6 +17,13 @@ impl Resolver {
             }
             var popped = this.typed_symbols.pop()
         }
+        while this.const_symbols.len() > 0 {
+            var j = this.const_symbols.len() - 1
+            if this.const_symbols[j].depth != depth {
+                break
+            }
+            var popped_const = this.const_symbols.pop()
+        }
         this.table.end_scope()
     }
     void preload_builtin_arity(string name, int argc) {
@@ -63,6 +70,37 @@ impl Resolver {
     }
     void define_typed_symbol(string name, int ty) {
         this.typed_symbols.push(make_typed_symbol(name, ty, this.table.current_depth))
+    }
+    void define_const_symbol(string name) {
+        this.const_symbols.push(make_const_symbol(name, this.table.current_depth))
+    }
+    bool is_const_symbol(string name) {
+        var nearest_decl_depth = -1
+        var i = this.typed_symbols.len() - 1
+        while i >= 0 {
+            if this.typed_symbols[i].name == name {
+                nearest_decl_depth = this.typed_symbols[i].depth
+                break
+            }
+            i = i - 1
+        }
+        if nearest_decl_depth < 0 {
+            return false
+        }
+
+        var nearest_const_depth = -1
+        var j = this.const_symbols.len() - 1
+        while j >= 0 {
+            if this.const_symbols[j].name == name {
+                nearest_const_depth = this.const_symbols[j].depth
+                break
+            }
+            j = j - 1
+        }
+        if nearest_const_depth < 0 {
+            return false
+        }
+        return nearest_const_depth == nearest_decl_depth
     }
     int lookup_typed_symbol(string name) {
         var i = this.typed_symbols.len() - 1
@@ -218,46 +256,6 @@ impl Resolver {
         this.resolve_stmt_list(statements)
         this.end_scope()
     }
-    void preload_user_type_declarations(Vec<Stmt> statements) {
-        var i = 0
-        while i < statements.len() {
-            if statements[i].kind == STMT_STRUCT() {
-                if this.table.is_defined_in_current_scope(statements[i].name.lexeme) {
-                    this.error("duplicate type in same scope: " + statements[i].name.lexeme)
-                } else {
-                    this.table.define(statements[i].name.lexeme)
-                }
-            }
-            i = i + 1
-        }
-    }
-    void preload_user_function_signatures(Vec<Stmt> statements) {
-        var i = 0
-        while i < statements.len() {
-            if statements[i].kind == STMT_FUNCTION() {
-                if this.table.is_defined_in_current_scope(statements[i].name.lexeme) {
-                    this.error("duplicate function in same scope: " + statements[i].name.lexeme)
-                } else {
-                    this.table.define(statements[i].name.lexeme)
-                    this.preload_builtin_arity(statements[i].name.lexeme, statements[i].params.len())
-                    var param_tys = vec![]
-                    var j = 0
-                    while j < statements[i].param_types.len() {
-                        param_tys.push(this.resolve_signature_type_or_error(statements[i].param_types[j]))
-                        j = j + 1
-                    }
-                    this.function_signatures.push(
-                        make_function_signature(
-                            statements[i].name.lexeme,
-                            this.resolve_signature_type_or_error(statements[i].return_type),
-                            param_tys
-                        )
-                    )
-                }
-            }
-            i = i + 1
-        }
-    }
     void resolve_function(Vec<string> params, Vec<int> param_tys, Vec<Stmt> body, bool require_value_return, int function_return_ty) {
         this.begin_scope()
         var prev_in_function = this.in_function
@@ -288,134 +286,5 @@ impl Resolver {
         this.require_value_return = prev_require_value_return
         this.current_function_return_type = prev_function_return_ty
         this.end_scope()
-    }
-    bool block_guarantees_value_return(Vec<Stmt> statements) {
-        var i = 0
-        while i < statements.len() {
-            if this.stmt_guarantees_value_return(statements[i]) {
-                return true
-            }
-            i = i + 1
-        }
-        return false
-    }
-    bool stmt_guarantees_value_return(Stmt stmt) {
-        if stmt.kind == STMT_RETURN() {
-            return true
-        }
-        if stmt.kind == STMT_BLOCK() {
-            return this.block_guarantees_value_return(stmt.body)
-        }
-        if stmt.kind == STMT_IF() {
-            if stmt.body.len() == 0 || stmt.else_body.len() == 0 {
-                return false
-            }
-            return this.block_guarantees_value_return(stmt.body) && this.block_guarantees_value_return(stmt.else_body)
-        }
-        return false
-    }
-    void resolve_stmt(Stmt stmt) {
-        if stmt.kind == STMT_VAR_DECL() {
-            var value_ty = this.resolve_expr(stmt.expr)
-            if this.table.is_defined_in_current_scope(stmt.name.lexeme) {
-                this.error("duplicate variable in same scope: " + stmt.name.lexeme)
-            } else {
-                this.table.define(stmt.name.lexeme)
-                this.define_typed_symbol(stmt.name.lexeme, value_ty)
-            }
-            return
-        }
-        if stmt.kind == STMT_EXPR() {
-            this.resolve_expr(stmt.expr)
-            return
-        }
-        if stmt.kind == STMT_RETURN() {
-            var ret_ty = this.resolve_expr(stmt.expr)
-            if this.in_function && this.require_value_return && !this.types_match_or_unknown(this.current_function_return_type, ret_ty) {
-                this.error(
-                    "return type mismatch: expected " +
-                    this.type_to_string(this.current_function_return_type) +
-                    ", got " + this.type_to_string(ret_ty)
-                )
-            }
-            return
-        }
-        if stmt.kind == STMT_RETURN_VOID() || stmt.kind == STMT_BREAK() || stmt.kind == STMT_CONTINUE() {
-            if stmt.kind == STMT_RETURN_VOID() && this.in_function && this.require_value_return {
-                this.error("void return is not allowed in value-return function")
-            }
-            return
-        }
-        if stmt.kind == STMT_BLOCK() {
-            this.resolve_in_new_scope(stmt.body)
-            return
-        }
-        if stmt.kind == STMT_WHILE() {
-            this.resolve_expr(stmt.expr)
-            this.resolve_in_new_scope(stmt.body)
-            return
-        }
-        if stmt.kind == STMT_IF() {
-            this.resolve_expr(stmt.expr)
-            this.resolve_in_new_scope(stmt.body)
-            this.resolve_in_new_scope(stmt.else_body)
-            return
-        }
-        if stmt.kind == STMT_FUNCTION() {
-            var fn_param_tys = vec![]
-            var i = 0
-            while i < stmt.param_types.len() {
-                fn_param_tys.push(this.resolve_signature_type_or_error(stmt.param_types[i]))
-                i = i + 1
-            }
-            this.resolve_function(
-                stmt.params,
-                fn_param_tys,
-                stmt.body,
-                stmt.return_type.kind != T_VOID(),
-                this.resolve_signature_type_or_error(stmt.return_type)
-            )
-            return
-        }
-        if stmt.kind == STMT_STRUCT() {
-            return
-        }
-        if stmt.kind == STMT_IMPL() {
-            if !this.table.resolve(stmt.name.lexeme) {
-                this.error("unknown type in impl target: " + stmt.name.lexeme)
-            }
-            var method_names = vec![]
-            var i = 0
-            while i < stmt.body.len() {
-                var member = stmt.body[i]
-                if member.kind != STMT_FUNCTION() {
-                    this.error("unsupported impl member kind: " + int_to_string(member.kind))
-                    i = i + 1
-                    continue
-                }
-                if this.contains_name(method_names, member.name.lexeme) {
-                    this.error("duplicate method in impl: " + member.name.lexeme)
-                    i = i + 1
-                    continue
-                }
-                method_names.push(member.name.lexeme)
-                var fn_param_tys = vec![]
-                var j = 0
-                while j < member.param_types.len() {
-                    fn_param_tys.push(this.resolve_signature_type_or_error(member.param_types[j]))
-                    j = j + 1
-                }
-                this.resolve_function(
-                    member.params,
-                    fn_param_tys,
-                    member.body,
-                    member.return_type.kind != T_VOID(),
-                    this.resolve_signature_type_or_error(member.return_type)
-                )
-                i = i + 1
-            }
-            return
-        }
-        this.error("unsupported statement kind: " + int_to_string(stmt.kind))
     }
 }

@@ -1,0 +1,111 @@
+// lencyc/syntax/ast/decl.lcy
+// Transitional declaration view extracted from stmt stream.
+
+import std.core
+import lencyc.syntax.token
+import lencyc.syntax.ast
+
+int DECL_UNKNOWN()  { return 0; }
+int DECL_FUNCTION() { return 1; }
+int DECL_STRUCT()   { return 2; }
+int DECL_IMPL()     { return 3; }
+int DECL_IMPORT()   { return 4; }
+int DECL_EXTERN()   { return 5; }
+int DECL_ENUM()     { return 6; }
+
+struct Decl {
+    int kind
+    Token name
+    TypeRef return_type
+    Vec<string> params
+    Vec<TypeRef> param_types
+    Vec<StructField> struct_fields
+    Vec<Stmt> body
+}
+
+Decl make_decl_base(int kind) {
+    return Decl {
+        kind: kind,
+        name: make_token(0, "", 0, 0),
+        return_type: make_type_ref(0, ""),
+        params: vec![],
+        param_types: vec![],
+        struct_fields: vec![],
+        body: vec![]
+    }
+}
+
+Decl make_decl_function(Token name, TypeRef return_type, Vec<string> params, Vec<TypeRef> param_types, Vec<Stmt> body) {
+    var decl = make_decl_base(DECL_FUNCTION())
+    decl.name = name
+    decl.return_type = return_type
+    decl.params = params
+    decl.param_types = param_types
+    decl.body = body
+    return decl
+}
+
+Decl make_decl_struct(Token name, Vec<StructField> struct_fields) {
+    var decl = make_decl_base(DECL_STRUCT())
+    decl.name = name
+    decl.struct_fields = struct_fields
+    return decl
+}
+
+Decl make_decl_impl(Token name, Vec<Stmt> body) {
+    var decl = make_decl_base(DECL_IMPL())
+    decl.name = name
+    decl.body = body
+    return decl
+}
+
+Decl make_decl_import(Vec<string> path_segments) {
+    var decl = make_decl_base(DECL_IMPORT())
+    decl.params = path_segments
+    return decl
+}
+
+Decl make_decl_extern(Token name, TypeRef return_type, Vec<string> params, Vec<TypeRef> param_types) {
+    var decl = make_decl_base(DECL_EXTERN())
+    decl.name = name
+    decl.return_type = return_type
+    decl.params = params
+    decl.param_types = param_types
+    return decl
+}
+
+Decl make_decl_enum(Token name, Vec<string> variants) {
+    var decl = make_decl_base(DECL_ENUM())
+    decl.name = name
+    decl.params = variants
+    return decl
+}
+
+bool is_declaration_stmt(Stmt stmt) {
+    return stmt.kind == STMT_FUNCTION() ||
+        stmt.kind == STMT_STRUCT() ||
+        stmt.kind == STMT_IMPL() ||
+        stmt.kind == STMT_IMPORT() ||
+        stmt.kind == STMT_EXTERN() ||
+        stmt.kind == STMT_ENUM()
+}
+
+bool decl_kind_matches_stmt_kind(int decl_kind, int stmt_kind) {
+    return (decl_kind == DECL_FUNCTION() && stmt_kind == STMT_FUNCTION()) ||
+        (decl_kind == DECL_STRUCT() && stmt_kind == STMT_STRUCT()) ||
+        (decl_kind == DECL_IMPL() && stmt_kind == STMT_IMPL()) ||
+        (decl_kind == DECL_IMPORT() && stmt_kind == STMT_IMPORT()) ||
+        (decl_kind == DECL_EXTERN() && stmt_kind == STMT_EXTERN()) ||
+        (decl_kind == DECL_ENUM() && stmt_kind == STMT_ENUM())
+}
+
+Decl stmt_to_decl(Stmt stmt) {
+    if !is_declaration_stmt(stmt) {
+        return make_decl_base(DECL_UNKNOWN())
+    }
+    if decl_kind_matches_stmt_kind(stmt.decl.kind, stmt.kind) {
+        return stmt.decl
+    }
+    // TODO: 迁移过渡期若遇到声明 kind 与 payload kind 不一致，保留 Unknown 并给调用侧兜底诊断。
+    return make_decl_base(DECL_UNKNOWN())
+}

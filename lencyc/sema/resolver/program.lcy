@@ -1,0 +1,53 @@
+// lencyc/sema/resolver/program.lcy
+// Program/Decl-oriented resolver preload helpers for transitional architecture.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    void preload_program_declarations(Vec<Decl> decls) {
+        var i = 0
+        while i < decls.len() {
+            var decl = decls[i]
+            if decl.kind == DECL_STRUCT() || decl.kind == DECL_ENUM() {
+                if this.table.is_defined_in_current_scope(decl.name.lexeme) {
+                    this.error("duplicate type in same scope: " + decl.name.lexeme)
+                } else {
+                    this.table.define(decl.name.lexeme)
+                }
+            }
+            i = i + 1
+        }
+
+        var j = 0
+        while j < decls.len() {
+            var decl = decls[j]
+            if decl.kind == DECL_FUNCTION() || decl.kind == DECL_EXTERN() {
+                if this.table.is_defined_in_current_scope(decl.name.lexeme) {
+                    this.error("duplicate function in same scope: " + decl.name.lexeme)
+                } else {
+                    this.table.define(decl.name.lexeme)
+                    this.preload_builtin_arity(decl.name.lexeme, decl.params.len())
+                    var param_tys = vec![]
+                    var k = 0
+                    while k < decl.param_types.len() {
+                        param_tys.push(this.resolve_signature_type_or_error(decl.param_types[k]))
+                        k = k + 1
+                    }
+                    this.function_signatures.push(
+                        make_function_signature(
+                            decl.name.lexeme,
+                            this.resolve_signature_type_or_error(decl.return_type),
+                            param_tys
+                        )
+                    )
+                }
+            }
+            if decl.kind == DECL_UNKNOWN() {
+                this.error("unsupported declaration kind in preload: DECL_UNKNOWN")
+            }
+            j = j + 1
+        }
+    }
+}

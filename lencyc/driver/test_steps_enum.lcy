@@ -1,0 +1,32 @@
+// lencyc/driver/test_steps_enum.lcy
+// Enum declaration step checks split from test_entry to keep file size under meta limits.
+
+import std.core
+import std.str
+import lencyc.driver.test_cases
+import lencyc.driver.test_support
+import lencyc.syntax.parser
+import lencyc.syntax.ast
+
+bool run_enum_declaration_tests() {
+    print("Step 28: Enum declaration parsing and semantic tests...\n")
+    var source = src_parser_enum_decl_program()
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error {
+        print("Enum declaration parse failed unexpectedly.\n")
+        return false
+    }
+    if program.statements.len() < 1 || program.statements[0].kind != STMT_ENUM() {
+        print("Enum declaration AST kind mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(program.statements[0]), "(enum Status [Idle, Running, Done])") {
+        print("Enum declaration AST shape mismatch.\n")
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_duplicate_variant_bad(), "EnumDuplicateVariant negative") {
+        return false
+    }
+    return true
+}

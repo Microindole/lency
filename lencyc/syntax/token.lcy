@@ -54,6 +54,10 @@ int T_FOR()    { return 41; }
 int T_STRING_LITERAL() { return 42; }
 int T_CHAR_LITERAL() { return 43; }
 int T_FLOAT()  { return 44; }
+int T_CONST()  { return 45; }
+int T_IMPORT() { return 46; }
+int T_EXTERN() { return 47; }
+int T_ENUM()   { return 48; }
 
 struct Token {
     int kind

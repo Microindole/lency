@@ -31,6 +31,10 @@ impl Resolver {
         if expr.kind == EXPR_ASSIGN() {
             if !this.table.resolve(expr.literal_value.lexeme) {
                 this.error("assignment to undefined variable: " + expr.literal_value.lexeme)
+            } else {
+                if this.is_const_symbol(expr.literal_value.lexeme) {
+                    this.error("assignment to const is not allowed: " + expr.literal_value.lexeme)
+                }
             }
             if expr.children.len() > 0 {
                 var rhs_ty = this.resolve_expr(expr.children[0])
