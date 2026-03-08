@@ -59,6 +59,8 @@
 - [x] AST `Stmt` 声明字段完成 payload 化：声明数据下沉到 `stmt.decl`（`Decl`），消除 `Stmt` 结构体的声明字段扩散点
 - [x] 声明构造器统一为 `make_decl_*`，`stmt_to_decl` 改为 payload 直读并增加 kind 一致性防御
 - [x] parser/driver/printer 的声明断言与输出统一走 `Decl` 视图，降低 AST 布局变更影响面
+- [x] `xtask check-rust` 已纳入 `tests/integration/*.lcy` 门禁（通过 `run_lcy_tests`），补齐 Rust 主链路对 `.lcy` 集成用例的基础覆盖
+- [x] Linux/Windows `run_lcy_tests` 已修正项目根目录解析，消除“目录不存在导致假通过”的脚本缺陷
 - [x] 新增 `driver/test_support.lcy`，`test_steps_const` 已切换到共享 resolve 断言 helper
 - [x] 共享 resolve 断言 helper 已扩展到 `test_steps_enum/test_steps_struct/test_steps_import_extern`
 - [x] `test_entry` resolve 正/负例断言已切换到 `test_support` 共享 helper

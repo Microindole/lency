@@ -71,6 +71,8 @@
 - AST 声明构造链已统一为 `make_decl_*` + `make_stmt_*`，`stmt_to_decl` 改为直接读取 payload（带 kind 一致性防御）。
 - parser/syntax/driver 侧声明断言与打印已统一走 `Decl` 视图（`stmt_to_decl`），减少对 `Stmt` 内部布局的耦合。
 - 收尾说明：`status.md` 已移除两条过时 `FIXME`（“AST 未 payload 化 / resolver 未分层”），并替换为当前真实剩余风险条目。
+- `xtask check-rust` 已纳入 `.lcy` 集成用例（`tests/integration/*.lcy`）执行，不再只依赖 Rust 单元/文档测试覆盖。
+- `run_lcy_tests` 脚本已修正项目根路径解析（`scripts/* -> repo root`），消除此前误报“未找到 tests/integration”导致的假通过。
 
 ## 4. 目录与职责
 - `crates/`：Rust 主编译器与主工具链。

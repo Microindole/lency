@@ -8,7 +8,7 @@ if ($args.Count -ne 0) {
 Write-Host "Running .lcy integration tests..."
 Write-Host "====================================="
 
-$projectRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $testDir = Join-Path $projectRoot "tests\\integration"
 
 if (-not (Test-Path $testDir)) {

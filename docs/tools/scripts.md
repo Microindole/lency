@@ -106,7 +106,7 @@ cargo run -p xtask -- selfhost-run <input.lcy> [--release] [--out-dir DIR] [--ex
 
 ## 5. 其他辅助脚本
 
-- `scripts/linux/run_lcy_tests.sh` / `scripts/win/run_lcy_tests.ps1`: 独立 `.lcy` 集成测试入口（不在 `run_checks.sh` 主流程中）。
+- `scripts/linux/run_lcy_tests.sh` / `scripts/win/run_lcy_tests.ps1`: `.lcy` 集成测试入口；现已纳入 `xtask check-rust` 主流程。
 - `scripts/check_file_size.py`: 文件规模检查。
 - `scripts/check_todos.py`: TODO/FIXME 扫描。
 - `scripts/check_banned_patterns.py`: 禁用模式扫描。

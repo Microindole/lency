@@ -46,6 +46,35 @@ pub(crate) fn check_rust() -> Result<()> {
         )
     })?;
 
+    step(
+        "Running .lcy integration tests (Rust compiler path)",
+        || {
+            if cfg!(windows) {
+                run_cmd(
+                    "pwsh",
+                    &[
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        "scripts/win/run_lcy_tests.ps1",
+                    ],
+                    false,
+                    &[],
+                    &[0],
+                )
+            } else {
+                run_cmd(
+                    "bash",
+                    &["scripts/linux/run_lcy_tests.sh"],
+                    false,
+                    &[],
+                    &[0],
+                )
+            }
+        },
+    )?;
+
     step("Checking file sizes (rust scope)", || {
         run_python(
             &python,
