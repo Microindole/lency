@@ -53,6 +53,8 @@
 - 目录分层重构：`lencyc/sema/resolver/` 已下沉为 `core/*` 与 `expr/*` 子目录，避免同层文件持续堆积。
 - 目录分层重构：`crates/lency_cli/src/lir_backend/compile.rs` 已下沉为 `compile/{mod,call,member_call,helpers}.rs`。
 - 测试目录重构：`tests/example/selfhost/driver/test_steps_*` 已下沉到 `tests/example/selfhost/driver/steps/*`。
+- 规则治理：`prompt/rules.md` 中“同层文件数接近或超过 9”已明确为可调启发式预警线（非工业硬标准）。
+- 文档治理：`assets/Lency.txt` 已完成语气规范化改写，规则与约束语义保持不变（无放宽、无删减）。
 - 已引入 `Program(decls + statements)` 过渡模型与 `parse_program()/resolve_program()` 入口，为后续 Decl/Stmt 解耦与 payload 化迁移提供兼容路径。
 - resolver 预加载已从 `Decl` 视图直连（不再依赖 `Decl -> Stmt` 中转），迁移方向保持单向解耦。
 - `test_entry` 与拆分的 `test_steps_*` 已切换到 `parse_program()/resolve_program()`，过渡入口已被回归覆盖。
