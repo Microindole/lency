@@ -1,0 +1,97 @@
+// lencyc/sema/resolver/expr_call.lcy
+// Call-expression resolver helpers split from expr to keep file size bounded.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    int resolve_expr_call(Expr expr) {
+        var call_ty = TYPE_UNKNOWN()
+        var callee_name = ""
+        var has_user_signature = false
+        var has_enum_constructor_signature = false
+        if expr.children.len() > 0 {
+            var callee = expr.children[0]
+            if callee.kind == EXPR_VARIABLE() {
+                callee_name = callee.literal_value.lexeme
+                call_ty = this.lookup_builtin_type(callee_name)
+                var expected = this.lookup_builtin_arity(callee_name)
+                var user_expected = this.lookup_user_function_arity(callee_name)
+                if user_expected >= 0 {
+                    has_user_signature = true
+                    call_ty = this.lookup_user_function_return_type(callee_name)
+                    if expected < 0 {
+                        expected = user_expected
+                    }
+                }
+                if expected >= 0 {
+                    var actual = expr.children.len() - 1
+                    if actual != expected {
+                        this.error(
+                            "call arity mismatch for " + callee_name +
+                            ": expected " + int_to_string(expected) + ", got " + int_to_string(actual)
+                        )
+                    }
+                }
+                var enum_expected = this.lookup_enum_constructor_arity(callee_name)
+                if enum_expected >= 0 {
+                    has_enum_constructor_signature = true
+                    var enum_actual = expr.children.len() - 1
+                    if enum_actual != enum_expected {
+                        this.error(
+                            "EnumConstructor arity mismatch for " + callee_name +
+                            ": expected " + int_to_string(enum_expected) + ", got " + int_to_string(enum_actual)
+                        )
+                    }
+                }
+            }
+        }
+        if expr.children.len() > 0 {
+            this.resolve_expr(expr.children[0])
+        }
+        var j = 1
+        while j < expr.children.len() {
+            var arg_ty = this.resolve_expr(expr.children[j])
+            var arg_ty_name = this.infer_expr_type_name(expr.children[j], arg_ty)
+            if has_user_signature {
+                var expected_arg_ty = this.lookup_user_function_param_type(callee_name, j - 1)
+                var expected_arg_ty_name = this.lookup_user_function_param_type_name(callee_name, j - 1)
+                if expected_arg_ty_name == "" {
+                    expected_arg_ty_name = this.type_to_string(expected_arg_ty)
+                }
+                if arg_ty_name == "" {
+                    arg_ty_name = this.type_to_string(arg_ty)
+                }
+                if !this.types_match_or_unknown_by_name(expected_arg_ty, expected_arg_ty_name, arg_ty, arg_ty_name) {
+                    this.error(
+                        "call argument type mismatch for " + callee_name +
+                        " arg #" + int_to_string(j) +
+                        ": expected " + expected_arg_ty_name +
+                        ", got " + arg_ty_name
+                    )
+                }
+            }
+            if has_enum_constructor_signature {
+                var expected_payload_ty = this.lookup_enum_constructor_param_type(callee_name, j - 1)
+                var expected_payload_ty_name = this.lookup_enum_constructor_param_type_name(callee_name, j - 1)
+                if expected_payload_ty_name == "" {
+                    expected_payload_ty_name = this.type_to_string(expected_payload_ty)
+                }
+                if arg_ty_name == "" {
+                    arg_ty_name = this.type_to_string(arg_ty)
+                }
+                if !this.types_match_or_unknown_by_name(expected_payload_ty, expected_payload_ty_name, arg_ty, arg_ty_name) {
+                    this.error(
+                        "EnumConstructor argument type mismatch for " + callee_name +
+                        " arg #" + int_to_string(j) +
+                        ": expected " + expected_payload_ty_name +
+                        ", got " + arg_ty_name
+                    )
+                }
+            }
+            j = j + 1
+        }
+        return call_ty
+    }
+}

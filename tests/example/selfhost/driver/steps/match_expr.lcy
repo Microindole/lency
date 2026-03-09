@@ -1,4 +1,4 @@
-// tests/example/selfhost/driver/test_steps_match.lcy
+// tests/example/selfhost/driver/steps/match_expr.lcy
 // Match syntax and payload parsing checks.
 
 import std.core

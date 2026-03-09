@@ -1,4 +1,4 @@
-// tests/example/selfhost/driver/test_steps_signature.lcy
+// tests/example/selfhost/driver/steps/signature.lcy
 // Function signature TypeRef step checks split from test_entry to keep file size under meta limits.
 
 import std.core

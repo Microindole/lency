@@ -1,0 +1,135 @@
+// lencyc/sema/resolver/core.lcy
+// Resolver flow/control helpers split to keep file size under lency meta limits.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.scope
+import lencyc.sema.resolver
+
+impl Resolver {
+    void begin_scope() {
+        this.table.begin_scope()
+    }
+
+    void end_scope() {
+        var depth = this.table.current_depth
+        while this.typed_symbols.len() > 0 {
+            var i = this.typed_symbols.len() - 1
+            if this.typed_symbols[i].depth != depth {
+                break
+            }
+            var popped = this.typed_symbols.pop()
+        }
+        while this.const_symbols.len() > 0 {
+            var j = this.const_symbols.len() - 1
+            if this.const_symbols[j].depth != depth {
+                break
+            }
+            var popped_const = this.const_symbols.pop()
+        }
+        while this.enum_value_symbols.len() > 0 {
+            var k = this.enum_value_symbols.len() - 1
+            if this.enum_value_symbols[k].depth != depth {
+                break
+            }
+            var popped_enum_value = this.enum_value_symbols.pop()
+        }
+        this.table.end_scope()
+    }
+
+    void preload_prelude_symbol(string name) {
+        if !this.table.resolve(name) {
+            this.table.define(name)
+        }
+    }
+
+    void preload_prelude_symbols() {
+        // Bootstrap prelude: keep target source usable without explicit import handling.
+        this.preload_prelude_symbol("int")
+        this.preload_prelude_symbol("bool")
+        this.preload_prelude_symbol("string")
+        this.preload_prelude_symbol("float")
+        this.preload_prelude_symbol("Vec")
+        this.preload_prelude_symbol("Result")
+        this.preload_prelude_symbol("int_to_string")
+        this.preload_prelude_symbol("float_to_string")
+        this.preload_prelude_symbol("parse_int")
+        this.preload_prelude_symbol("parse_float")
+        this.preload_prelude_symbol("char_to_string")
+        this.preload_prelude_symbol("file_exists")
+        this.preload_prelude_symbol("is_dir")
+        this.preload_prelude_symbol("arg_count")
+        this.preload_prelude_symbol("arg_at")
+        this.preload_prelude_symbol("read_to_string")
+        this.preload_prelude_symbol("write_string")
+        this.preload_prelude_symbol("bool_to_string")
+        this.preload_prelude_symbol("int_to_bool")
+    }
+
+    void error(string message) {
+        print("Resolver error: " + message + "\n")
+        this.has_error = true
+        this.error_count = this.error_count + 1
+    }
+
+    void resolve_stmt_list(Vec<Stmt> statements) {
+        var i = 0
+        while i < statements.len() {
+            this.resolve_stmt(statements[i])
+            i = i + 1
+        }
+    }
+
+    void resolve_in_new_scope(Vec<Stmt> statements) {
+        this.begin_scope()
+        this.resolve_stmt_list(statements)
+        this.end_scope()
+    }
+
+    void resolve_function(
+        Vec<string> params,
+        Vec<int> param_tys,
+        Vec<string> param_ty_names,
+        Vec<Stmt> body,
+        bool require_value_return,
+        int function_return_ty,
+        string function_return_ty_name
+    ) {
+        this.begin_scope()
+        var prev_in_function = this.in_function
+        var prev_require_value_return = this.require_value_return
+        var prev_function_return_ty = this.current_function_return_type
+        var prev_function_return_ty_name = this.current_function_return_type_name
+        this.in_function = true
+        this.require_value_return = require_value_return
+        this.current_function_return_type = function_return_ty
+        this.current_function_return_type_name = function_return_ty_name
+        var i = 0
+        while i < params.len() {
+            if this.table.is_defined_in_current_scope(params[i]) {
+                this.error("duplicate parameter in function scope: " + params[i])
+            } else {
+                this.table.define(params[i])
+                var param_ty = TYPE_UNKNOWN()
+                if i < param_tys.len() {
+                    param_ty = param_tys[i]
+                }
+                var param_ty_name = this.type_to_string(param_ty)
+                if i < param_ty_names.len() {
+                    param_ty_name = param_ty_names[i]
+                }
+                this.define_typed_symbol(params[i], param_ty, param_ty_name)
+            }
+            i = i + 1
+        }
+        this.resolve_stmt_list(body)
+        if this.require_value_return && !this.block_guarantees_value_return(body) {
+            this.error("function body may exit without returning a value")
+        }
+        this.in_function = prev_in_function
+        this.require_value_return = prev_require_value_return
+        this.current_function_return_type = prev_function_return_ty
+        this.current_function_return_type_name = prev_function_return_ty_name
+        this.end_scope()
+    }
+}

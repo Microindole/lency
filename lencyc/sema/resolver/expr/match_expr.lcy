@@ -1,0 +1,129 @@
+// lencyc/sema/resolver/expr_match.lcy
+// Match-expression resolver helpers split from expr to keep file size bounded.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    int resolve_expr_match(Expr expr) {
+        if expr.children.len() == 0 {
+            this.error("match expression missing target")
+            return TYPE_UNKNOWN()
+        }
+        this.resolve_expr(expr.children[0])
+        var target_enum_name = this.infer_expr_enum_name(expr.children[0])
+        var result_ty = TYPE_UNKNOWN()
+        var result_ty_name = ""
+        var seen_variants = vec![]
+        var has_wildcard = false
+        var i = 0
+        while i < expr.arm_patterns.len() {
+            var pattern = expr.arm_patterns[i]
+            if target_enum_name != "" {
+                if this.is_wildcard_pattern(pattern) {
+                    has_wildcard = true
+                } else {
+                    if pattern.tag.kind != T_IDENTIFIER() {
+                        this.error("EnumMatch pattern must be identifier variant or '_'")
+                    } else {
+                        if !this.is_enum_variant(target_enum_name, pattern.tag.lexeme) {
+                            this.error(
+                                "unknown EnumVariant in match for " + target_enum_name +
+                                ": " + pattern.tag.lexeme
+                            )
+                        } else {
+                            if this.contains_name(seen_variants, pattern.tag.lexeme) {
+                                this.error("duplicate match pattern: " + pattern.tag.lexeme)
+                            } else {
+                                seen_variants.push(pattern.tag.lexeme)
+                            }
+                            var expected_payload_arity = this.lookup_enum_constructor_arity(pattern.tag.lexeme)
+                            if pattern.binders.len() > 0 && expected_payload_arity != pattern.binders.len() {
+                                this.error(
+                                    "EnumMatch payload binder arity mismatch for " + pattern.tag.lexeme +
+                                    ": expected " + int_to_string(expected_payload_arity) +
+                                    ", got " + int_to_string(pattern.binders.len())
+                                )
+                            }
+                        }
+                    }
+                }
+            } else {
+                if pattern.binders.len() > 0 {
+                    this.error(
+                        "payload binders require EnumMatch target, got pattern: " +
+                        this.match_pattern_to_string(pattern)
+                    )
+                }
+            }
+            if i + 1 >= expr.children.len() {
+                this.error("match arm expression missing for pattern: " + this.match_pattern_to_string(pattern))
+                i = i + 1
+                continue
+            }
+            var arm_ty = TYPE_UNKNOWN()
+            if target_enum_name != "" && pattern.tag.kind == T_IDENTIFIER() && !this.is_wildcard_pattern(pattern) {
+                this.begin_scope()
+                var b = 0
+                var seen_binders = vec![]
+                while b < pattern.binders.len() {
+                    var binder_name = pattern.binders[b].lexeme
+                    if this.contains_name(seen_binders, binder_name) {
+                        this.error("duplicate payload binder in pattern " + pattern.tag.lexeme + ": " + binder_name)
+                        b = b + 1
+                        continue
+                    }
+                    seen_binders.push(binder_name)
+                    if this.table.is_defined_in_current_scope(binder_name) {
+                        this.error("duplicate payload binder in match arm scope: " + binder_name)
+                        b = b + 1
+                        continue
+                    }
+                    this.table.define(binder_name)
+                    var binder_ty = this.lookup_enum_constructor_param_type(pattern.tag.lexeme, b)
+                    var binder_ty_name = this.lookup_enum_constructor_param_type_name(pattern.tag.lexeme, b)
+                    if binder_ty_name == "" {
+                        binder_ty_name = this.type_to_string(binder_ty)
+                    }
+                    this.define_typed_symbol(binder_name, binder_ty, binder_ty_name)
+                    b = b + 1
+                }
+                arm_ty = this.resolve_expr(expr.children[i + 1])
+                this.end_scope()
+            } else {
+                arm_ty = this.resolve_expr(expr.children[i + 1])
+            }
+            if result_ty == TYPE_UNKNOWN() {
+                result_ty = arm_ty
+                result_ty_name = this.infer_expr_type_name(expr.children[i + 1], arm_ty)
+            } else {
+                var actual_arm_name = this.infer_expr_type_name(expr.children[i + 1], arm_ty)
+                if result_ty_name == "" {
+                    result_ty_name = this.type_to_string(result_ty)
+                }
+                if actual_arm_name == "" {
+                    actual_arm_name = this.type_to_string(arm_ty)
+                }
+                if !this.types_match_or_unknown_by_name(result_ty, result_ty_name, arm_ty, actual_arm_name) {
+                    this.error(
+                        "match arm type mismatch for pattern " + this.match_pattern_to_string(pattern) +
+                        ": expected " + result_ty_name +
+                        ", got " + actual_arm_name
+                    )
+                }
+            }
+            i = i + 1
+        }
+        if target_enum_name != "" && !has_wildcard {
+            var missing_variants = this.collect_missing_enum_variants(target_enum_name, seen_variants)
+            if missing_variants.len() > 0 {
+                this.error(
+                    "non-exhaustive match for enum " + target_enum_name +
+                    ": missing " + this.join_names(missing_variants, ", ")
+                )
+            }
+        }
+        return result_ty
+    }
+}

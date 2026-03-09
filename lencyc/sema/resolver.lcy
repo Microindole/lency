@@ -3,14 +3,18 @@
 import std.core
 import lencyc.syntax.ast
 import lencyc.sema.scope
-import lencyc.sema.resolver.core
+import lencyc.sema.resolver.core.scope_flow
+import lencyc.sema.resolver.core.symbols
+import lencyc.sema.resolver.core.enum_support
 import lencyc.sema.resolver.type_system
 import lencyc.sema.resolver.type_names
 import lencyc.sema.resolver.decl_extra
 import lencyc.sema.resolver.decl_std_auto
 import lencyc.sema.resolver.decl_stmt
 import lencyc.sema.resolver.program
-import lencyc.sema.resolver.expr
+import lencyc.sema.resolver.expr.core
+import lencyc.sema.resolver.expr.call
+import lencyc.sema.resolver.expr.match_expr
 import lencyc.sema.resolver.stmt
 import lencyc.sema.resolver.return_flow
 struct ResolveResult {

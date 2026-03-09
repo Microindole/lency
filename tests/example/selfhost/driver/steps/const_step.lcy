@@ -1,4 +1,4 @@
-// tests/example/selfhost/driver/test_steps_const.lcy
+// tests/example/selfhost/driver/steps/const_step.lcy
 // Const declaration step checks split from test_entry to keep file size under meta limits.
 
 import std.core

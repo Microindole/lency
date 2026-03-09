@@ -1,0 +1,187 @@
+// lencyc/sema/resolver/core_enum.lcy
+// Resolver enum/match helpers split from core to keep file size bounded.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.scope
+import lencyc.sema.resolver
+
+impl Resolver {
+    void preload_enum_variant_signature(string enum_name, string variant_name, Vec<int> payload_tys, Vec<string> payload_ty_names) {
+        this.enum_variant_signatures.push(make_enum_variant_signature(enum_name, variant_name, payload_tys, payload_ty_names))
+    }
+
+    void preload_enum_type_name(string enum_name) {
+        if !this.contains_name(this.enum_type_names, enum_name) {
+            this.enum_type_names.push(enum_name)
+        }
+    }
+
+    bool is_enum_type_name(string type_name) {
+        return this.contains_name(this.enum_type_names, type_name)
+    }
+
+    int lookup_enum_constructor_arity(string variant_name) {
+        var i = 0
+        while i < this.enum_variant_signatures.len() {
+            if this.enum_variant_signatures[i].variant_name == variant_name {
+                return this.enum_variant_signatures[i].payload_tys.len()
+            }
+            i = i + 1
+        }
+        return -1
+    }
+
+    int lookup_enum_constructor_param_type(string variant_name, int arg_index) {
+        var i = 0
+        while i < this.enum_variant_signatures.len() {
+            if this.enum_variant_signatures[i].variant_name == variant_name {
+                if arg_index < this.enum_variant_signatures[i].payload_tys.len() {
+                    return this.enum_variant_signatures[i].payload_tys[arg_index]
+                }
+                return TYPE_UNKNOWN()
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    string lookup_enum_constructor_param_type_name(string variant_name, int arg_index) {
+        var i = 0
+        while i < this.enum_variant_signatures.len() {
+            if this.enum_variant_signatures[i].variant_name == variant_name {
+                if arg_index < this.enum_variant_signatures[i].payload_ty_names.len() {
+                    return this.enum_variant_signatures[i].payload_ty_names[arg_index]
+                }
+                return ""
+            }
+            i = i + 1
+        }
+        return ""
+    }
+
+    string lookup_enum_constructor_name(string variant_name) {
+        var i = 0
+        while i < this.enum_variant_signatures.len() {
+            if this.enum_variant_signatures[i].variant_name == variant_name {
+                return this.enum_variant_signatures[i].enum_name
+            }
+            i = i + 1
+        }
+        return ""
+    }
+
+    string lookup_user_function_return_enum_name(string name) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                return this.function_signatures[i].return_enum_name
+            }
+            i = i + 1
+        }
+        return ""
+    }
+
+    bool is_enum_variant(string enum_name, string variant_name) {
+        var i = 0
+        while i < this.enum_variant_signatures.len() {
+            if this.enum_variant_signatures[i].enum_name == enum_name && this.enum_variant_signatures[i].variant_name == variant_name {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+
+    bool is_wildcard_pattern(MatchPattern pattern) {
+        return pattern.tag.kind == T_IDENTIFIER() && pattern.tag.lexeme == "_"
+    }
+
+    string match_pattern_to_string(MatchPattern pattern) {
+        var out = pattern.tag.lexeme
+        if pattern.binders.len() == 0 {
+            return out
+        }
+        out = out + "("
+        var i = 0
+        while i < pattern.binders.len() {
+            out = out + pattern.binders[i].lexeme
+            if i + 1 < pattern.binders.len() {
+                out = out + ", "
+            }
+            i = i + 1
+        }
+        out = out + ")"
+        return out
+    }
+
+    Vec<string> collect_missing_enum_variants(string enum_name, Vec<string> seen_variants) {
+        var missing = vec![]
+        var i = 0
+        while i < this.enum_variant_signatures.len() {
+            var sig = this.enum_variant_signatures[i]
+            if sig.enum_name == enum_name && !this.contains_name(seen_variants, sig.variant_name) {
+                missing.push(sig.variant_name)
+            }
+            i = i + 1
+        }
+        return missing
+    }
+
+    string join_names(Vec<string> names, string sep) {
+        var out = ""
+        var i = 0
+        while i < names.len() {
+            out = out + names[i]
+            if i + 1 < names.len() {
+                out = out + sep
+            }
+            i = i + 1
+        }
+        return out
+    }
+
+    string infer_expr_enum_name(Expr expr) {
+        if expr.kind == EXPR_CALL() {
+            if expr.children.len() > 0 {
+                if expr.children[0].kind == EXPR_VARIABLE() {
+                    var callee_name = expr.children[0].literal_value.lexeme
+                    var ctor_enum_name = this.lookup_enum_constructor_name(callee_name)
+                    if ctor_enum_name != "" {
+                        return ctor_enum_name
+                    }
+                    return this.lookup_user_function_return_enum_name(callee_name)
+                }
+            }
+        }
+        if expr.kind == EXPR_VARIABLE() {
+            return this.lookup_enum_value_symbol(expr.literal_value.lexeme)
+        }
+        if expr.kind == EXPR_MATCH() {
+            if expr.children.len() <= 1 {
+                return ""
+            }
+            var result_enum_name = ""
+            var i = 1
+            while i < expr.children.len() {
+                var arm_enum_name = this.infer_expr_enum_name(expr.children[i])
+                if arm_enum_name == "" {
+                    return ""
+                }
+                if result_enum_name == "" {
+                    result_enum_name = arm_enum_name
+                } else {
+                    if result_enum_name != arm_enum_name {
+                        return ""
+                    }
+                }
+                i = i + 1
+            }
+            return result_enum_name
+        }
+        if expr.kind == EXPR_GROUPING() && expr.children.len() > 0 {
+            return this.infer_expr_enum_name(expr.children[0])
+        }
+        return ""
+    }
+}

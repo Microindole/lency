@@ -1,0 +1,198 @@
+// lencyc/sema/resolver/core_symbols.lcy
+// Resolver symbol/builtin helpers split from core to keep file size bounded.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.scope
+import lencyc.sema.resolver
+
+impl Resolver {
+    void preload_builtin_arity(string name, int argc) {
+        this.builtin_arities.push(make_builtin_arity(name, argc))
+    }
+
+    void preload_builtin_arities() {
+        this.preload_builtin_arity("arg_count", 0)
+        this.preload_builtin_arity("arg_at", 1)
+        this.preload_builtin_arity("int_to_string", 1)
+        this.preload_builtin_arity("float_to_string", 1)
+        this.preload_builtin_arity("parse_int", 1)
+        this.preload_builtin_arity("parse_float", 1)
+        this.preload_builtin_arity("char_to_string", 1)
+        this.preload_builtin_arity("file_exists", 1)
+        this.preload_builtin_arity("is_dir", 1)
+        this.preload_builtin_arity("read_to_string", 1)
+        this.preload_builtin_arity("write_string", 2)
+        this.preload_builtin_arity("bool_to_string", 1)
+        this.preload_builtin_arity("int_to_bool", 1)
+    }
+
+    void preload_builtin_type(string name, int ty) {
+        this.builtin_types.push(make_builtin_type(name, ty))
+    }
+
+    void preload_builtin_types() {
+        this.preload_builtin_type("arg_count", TYPE_INT())
+        this.preload_builtin_type("arg_at", TYPE_UNKNOWN())
+        this.preload_builtin_type("int_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("float_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("char_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("parse_int", TYPE_INT())
+        this.preload_builtin_type("parse_float", TYPE_FLOAT())
+        this.preload_builtin_type("file_exists", TYPE_BOOL())
+        this.preload_builtin_type("is_dir", TYPE_BOOL())
+        this.preload_builtin_type("bool_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("int_to_bool", TYPE_BOOL())
+    }
+
+    void preload_builtin_result_enum() {
+        if !this.table.resolve("Result") {
+            this.table.define("Result")
+        }
+        this.preload_enum_type_name("Result")
+        if !this.table.resolve("Ok") {
+            this.table.define("Ok")
+        }
+        if !this.table.resolve("Err") {
+            this.table.define("Err")
+        }
+        this.preload_enum_variant_signature("Result", "Ok", vec![TYPE_UNKNOWN()], vec!["unknown"])
+        this.preload_enum_variant_signature("Result", "Err", vec![TYPE_UNKNOWN()], vec!["unknown"])
+    }
+
+    int lookup_builtin_type(string name) {
+        var i = 0
+        while i < this.builtin_types.len() {
+            if this.builtin_types[i].name == name {
+                return this.builtin_types[i].ty
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    int lookup_builtin_arity(string name) {
+        var i = 0
+        while i < this.builtin_arities.len() {
+            if this.builtin_arities[i].name == name {
+                return this.builtin_arities[i].argc
+            }
+            i = i + 1
+        }
+        return -1
+    }
+
+    void define_typed_symbol(string name, int ty, string ty_name) {
+        this.typed_symbols.push(make_typed_symbol(name, ty, ty_name, this.table.current_depth))
+    }
+
+    void define_const_symbol(string name) {
+        this.const_symbols.push(make_const_symbol(name, this.table.current_depth))
+    }
+
+    void define_enum_value_symbol(string name, string enum_name) {
+        this.enum_value_symbols.push(make_enum_value_symbol(name, enum_name, this.table.current_depth))
+    }
+
+    string lookup_enum_value_symbol(string name) {
+        var i = this.enum_value_symbols.len() - 1
+        while i >= 0 {
+            if this.enum_value_symbols[i].name == name {
+                return this.enum_value_symbols[i].enum_name
+            }
+            i = i - 1
+        }
+        return ""
+    }
+
+    bool is_const_symbol(string name) {
+        var nearest_decl_depth = -1
+        var i = this.typed_symbols.len() - 1
+        while i >= 0 {
+            if this.typed_symbols[i].name == name {
+                nearest_decl_depth = this.typed_symbols[i].depth
+                break
+            }
+            i = i - 1
+        }
+        if nearest_decl_depth < 0 {
+            return false
+        }
+
+        var nearest_const_depth = -1
+        var j = this.const_symbols.len() - 1
+        while j >= 0 {
+            if this.const_symbols[j].name == name {
+                nearest_const_depth = this.const_symbols[j].depth
+                break
+            }
+            j = j - 1
+        }
+        if nearest_const_depth < 0 {
+            return false
+        }
+        return nearest_const_depth == nearest_decl_depth
+    }
+
+    int lookup_typed_symbol(string name) {
+        var i = this.typed_symbols.len() - 1
+        while i >= 0 {
+            if this.typed_symbols[i].name == name {
+                return this.typed_symbols[i].ty
+            }
+            i = i - 1
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    bool is_numeric_type(int ty) {
+        return ty == TYPE_INT() || ty == TYPE_FLOAT()
+    }
+
+    int lookup_user_function_arity(string name) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                return this.function_signatures[i].param_tys.len()
+            }
+            i = i + 1
+        }
+        return -1
+    }
+
+    int lookup_user_function_return_type(string name) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                return this.function_signatures[i].return_ty
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    int lookup_user_function_param_type(string name, int arg_index) {
+        var i = 0
+        while i < this.function_signatures.len() {
+            if this.function_signatures[i].name == name {
+                if arg_index < this.function_signatures[i].param_tys.len() {
+                    return this.function_signatures[i].param_tys[arg_index]
+                }
+                return TYPE_UNKNOWN()
+            }
+            i = i + 1
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    bool contains_name(Vec<string> names, string target) {
+        var i = 0
+        while i < names.len() {
+            if names[i] == target {
+                return true
+            }
+            i = i + 1
+        }
+        return false
+    }
+}
