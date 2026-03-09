@@ -1,0 +1,24 @@
+// @expect-error
+// tests/example/parser/custom_nullable_cross_type_mismatch_bad.lcy
+// Ensure custom nullable types no longer pass through TYPE_UNKNOWN compatibility.
+
+struct A {
+    int id
+}
+
+struct B {
+    int id
+}
+
+A? keep_a(A? x) {
+    return x
+}
+
+B? keep_b(B? x) {
+    return x
+}
+
+var n = null
+var b = keep_b(n)
+var y = keep_a(b)
+return 0

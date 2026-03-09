@@ -1,0 +1,14 @@
+// @expect-error
+// tests/example/parser/custom_nullable_struct_mismatch_bad.lcy
+// selfhost nullable/custom-type negative case
+
+struct Boxed {
+    int id
+}
+
+Boxed? keep(Boxed? x) {
+    return x
+}
+
+var y = keep(1)
+return 0

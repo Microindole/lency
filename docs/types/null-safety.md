@@ -52,3 +52,18 @@ int? b = a      // ✅ 非空可以赋值给可空
 int? c = null
 int d = c       // ❌ 编译错误：可空不能直接赋值给非空
 ```
+
+## 自定义类型可空
+
+```lency
+struct User {
+    int id
+}
+
+User? maybe_user = null      // ✅
+User? keep(User? u) { return u }
+```
+
+说明：
+- `Type?` 已参与签名与调用类型检查；
+- `A?` 与 `B?` 不再因 `unknown` 兼容被误判为可互换。

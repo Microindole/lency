@@ -69,7 +69,7 @@ impl Resolver {
         return this.type_names_match_or_unknown(left_name, right_name)
     }
     bool is_nullable_type(int ty) {
-        return ty == TYPE_NULLABLE_INT() || ty == TYPE_NULLABLE_BOOL() || ty == TYPE_NULLABLE_STRING() || ty == TYPE_NULLABLE_FLOAT()
+        return ty == TYPE_NULLABLE_INT() || ty == TYPE_NULLABLE_BOOL() || ty == TYPE_NULLABLE_STRING() || ty == TYPE_NULLABLE_FLOAT() || ty == TYPE_NULLABLE_NAMED()
     }
 
     int nullable_inner_type(int ty) {
@@ -84,6 +84,9 @@ impl Resolver {
         }
         if ty == TYPE_NULLABLE_FLOAT() {
             return TYPE_FLOAT()
+        }
+        if ty == TYPE_NULLABLE_NAMED() {
+            return TYPE_NAMED()
         }
         return TYPE_UNKNOWN()
     }
@@ -100,6 +103,9 @@ impl Resolver {
         }
         if base_ty == TYPE_FLOAT() {
             return TYPE_NULLABLE_FLOAT()
+        }
+        if base_ty == TYPE_NAMED() {
+            return TYPE_NULLABLE_NAMED()
         }
         return TYPE_UNKNOWN()
     }
@@ -135,12 +141,22 @@ impl Resolver {
         if ty == TYPE_NULLABLE_FLOAT() {
             return "float?"
         }
+        if ty == TYPE_NAMED() {
+            return "named"
+        }
+        if ty == TYPE_NULLABLE_NAMED() {
+            return "named?"
+        }
         return "unknown"
     }
 
     bool types_match_or_unknown(int left, int right) {
         if left == TYPE_UNKNOWN() || right == TYPE_UNKNOWN() {
             return true
+        }
+        if (left == TYPE_NAMED() || left == TYPE_NULLABLE_NAMED() || right == TYPE_NAMED() || right == TYPE_NULLABLE_NAMED()) {
+            // 命名类型必须结合类型名匹配；纯枚举值层面不做“同类即相等”放行。
+            return false
         }
         if left == right {
             return true
@@ -185,7 +201,10 @@ impl Resolver {
             if !this.table.resolve(type_name) {
                 this.error("unknown type in signature: " + type_name)
             }
-            return TYPE_UNKNOWN()
+            if nullable_suffix {
+                return TYPE_NULLABLE_NAMED()
+            }
+            return TYPE_NAMED()
         }
         var base_ty = this.token_kind_to_type(base_kind)
         if !nullable_suffix {
@@ -207,7 +226,10 @@ impl Resolver {
         }
         var base_kind = type_ref.kind
         if type_ref.kind == T_IDENTIFIER() {
-            return TYPE_UNKNOWN()
+            if nullable_suffix {
+                return TYPE_NULLABLE_NAMED()
+            }
+            return TYPE_NAMED()
         }
         var base_ty = this.token_kind_to_type(base_kind)
         if !nullable_suffix {

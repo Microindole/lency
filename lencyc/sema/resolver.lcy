@@ -88,6 +88,8 @@ int TYPE_NULLABLE_INT() { return 7; }
 int TYPE_NULLABLE_BOOL() { return 8; }
 int TYPE_NULLABLE_STRING() { return 9; }
 int TYPE_NULLABLE_FLOAT() { return 10; }
+int TYPE_NAMED() { return 11; }
+int TYPE_NULLABLE_NAMED() { return 12; }
 BuiltinType make_builtin_type(string name, int ty) {
     return BuiltinType {
         name: name,

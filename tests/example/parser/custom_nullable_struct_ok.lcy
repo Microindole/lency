@@ -1,0 +1,14 @@
+// tests/example/parser/custom_nullable_struct_ok.lcy
+// selfhost nullable/custom-type positive case
+
+struct Boxed {
+    int id
+}
+
+Boxed? keep(Boxed? x) {
+    return x
+}
+
+var x = null
+var y = keep(x)
+return 0
