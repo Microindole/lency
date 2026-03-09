@@ -46,5 +46,30 @@ bool run_function_signature_typeref_tests() {
         print("Function signature TypeRef param #4 mismatch.\n")
         return false
     }
+
+    var nullable_source = src_parser_function_nullable_typeref_program()
+    var nullable_parser = make_parser(nullable_source)
+    var nullable_program = nullable_parser.parse_program()
+    if nullable_parser.has_error {
+        print("Function signature nullable TypeRef parse failed unexpectedly.\n")
+        return false
+    }
+    if nullable_program.statements.len() < 1 || nullable_program.statements[0].kind != STMT_FUNCTION() {
+        print("Function signature nullable TypeRef AST kind mismatch.\n")
+        return false
+    }
+    var nullable_decl = stmt_to_decl(nullable_program.statements[0])
+    if nullable_decl.return_type.kind != T_INT() || nullable_decl.return_type.name != "int?" {
+        print("Function signature nullable TypeRef return type mismatch.\n")
+        return false
+    }
+    if nullable_decl.param_types.len() != 1 {
+        print("Function signature nullable TypeRef param count mismatch.\n")
+        return false
+    }
+    if nullable_decl.param_types[0].kind != T_INT() || nullable_decl.param_types[0].name != "int?" {
+        print("Function signature nullable TypeRef param #1 mismatch.\n")
+        return false
+    }
     return true
 }

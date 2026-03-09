@@ -29,6 +29,7 @@ int T_LESS_EQUAL()  { return 27; } // '<='
 int T_GREATER_EQUAL() { return 28; } // '>='
 int T_AND_AND()     { return 29; } // '&&'
 int T_OR_OR()       { return 30; } // '||'
+int T_QUESTION()    { return 51; } // '?'
 
 // Literals
 int T_NUMBER() { return 7; }

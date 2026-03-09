@@ -58,6 +58,9 @@ bool run_import_extern_declaration_tests() {
     if !expect_shared_resolve_success(src_resolver_std_str_contains_ok(), "std.str contains import positive") {
         return false
     }
+    if !expect_shared_resolve_success(src_resolver_std_convert_ok(), "std.convert import positive") {
+        return false
+    }
     if !expect_shared_resolve_error(src_resolver_std_unknown_module_bad(), "std unknown module negative") {
         return false
     }

@@ -178,11 +178,41 @@ pub fn compile_lir_to_llvm_ir(source: &str) -> Result<String> {
                 let args_raw = args_raw
                     .strip_suffix(')')
                     .ok_or_else(|| anyhow!("invalid call instruction: {}", line))?;
+                let parsed_args = if args_raw.trim().is_empty() {
+                    vec![]
+                } else {
+                    args_raw.trim().split(", ").collect::<Vec<_>>()
+                };
 
                 let callee = callee.trim();
                 if !callee.starts_with('%') {
                     // FIXME: LIR call lowering currently only supports `%symbol(...)`.
                     bail!("unsupported call callee: {}", callee);
+                }
+
+                if parsed_args.is_empty() {
+                    if let Ok((callee_value, callee_ty)) = emitter.emit_operand(callee) {
+                        match callee_ty {
+                            ValueType::I64 => {
+                                emitter.push(format!("  {} = add i64 {}, 0", dst, callee_value));
+                                emitter.mark_temp(dst, ValueType::I64);
+                                continue;
+                            }
+                            ValueType::I1 => {
+                                emitter.push(format!("  {} = xor i1 {}, false", dst, callee_value));
+                                emitter.mark_temp(dst, ValueType::I1);
+                                continue;
+                            }
+                            ValueType::Ptr => {
+                                emitter.push(format!(
+                                    "  {} = getelementptr i8, ptr {}, i64 0",
+                                    dst, callee_value
+                                ));
+                                emitter.mark_temp(dst, ValueType::Ptr);
+                                continue;
+                            }
+                        }
+                    }
                 }
 
                 let callee_name = callee.trim_start_matches('%');
@@ -207,12 +237,6 @@ pub fn compile_lir_to_llvm_ir(source: &str) -> Result<String> {
                     } else {
                         (callee_name, default_arg_tys, ValueType::I64)
                     };
-
-                let parsed_args = if args_raw.trim().is_empty() {
-                    vec![]
-                } else {
-                    args_raw.trim().split(", ").collect::<Vec<_>>()
-                };
 
                 if parsed_args.len() != arg_tys.len() {
                     bail!(
@@ -268,7 +292,35 @@ pub fn compile_lir_to_llvm_ir(source: &str) -> Result<String> {
                     emitter.mark_temp(dst, ValueType::Ptr);
                     continue;
                 }
-                // FIXME: 非 to_string 的成员访问 lowering 仍未实现。
+                if member_name == "len" {
+                    let (arg_repr, _) = emitter.ensure_ptr(obj_repr, obj_ty);
+                    emitter.note_extern_func(
+                        "lency_string_len",
+                        vec![ValueType::Ptr],
+                        ValueType::I64,
+                    )?;
+                    emitter.push(format!(
+                        "  {} = call i64 @lency_string_len(ptr {})",
+                        dst, arg_repr
+                    ));
+                    emitter.mark_temp(dst, ValueType::I64);
+                    continue;
+                }
+                if member_name == "trim" {
+                    let (arg_repr, _) = emitter.ensure_ptr(obj_repr, obj_ty);
+                    emitter.note_extern_func(
+                        "lency_string_trim",
+                        vec![ValueType::Ptr],
+                        ValueType::Ptr,
+                    )?;
+                    emitter.push(format!(
+                        "  {} = call ptr @lency_string_trim(ptr {})",
+                        dst, arg_repr
+                    ));
+                    emitter.mark_temp(dst, ValueType::Ptr);
+                    continue;
+                }
+                // FIXME: 非 to_string/len/trim 的成员访问 lowering 仍未实现。
                 bail!("unsupported get member in minimal LIR backend: {}", line);
             }
 

@@ -1,0 +1,154 @@
+// lencyc/sema/resolver/type_system.lcy
+// Resolver type-system helpers split from core to keep file size under meta limits.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.syntax.token
+import lencyc.sema.resolver
+
+impl Resolver {
+    bool is_nullable_type(int ty) {
+        return ty == TYPE_NULLABLE_INT() || ty == TYPE_NULLABLE_BOOL() || ty == TYPE_NULLABLE_STRING() || ty == TYPE_NULLABLE_FLOAT()
+    }
+
+    int nullable_inner_type(int ty) {
+        if ty == TYPE_NULLABLE_INT() {
+            return TYPE_INT()
+        }
+        if ty == TYPE_NULLABLE_BOOL() {
+            return TYPE_BOOL()
+        }
+        if ty == TYPE_NULLABLE_STRING() {
+            return TYPE_STRING()
+        }
+        if ty == TYPE_NULLABLE_FLOAT() {
+            return TYPE_FLOAT()
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    int make_nullable_primitive_type(int base_ty) {
+        if base_ty == TYPE_INT() {
+            return TYPE_NULLABLE_INT()
+        }
+        if base_ty == TYPE_BOOL() {
+            return TYPE_NULLABLE_BOOL()
+        }
+        if base_ty == TYPE_STRING() {
+            return TYPE_NULLABLE_STRING()
+        }
+        if base_ty == TYPE_FLOAT() {
+            return TYPE_NULLABLE_FLOAT()
+        }
+        return TYPE_UNKNOWN()
+    }
+
+    string type_to_string(int ty) {
+        if ty == TYPE_INT() {
+            return "int"
+        }
+        if ty == TYPE_BOOL() {
+            return "bool"
+        }
+        if ty == TYPE_STRING() {
+            return "string"
+        }
+        if ty == TYPE_FLOAT() {
+            return "float"
+        }
+        if ty == TYPE_VOID() {
+            return "void"
+        }
+        if ty == TYPE_NULL() {
+            return "null"
+        }
+        if ty == TYPE_NULLABLE_INT() {
+            return "int?"
+        }
+        if ty == TYPE_NULLABLE_BOOL() {
+            return "bool?"
+        }
+        if ty == TYPE_NULLABLE_STRING() {
+            return "string?"
+        }
+        if ty == TYPE_NULLABLE_FLOAT() {
+            return "float?"
+        }
+        return "unknown"
+    }
+
+    bool types_match_or_unknown(int left, int right) {
+        if left == TYPE_UNKNOWN() || right == TYPE_UNKNOWN() {
+            return true
+        }
+        if left == right {
+            return true
+        }
+        if left == TYPE_NULL() {
+            return this.is_nullable_type(right)
+        }
+        if right == TYPE_NULL() {
+            return this.is_nullable_type(left)
+        }
+        if this.is_nullable_type(left) && this.nullable_inner_type(left) == right {
+            return true
+        }
+        if this.is_nullable_type(right) && this.nullable_inner_type(right) == left {
+            return true
+        }
+        return false
+    }
+
+    int token_kind_to_type(int kind) {
+        if kind == T_INT() { return TYPE_INT() }
+        if kind == T_BOOL() { return TYPE_BOOL() }
+        if kind == T_STRING() { return TYPE_STRING() }
+        if kind == T_FLOAT() { return TYPE_FLOAT() }
+        if kind == T_VOID() { return TYPE_VOID() }
+        return TYPE_UNKNOWN()
+    }
+
+    int resolve_signature_type_or_error(TypeRef type_ref) {
+        var type_name = type_ref.name
+        var nullable_suffix = false
+        if len(type_name) > 0 && type_name[len(type_name) - 1] == 63 {
+            nullable_suffix = true
+            type_name = substr(type_name, 0, len(type_name) - 1)
+        }
+        var base_kind = type_ref.kind
+        if type_ref.kind == T_IDENTIFIER() {
+            if type_name == "" {
+                this.error("empty custom type name in signature")
+                return TYPE_UNKNOWN()
+            }
+            if !this.table.resolve(type_name) {
+                this.error("unknown type in signature: " + type_name)
+            }
+            if nullable_suffix {
+                // FIXME: 目前仅支持原生 primitive 的 `T?`，自定义类型可空待后续完整接入。
+                this.error("nullable custom type is not supported yet: " + type_name + "?")
+            }
+            return TYPE_UNKNOWN()
+        }
+        var base_ty = this.token_kind_to_type(base_kind)
+        if !nullable_suffix {
+            return base_ty
+        }
+        var nullable_ty = this.make_nullable_primitive_type(base_ty)
+        if nullable_ty == TYPE_UNKNOWN() {
+            this.error("nullable signature is only supported for int/string/bool/float")
+            return TYPE_UNKNOWN()
+        }
+        return nullable_ty
+    }
+
+    string resolve_signature_enum_name_or_empty(TypeRef type_ref) {
+        if type_ref.kind != T_IDENTIFIER() {
+            return ""
+        }
+        if this.is_enum_type_name(type_ref.name) {
+            return type_ref.name
+        }
+        return ""
+    }
+}

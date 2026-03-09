@@ -169,10 +169,16 @@ int main() {
     if !expect_shared_resolve_success(src_resolver_user_function_float_signature_ok(), "user function float signature positive") {
         return 1
     }
+    if !expect_shared_resolve_success(src_resolver_nullable_signature_ok(), "nullable signature positive") {
+        return 1
+    }
     if !expect_shared_resolve_error(src_resolver_user_function_arg_type_bad(), "user function argument type mismatch negative") {
         return 1
     }
     if !expect_shared_resolve_error(src_resolver_user_function_return_type_bad(), "user function return type mismatch negative") {
+        return 1
+    }
+    if !expect_shared_resolve_error(src_resolver_nullable_signature_bad(), "nullable signature return mismatch negative") {
         return 1
     }
 

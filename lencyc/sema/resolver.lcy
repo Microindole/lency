@@ -4,6 +4,7 @@ import std.core
 import lencyc.syntax.ast
 import lencyc.sema.scope
 import lencyc.sema.resolver.core
+import lencyc.sema.resolver.type_system
 import lencyc.sema.resolver.decl_extra
 import lencyc.sema.resolver.decl_stmt
 import lencyc.sema.resolver.program
@@ -76,6 +77,10 @@ int TYPE_STRING() { return 3; }
 int TYPE_FLOAT() { return 4; }
 int TYPE_VOID() { return 5; }
 int TYPE_NULL() { return 6; }
+int TYPE_NULLABLE_INT() { return 7; }
+int TYPE_NULLABLE_BOOL() { return 8; }
+int TYPE_NULLABLE_STRING() { return 9; }
+int TYPE_NULLABLE_FLOAT() { return 10; }
 BuiltinType make_builtin_type(string name, int ty) {
     return BuiltinType {
         name: name,

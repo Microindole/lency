@@ -300,67 +300,6 @@ impl Resolver {
     bool is_numeric_type(int ty) {
         return ty == TYPE_INT() || ty == TYPE_FLOAT()
     }
-    string type_to_string(int ty) {
-        if ty == TYPE_INT() {
-            return "int"
-        }
-        if ty == TYPE_BOOL() {
-            return "bool"
-        }
-        if ty == TYPE_STRING() {
-            return "string"
-        }
-        if ty == TYPE_FLOAT() {
-            return "float"
-        }
-        if ty == TYPE_VOID() {
-            return "void"
-        }
-        if ty == TYPE_NULL() {
-            return "null"
-        }
-        return "unknown"
-    }
-    bool types_match_or_unknown(int left, int right) {
-        if left == TYPE_UNKNOWN() || right == TYPE_UNKNOWN() {
-            return true
-        }
-        if left == TYPE_NULL() || right == TYPE_NULL() {
-            return left == right
-        }
-        return left == right
-    }
-    int token_kind_to_type(int kind) {
-        if kind == T_INT() { return TYPE_INT() }
-        if kind == T_BOOL() { return TYPE_BOOL() }
-        if kind == T_STRING() { return TYPE_STRING() }
-        if kind == T_FLOAT() { return TYPE_FLOAT() }
-        if kind == T_VOID() { return TYPE_VOID() }
-        return TYPE_UNKNOWN()
-    }
-    int resolve_signature_type_or_error(TypeRef type_ref) {
-        if type_ref.kind == T_IDENTIFIER() {
-            var type_name = type_ref.name
-            if type_name == "" {
-                this.error("empty custom type name in signature")
-                return TYPE_UNKNOWN()
-            }
-            if !this.table.resolve(type_name) {
-                this.error("unknown type in signature: " + type_name)
-            }
-            return TYPE_UNKNOWN()
-        }
-        return this.token_kind_to_type(type_ref.kind)
-    }
-    string resolve_signature_enum_name_or_empty(TypeRef type_ref) {
-        if type_ref.kind != T_IDENTIFIER() {
-            return ""
-        }
-        if this.is_enum_type_name(type_ref.name) {
-            return type_ref.name
-        }
-        return ""
-    }
     int lookup_user_function_arity(string name) {
         var i = 0
         while i < this.function_signatures.len() {

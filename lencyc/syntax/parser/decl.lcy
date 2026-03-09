@@ -17,6 +17,9 @@ impl Parser {
             var kind = this.current.kind
             var name = this.current.lexeme
             this.advance()
+            if this.match_token(T_QUESTION()) {
+                name = name + "?"
+            }
             return make_type_ref(kind, name)
         }
         this.error("Expect type in signature.")

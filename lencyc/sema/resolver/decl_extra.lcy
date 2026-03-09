@@ -130,12 +130,52 @@ impl Resolver {
         this.preload_std_function("write_string", TYPE_UNKNOWN(), vec![TYPE_STRING(), TYPE_STRING()])
     }
 
+    void preload_std_convert_symbols() {
+        this.preload_std_function("bool_to_string", TYPE_STRING(), vec![TYPE_BOOL()])
+        this.preload_std_function("int_to_bool", TYPE_BOOL(), vec![TYPE_INT()])
+    }
+
+    void preload_std_math_symbols_minimal() {
+        // TODO: 后续接入完整 std.math 符号签名；当前先覆盖主链路常用函数。
+        this.preload_std_function("abs", TYPE_INT(), vec![TYPE_INT()])
+        this.preload_std_function("max_int", TYPE_INT(), vec![TYPE_INT(), TYPE_INT()])
+        this.preload_std_function("min_int", TYPE_INT(), vec![TYPE_INT(), TYPE_INT()])
+        this.preload_std_function("clamp_int", TYPE_INT(), vec![TYPE_INT(), TYPE_INT(), TYPE_INT()])
+    }
+
+    void preload_std_char_symbols_minimal() {
+        // TODO: 后续补齐 char 模块全部 API 签名。
+        this.preload_std_function("is_digit", TYPE_BOOL(), vec![TYPE_INT()])
+        this.preload_std_function("is_alpha", TYPE_BOOL(), vec![TYPE_INT()])
+        this.preload_std_function("is_alphanumeric", TYPE_BOOL(), vec![TYPE_INT()])
+    }
+
+    void preload_std_io_symbols_minimal() {
+        // FIXME: io 模块涉及 Vec/string! 等 richer 类型，当前先提供最小自举符号。
+        this.preload_std_function("println", TYPE_VOID(), vec![TYPE_STRING()])
+        this.preload_std_function("print_int", TYPE_VOID(), vec![TYPE_INT()])
+        this.preload_std_function("print_float", TYPE_VOID(), vec![TYPE_FLOAT()])
+        this.preload_std_function("println_int", TYPE_VOID(), vec![TYPE_INT()])
+        this.preload_std_function("println_bool", TYPE_VOID(), vec![TYPE_BOOL()])
+    }
+
+    void preload_std_assert_symbols_minimal() {
+        this.preload_std_function("assert", TYPE_VOID(), vec![TYPE_BOOL(), TYPE_STRING()])
+        this.preload_std_function("assert_eq", TYPE_VOID(), vec![TYPE_INT(), TYPE_INT(), TYPE_STRING()])
+        this.preload_std_function("assert_eq_str", TYPE_VOID(), vec![TYPE_STRING(), TYPE_STRING(), TYPE_STRING()])
+    }
+
     bool try_resolve_std_import_decl(Decl decl) {
         if decl.params.len() < 2 {
             return false
         }
         if decl.params[0] != "std" {
             return false
+        }
+        var module_path = this.resolve_import_module_file_path(decl.params)
+        if module_path == "" {
+            this.error("std import module file not found: " + this.import_path_join(decl.params, "."))
+            return true
         }
         if decl.params[1] == "core" {
             this.preload_std_core_symbols()
@@ -149,8 +189,28 @@ impl Resolver {
             this.preload_std_fs_symbols()
             return true
         }
-        // FIXME: std 其它模块仍未接入自举 import 符号导入白名单。
-        this.error("unsupported std import module: " + this.import_path_join(decl.params, "."))
+        if decl.params[1] == "convert" {
+            this.preload_std_convert_symbols()
+            return true
+        }
+        if decl.params[1] == "math" {
+            this.preload_std_math_symbols_minimal()
+            return true
+        }
+        if decl.params[1] == "char" {
+            this.preload_std_char_symbols_minimal()
+            return true
+        }
+        if decl.params[1] == "io" {
+            this.preload_std_io_symbols_minimal()
+            return true
+        }
+        if decl.params[1] == "assert" {
+            this.preload_std_assert_symbols_minimal()
+            return true
+        }
+        // std 模块文件存在则允许导入，避免白名单阻塞。
+        // FIXME: collections/iterator/option/result/prelude 等模块仍未完成完整符号导入。
         return true
     }
 

@@ -113,3 +113,41 @@ entry:
     assert!(ir.contains("declare ptr @lency_int_to_string(i64)"));
     assert!(ir.contains("call ptr @lency_int_to_string(i64"));
 }
+
+#[test]
+fn test_compile_lir_call_through_member_temp_no_args() {
+    let src = r#"
+; lencyc-lir v0
+func main {
+entry:
+  var %x = 7
+  %t0 = get %x.to_string
+  %t1 = call %t0()
+  ret %t1
+}
+"#;
+    let result = compile_lir_to_llvm_ir(src);
+    assert!(result.is_ok(), "lir compile failed: {:?}", result.err());
+    let ir = result.unwrap_or_default();
+    assert!(ir.contains("declare ptr @lency_int_to_string(i64)"));
+    assert!(ir.contains("call ptr @lency_int_to_string(i64"));
+    assert!(!ir.contains("call i64 @t0("));
+}
+
+#[test]
+fn test_compile_lir_get_len_lowering() {
+    let src = r#"
+; lencyc-lir v0
+func main {
+entry:
+  %t0 = call %int_to_string(7)
+  %t1 = get %t0.len
+  ret %t1
+}
+"#;
+    let result = compile_lir_to_llvm_ir(src);
+    assert!(result.is_ok(), "lir compile failed: {:?}", result.err());
+    let ir = result.unwrap_or_default();
+    assert!(ir.contains("declare i64 @lency_string_len(ptr)"));
+    assert!(ir.contains("call i64 @lency_string_len(ptr"));
+}

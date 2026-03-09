@@ -276,6 +276,7 @@ impl Lexer {
         if c == ":" { return this.make_token_from(T_COLON()); }
         if c == "." { return this.make_token_from(T_DOT()); }
         if c == "," { return this.make_token_from(T_COMMA()); }
+        if c == "?" { return this.make_token_from(T_QUESTION()); }
         if c == "\"" { return this.string_literal(); }
         if c == "'" { return this.char_literal(); }
 
