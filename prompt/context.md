@@ -2,6 +2,7 @@
 
 ## 0. 最高准则
 - 语言与设计哲学：`assets/Lency.txt`、`assets/design_spec.md`（冲突时以这两个文件为准）。
+- 协作规则补充：`prompt/rules.md`（与本文件并行生效，用于约束日常实现与重构风格）。
 - `xtask` 是规范主入口：`cargo run -p xtask -- auto-check`（按改动范围自动执行 `check-rust`/`check-lency`）。
 - `prompt/sprint/status.md` 是唯一状态真相来源，本文件只保留长期协作上下文与基线。
 - Phase 0 能力矩阵真表：`prompt/artifacts/capability_matrix.md`。
@@ -49,6 +50,9 @@
 - `tests/example` 目录已按 `lir/runtime/parser/modules` 分层，消除单层平铺混乱。
 - AST 构造器已切换为 `make_stmt_base + 局部覆写` 工厂模式，新增 `Stmt` 字段时只需集中修改基座，显著降低连锁改动面。
 - parser 声明路径已抽出 `parse_signature_param_list()` 公共 helper，减少 `function/extern` 参数解析重复逻辑。
+- 目录分层重构：`lencyc/sema/resolver/` 已下沉为 `core/*` 与 `expr/*` 子目录，避免同层文件持续堆积。
+- 目录分层重构：`crates/lency_cli/src/lir_backend/compile.rs` 已下沉为 `compile/{mod,call,member_call,helpers}.rs`。
+- 测试目录重构：`tests/example/selfhost/driver/test_steps_*` 已下沉到 `tests/example/selfhost/driver/steps/*`。
 - 已引入 `Program(decls + statements)` 过渡模型与 `parse_program()/resolve_program()` 入口，为后续 Decl/Stmt 解耦与 payload 化迁移提供兼容路径。
 - resolver 预加载已从 `Decl` 视图直连（不再依赖 `Decl -> Stmt` 中转），迁移方向保持单向解耦。
 - `test_entry` 与拆分的 `test_steps_*` 已切换到 `parse_program()/resolve_program()`，过渡入口已被回归覆盖。
