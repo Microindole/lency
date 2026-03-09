@@ -8,6 +8,10 @@ import lencyc.syntax.parser
 import lencyc.sema.resolver
 
 impl Resolver {
+    bool is_import_wildcard(Decl decl) {
+        return decl.params.len() > 0 && decl.params[decl.params.len() - 1] == "*"
+    }
+
     string import_path_join(Vec<string> segments, string sep) {
         var out = ""
         var i = 0
@@ -101,6 +105,10 @@ impl Resolver {
         if decl.params[0] != "std" {
             return false
         }
+        if this.is_import_wildcard(decl) {
+            this.preload_std_all_modules_auto()
+            return true
+        }
         var module_path = this.resolve_import_module_file_path(decl.params)
         if module_path == "" {
             this.error("std import module file not found: " + this.import_path_join(decl.params, "."))
@@ -116,7 +124,16 @@ impl Resolver {
             this.error("empty import path")
             return
         }
-        var alias = decl.params[decl.params.len() - 1]
+        if this.is_import_wildcard(decl) && decl.params[0] != "std" {
+            this.error("wildcard import is only supported for std.*")
+            return
+        }
+        var alias = ""
+        if this.is_import_wildcard(decl) {
+            alias = this.import_path_join(decl.params, ".")
+        } else {
+            alias = decl.params[decl.params.len() - 1]
+        }
         if this.table.is_defined_in_current_scope(alias) {
             this.error("duplicate import alias in same scope: " + alias)
             return

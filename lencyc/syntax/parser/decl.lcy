@@ -179,6 +179,10 @@ impl Parser {
         this.consume(T_IDENTIFIER(), "Expect module path after 'import'.")
         path_segments.push(this.previous.lexeme)
         while this.match_token(T_DOT()) {
+            if this.match_token(T_STAR()) {
+                path_segments.push("*")
+                break
+            }
             this.consume(T_IDENTIFIER(), "Expect identifier after '.'.")
             path_segments.push(this.previous.lexeme)
         }

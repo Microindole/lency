@@ -46,7 +46,7 @@ Lency 当前是双链路并行：
 ### 自举阶段能力快照（2026-03-09）
 
 - Lexer: 已支持 `int/float/scientific/string/char/null` 字面量。
-- Parser: 已支持 `var/if/while/for/block/return/break/continue` 与 `call/member` 链，并已接入 `function/struct/impl/import/extern/enum/match` 声明与表达式子集。
+- Parser: 已支持 `var/if/while/for/block/return/break/continue` 与 `call/member` 链，并已接入 `function/struct/impl/import/extern/enum/match` 声明与表达式子集（含 `import std.*` 通配导入语法）。
 - Sema: 已支持最小 name resolution（undefined/duplicate/out-of-scope/shadowing）。
 - Sema: 已支持 builtin 调用参数个数校验（arity）。
 - Sema: 已支持用户函数最小 arity 校验（含先调用后声明）。
@@ -60,6 +60,7 @@ Lency 当前是双链路并行：
 - Sema: 已支持 enum 类型流扩展到函数返回、`match` 中间表达式与赋值链路。
 - Sema: import 语义第一版已支持非 `std.*` 模块文件加载与声明符号导入。
 - Sema: `std.*` 已切到“模块源码签名自动导入”（递归 `import std.*`），不再依赖模块白名单最小符号预加载。
+- Sema: 已支持 `import std.*` 全量标准模块签名自动预加载；非 `std.*` 的通配导入会报错，避免静默误解语义。
 - Sema: 对 `arg_at/int_to_string/float_to_string/bool_to_string` 暂按 `unknown` 返回类型处理，以兼容现有 self-host runtime pointer-as-value 回归。
 - Sema: 已支持 nullable 签名语义（`int?/string?/bool?/float?` + 自定义 `Type?`），自定义可空类型不再走 `TYPE_UNKNOWN` 兼容放行。
 - Backend: Rust LIR backend member lowering 已改为“intrinsic 映射 + 通用 fallback”统一路径（含 `to_string/len/trim/substr/split/format/join`）。

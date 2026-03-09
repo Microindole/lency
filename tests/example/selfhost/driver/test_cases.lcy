@@ -91,6 +91,7 @@ string src_parser_const_decl_program() { return "const answer = 42\nvar x = answ
 string src_resolver_const_assignment_bad() { return "const answer = 42\nanswer = 7\nreturn answer"; }
 string src_resolver_const_shadowing_ok() { return "const answer = 42\n{ var answer = 7\n  answer = answer + 1\n}\nreturn answer"; }
 string src_parser_import_decl_program() { return "import std.core\nvar x = 1\nreturn x"; }
+string src_parser_import_std_wildcard_program() { return "import std.*\nvar x = 1\nreturn x"; }
 string src_parser_extern_decl_program() { return "extern int strlen(string s)\nvar n = strlen(\"ok\")\nreturn n"; }
 string src_parser_import_missing_segment_bad() { return "import std.\nvar x = 1\nreturn x"; }
 string src_resolver_extern_call_ok() { return "extern int strlen(string s)\nvar n = strlen(\"ok\")\nreturn n"; }
@@ -102,6 +103,8 @@ string src_resolver_std_str_contains_ok() { return "import std.str\nvar ok = con
 string src_resolver_std_convert_ok() { return "import std.convert\nvar s = bool_to_string(true)\nif int_to_bool(1) {\n  return 1\n}\nreturn 0"; }
 string src_resolver_std_option_ok() { return "import std.option\nvar s = option_int_to_string(null)\nreturn 0"; }
 string src_resolver_std_prelude_ok() { return "import std.prelude\nvar s = bool_to_string(true)\nif int_to_bool(1) {\n  return 1\n}\nreturn 0"; }
+string src_resolver_std_wildcard_ok() { return "import std.*\nvar s = bool_to_string(true)\nif int_to_bool(1) && contains(s, \"t\") {\n  return 1\n}\nreturn 0"; }
+string src_resolver_non_std_wildcard_bad() { return "import tests.example.*\nvar x = 1\nreturn x"; }
 string src_resolver_std_unknown_module_bad() { return "import std.missing\nvar x = 1\nreturn x"; }
 string src_parser_enum_decl_program() { return "enum Status {\n  Idle,\n  Running,\n  Done\n}\nvar x = 1\nreturn x"; }
 string src_resolver_enum_duplicate_variant_bad() { return "enum Status {\n  Idle,\n  Idle\n}\nvar x = 1\nreturn x"; }

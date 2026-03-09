@@ -60,6 +60,7 @@
 - 语义兜底增强：`stmt_to_decl` 新增 `has_decl_payload_mismatch` 防御判定；parser 在声明 payload kind 不一致时即时报错且不将异常声明注入 `Program.decls`。
 - 自举回归增强：`tests/example/selfhost/driver/test_entry.lcy` 增加声明 payload mismatch 防御用例，验证 mismatch 检测与 `DECL_UNKNOWN` 回退行为。
 - 签名查找一致性：resolver 对函数签名与 enum constructor 签名改为“后写优先”查找，避免历史 `unknown` 预载覆盖后续精确签名；并补充签名优先级回归用例。
+- 导入语义扩展：parser/resolver 已支持 `import std.*` 通配导入（全量 std 模块签名自动预加载）；并对非 `std.*` wildcard 导入给出显式错误诊断。
 - 已引入 `Program(decls + statements)` 过渡模型与 `parse_program()/resolve_program()` 入口，为后续 Decl/Stmt 解耦与 payload 化迁移提供兼容路径。
 - resolver 预加载已从 `Decl` 视图直连（不再依赖 `Decl -> Stmt` 中转），迁移方向保持单向解耦。
 - `test_entry` 与拆分的 `test_steps_*` 已切换到 `parse_program()/resolve_program()`，过渡入口已被回归覆盖。

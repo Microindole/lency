@@ -8,6 +8,32 @@ import lencyc.syntax.parser
 import lencyc.sema.resolver
 
 impl Resolver {
+    void preload_std_module_from_segments(Vec<string> path_segments, Vec<string> visited) {
+        var module_path = this.resolve_import_module_file_path(path_segments)
+        if module_path == "" {
+            this.error("std import module file not found: " + this.import_path_join(path_segments, "."))
+            return
+        }
+        this.preload_std_module_symbols_auto(module_path, visited)
+    }
+
+    void preload_std_all_modules_auto() {
+        var visited = vec![]
+        this.preload_std_module_from_segments(vec!["std", "core"], visited)
+        this.preload_std_module_from_segments(vec!["std", "io"], visited)
+        this.preload_std_module_from_segments(vec!["std", "fs"], visited)
+        this.preload_std_module_from_segments(vec!["std", "str"], visited)
+        this.preload_std_module_from_segments(vec!["std", "collections"], visited)
+        this.preload_std_module_from_segments(vec!["std", "char"], visited)
+        this.preload_std_module_from_segments(vec!["std", "math"], visited)
+        this.preload_std_module_from_segments(vec!["std", "assert"], visited)
+        this.preload_std_module_from_segments(vec!["std", "result"], visited)
+        this.preload_std_module_from_segments(vec!["std", "option"], visited)
+        this.preload_std_module_from_segments(vec!["std", "iterator"], visited)
+        this.preload_std_module_from_segments(vec!["std", "convert"], visited)
+        this.preload_std_module_from_segments(vec!["std", "prelude"], visited)
+    }
+
     string sanitize_source_for_bootstrap_parser(string source) {
         var sanitized = ""
         var i = 0
