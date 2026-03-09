@@ -4,7 +4,7 @@
 - 语言与设计哲学：`assets/Lency.txt`、`assets/design_spec.md`（冲突时以这两个文件为准）。
 - 协作规则补充：`prompt/rules.md`（与本文件并行生效，用于约束日常实现与重构风格）。
 - `xtask` 是规范主入口：`cargo run -p xtask -- auto-check`（按改动范围自动执行 `check-rust`/`check-lency`）。
-- `prompt/sprint/status.md` 是唯一状态真相来源，本文件只保留长期协作上下文与基线。
+- `prompt/context.md` 是日常实时同步入口（每轮实现后都要更新）；`prompt/sprint/status.md` 仅做阶段里程碑汇总与发布级复盘。
 - Phase 0 能力矩阵真表：`prompt/artifacts/capability_matrix.md`。
 
 ## 1. 当前基线（2026-03-09）
@@ -118,7 +118,7 @@
 - `prompt/artifacts/`：任务拆解与实现记录。
 
 ## 5. 协作与验收规则
-- 进度只在 `prompt/sprint/status.md` 更新，不在多处维护冲突状态。
+- 日常进度与实现细节实时更新 `prompt/context.md`；`prompt/sprint/status.md` 仅在阶段切换/里程碑收口时更新，避免频繁漂移与重复维护。
 - 每次改动后必须执行：
   - `cargo run -p xtask -- auto-check`
 - TODO: 任何新增未完成设计项必须在对应模块或文档明确 `TODO`，禁止口头挂账。
