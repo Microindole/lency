@@ -35,6 +35,13 @@ var code = match (s) {
     Running => 1,
     Done => 2
 }
+
+// 赋值链作为 match 目标也会触发 enum 语义检查
+var code2 = match (s = Running()) {
+    Idle => 0,
+    Running => 1,
+    Done => 2
+}
 ```
 
 ## payload 绑定匹配
@@ -62,6 +69,7 @@ var code = match (m) {
   - 穷尽性（无 `_` 且漏分支时报错）
   - payload binder arity（如 `Pair(a)` 对 `Pair(int, string)` 报错）
   - payload binder 类型传播（binder 会在对应 arm 内按 payload 类型参与表达式检查）
+  - 赋值链目标（如 `match (s = make_status())`）同样执行未知 variant/穷尽性校验
 - enum variant 构造调用检查：
   - 参数个数（arity）一致
   - 参数类型一致（payload 类型）

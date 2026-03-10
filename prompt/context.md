@@ -101,6 +101,8 @@
 - `match` payload 绑定语义第一版已接入：支持 `Text(v)`/`Pair(a,b)`，绑定变量在 arm 内按 payload 类型参与类型检查。
 - AST printer 的 expr 分派已完成 Visitor 试点，作为“按边界引入模式”的低风险路径；暂不全量迁移 resolver。
 - enum 类型流已扩展到函数返回、`match` 中间表达式与赋值链路，并补充负例回归（跨 enum 赋值拦截）。
+- enum 类型流已继续增强到“赋值链作为 match 目标”的场景（`match (s = make_status())`），并补齐穷尽性正/负例回归。
+- 函数签名的 enum 返回名查找已改为“后写优先”（`lookup_user_function_return_enum_name`），避免历史签名覆盖新签名。
 - import 语义第一版已接入：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）。
 - `std.*` 导入已升级为“递归模块签名自动导入”：对 std 模块源码做 ASCII sanitize + `signature_only` 解析，仅提取声明签名并递归处理 `import std.*`，并已移除旧的 minimal 预加载分支。
 - `null` 最小语义已接入 lexer/parser/resolver，`Result` builtin enum（`Ok/Err`）语义已接入。

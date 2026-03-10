@@ -96,6 +96,8 @@
 - [x] Step 29 已补 payload 绑定回归：绑定正例、binder arity/type/duplicate 负例
 - [x] Visitor 试点：`AST printer(expr)` 已切换到 visitor 分派（低风险路径）
 - [x] enum 类型流追踪已扩展到函数返回、`match` 中间表达式与赋值链路（含负例拦截）
+- [x] enum 类型流已增强到“赋值链作为 match 目标”场景（`match (s = make_status())`），并补充穷尽性正/负例
+- [x] 函数签名 `return_enum_name` 查找已改为“后写优先”，并补充签名优先级回归断言
 - [x] import 语义第一版：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）
 - [x] `std.*` 已切到模块源码签名自动导入：递归解析 `import std.*` 并预加载声明签名（移除最小符号预加载依赖）
 - [x] `null` 最小语义已接入：lexer/parser/resolver 支持 `null` 字面量与基础约束检查

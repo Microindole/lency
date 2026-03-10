@@ -131,6 +131,16 @@ int main() {
         print("Signature precedence test failed: latest function param type should win.\n")
         return 1
     }
+    sig_resolver.function_signatures.push(
+        make_function_signature("demo_enum", TYPE_NAMED(), vec![], "Status", vec![], "")
+    )
+    sig_resolver.function_signatures.push(
+        make_function_signature("demo_enum", TYPE_NAMED(), vec![], "Status", vec![], "Status")
+    )
+    if sig_resolver.lookup_user_function_return_enum_name("demo_enum") != "Status" {
+        print("Signature precedence test failed: latest function return enum-name should win.\n")
+        return 1
+    }
     print("Signature precedence test passed.\n")
 
     print("Step 12: Name resolution negative tests...\n")

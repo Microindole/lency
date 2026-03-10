@@ -63,6 +63,7 @@ Lency 当前是双链路并行：
 - Sema: `std.*` 已切到“模块源码签名自动导入”（递归 `import std.*`），不再依赖模块白名单最小符号预加载。
 - Sema: 已支持 `import std.*` 全量标准模块签名自动预加载；非 `std.*` 的通配导入会报错，避免静默误解语义。
 - Sema: 已支持 `import std.{a,b}` 分组导入（解析阶段展开为多个顺序 import 语句）。
+- Sema: 函数签名查找已统一“后写优先”，包含 enum 返回类型名（`return_enum_name`）查找，避免旧签名覆盖新签名。
 - Sema: 对 `arg_at/int_to_string/float_to_string/bool_to_string` 暂按 `unknown` 返回类型处理，以兼容现有 self-host runtime pointer-as-value 回归。
 - Sema: 已支持 nullable 签名语义（`int?/string?/bool?/float?` + 自定义 `Type?`），自定义可空类型不再走 `TYPE_UNKNOWN` 兼容放行。
 - Backend: Rust LIR backend member lowering 已改为“intrinsic 映射 + 通用 fallback”统一路径（含 `to_string/len/trim/substr/split/format/join`）。

@@ -152,6 +152,12 @@ bool run_match_and_enum_payload_tests() {
     if !expect_shared_resolve_success(src_resolver_enum_flow_match_result_ok(), "enum flow match result positive") {
         return false
     }
+    if !expect_shared_resolve_success(src_resolver_enum_flow_match_assign_target_ok(), "enum flow match assign-target positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_flow_match_assign_target_non_exhaustive_bad(), "enum flow match assign-target non-exhaustive negative") {
+        return false
+    }
     if !expect_shared_resolve_error(src_resolver_enum_flow_assignment_mismatch_bad(), "enum flow assignment mismatch negative") {
         return false
     }
