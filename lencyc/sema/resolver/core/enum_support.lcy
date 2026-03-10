@@ -7,6 +7,17 @@ import lencyc.sema.scope
 import lencyc.sema.resolver
 
 impl Resolver {
+    string extract_callee_name(Expr callee) {
+        var current = callee
+        while current.kind == EXPR_GROUPING() && current.children.len() > 0 {
+            current = current.children[0]
+        }
+        if current.kind == EXPR_VARIABLE() {
+            return current.literal_value.lexeme
+        }
+        return ""
+    }
+
     void preload_enum_variant_signature(string enum_name, string variant_name, Vec<int> payload_tys, Vec<string> payload_ty_names) {
         this.enum_variant_signatures.push(make_enum_variant_signature(enum_name, variant_name, payload_tys, payload_ty_names))
     }
@@ -173,8 +184,8 @@ impl Resolver {
     string infer_expr_enum_name(Expr expr) {
         if expr.kind == EXPR_CALL() {
             if expr.children.len() > 0 {
-                if expr.children[0].kind == EXPR_VARIABLE() {
-                    var callee_name = expr.children[0].literal_value.lexeme
+                var callee_name = this.extract_callee_name(expr.children[0])
+                if callee_name != "" {
                     var ctor_enum_name = this.lookup_enum_constructor_name(callee_name)
                     if ctor_enum_name != "" {
                         return ctor_enum_name

@@ -185,6 +185,18 @@ bool run_match_and_enum_payload_tests() {
     if !expect_shared_resolve_error(src_resolver_enum_flow_match_assign_target_non_exhaustive_bad(), "enum flow match assign-target non-exhaustive negative") {
         return false
     }
+    if !expect_shared_resolve_success(src_resolver_enum_flow_multi_call_chain_ok(), "enum flow multi-call chain positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_flow_multi_call_chain_mismatch_bad(), "enum flow multi-call chain mismatch negative") {
+        return false
+    }
+    if !expect_shared_resolve_success(src_resolver_enum_flow_grouped_callee_chain_ok(), "enum flow grouped-callee chain positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_flow_grouped_callee_chain_mismatch_bad(), "enum flow grouped-callee chain mismatch negative") {
+        return false
+    }
     if !expect_shared_resolve_error(src_resolver_enum_flow_assignment_mismatch_bad(), "enum flow assignment mismatch negative") {
         return false
     }

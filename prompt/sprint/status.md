@@ -98,6 +98,8 @@
 - [x] Visitor 试点：`AST printer(expr)` 已切换到 visitor 分派（低风险路径）
 - [x] enum 类型流追踪已扩展到函数返回、`match` 中间表达式与赋值链路（含负例拦截）
 - [x] enum 类型流已增强到“赋值链作为 match 目标”场景（`match (s = make_status())`），并补充穷尽性正/负例
+- [x] enum 类型流回归已扩展到多层调用组合（`id(id(make_status()))`）正/负例，覆盖跨函数链路约束
+- [x] enum 类型流与调用签名校验已扩展到“分组 callee”调用链（如 `(id)(...)`），修复分组调用下的签名/返回推断漏检
 - [x] 函数签名 `return_enum_name` 查找已改为“后写优先”，并补充签名优先级回归断言
 - [x] `match` 嵌套 payload 模式解构语义第一版：支持 `Wrap(Text(v))` 递归模式，接入未知 variant/arity 校验与绑定类型传播
 - [x] parser 已支持递归模式 AST（`MatchPattern(children + has_group)`），并新增 `Num` vs `Num()` 语义区分回归

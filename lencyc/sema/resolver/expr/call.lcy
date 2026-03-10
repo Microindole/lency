@@ -13,8 +13,8 @@ impl Resolver {
         var has_enum_constructor_signature = false
         if expr.children.len() > 0 {
             var callee = expr.children[0]
-            if callee.kind == EXPR_VARIABLE() {
-                callee_name = callee.literal_value.lexeme
+            callee_name = this.extract_callee_name(callee)
+            if callee_name != "" {
                 call_ty = this.lookup_builtin_type(callee_name)
                 var expected = this.lookup_builtin_arity(callee_name)
                 var user_expected = this.lookup_user_function_arity(callee_name)
