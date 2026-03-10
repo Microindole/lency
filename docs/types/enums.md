@@ -82,6 +82,22 @@ var code = match (m) {
 }
 ```
 
+## guard 条件分支（第一版）
+
+```lency
+enum Message {
+    Quit,
+    Text(string)
+}
+
+var m = Text("x")
+var code = match (m) {
+    Quit => 0,
+    Text(v) if (v == "x") => 1,
+    Text(v) => 2
+}
+```
+
 ## 当前语义检查（自举链路）
 
 - `match` 在目标可推断为 enum 时，检查：
@@ -90,8 +106,10 @@ var code = match (m) {
   - 穷尽性（无 `_` 且漏分支时报错）
   - payload binder arity（如 `Pair(a)` 对 `Pair(int, string)` 报错）
   - payload binder 类型传播（binder 会在对应 arm 内按 payload 类型参与表达式检查）
+  - arm guard 条件类型（`if (cond)` 的 `cond` 必须是 `bool`）
   - 赋值链目标（如 `match (s = make_status())`）同样执行未知 variant/穷尽性校验
   - 嵌套 payload 模式（如 `Wrap(Text(msg))`）的 variant 存在性与 arity
+- 非 enum 目标的 `match` 目前只允许 literal pattern 或 `_`，并校验 literal 类型与目标类型一致
 - enum variant 构造调用检查：
   - 参数个数（arity）一致
   - 参数类型一致（payload 类型）

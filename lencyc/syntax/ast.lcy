@@ -16,6 +16,8 @@ struct Expr {
     Token operator
     Vec<Expr> children
     Vec<MatchPattern> arm_patterns // EXPR_MATCH 分支模式（与 children[1..] 一一对应）
+    Vec<Expr> arm_guards           // EXPR_MATCH 分支 guard 表达式（仅 arm_has_guards=true 时有效）
+    Vec<bool> arm_has_guards       // EXPR_MATCH 分支是否带 guard（与 arm_patterns 一一对应）
 }
 
 struct TypeRef {

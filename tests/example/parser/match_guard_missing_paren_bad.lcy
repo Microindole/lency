@@ -1,0 +1,9 @@
+// Parser negative regression: guard must use parentheses.
+// @expect-error: parse should fail
+
+var x = 1
+var y = match (x) {
+  1 if true => 10,
+  _ => 0
+}
+return y

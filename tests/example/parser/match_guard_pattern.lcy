@@ -1,0 +1,14 @@
+// Parser regression: match arm guard syntax.
+
+enum Message {
+  Quit,
+  Text(string)
+}
+
+var m = Text("x")
+var y = match (m) {
+  Quit => 0,
+  Text(v) if (v == "x") => 1,
+  Text(v) => 2
+}
+return y

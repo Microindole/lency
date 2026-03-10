@@ -57,6 +57,7 @@ Lency 当前是双链路并行：
 - Sema: 已支持 `enum + match` 语义第一版（重复 pattern、未知 variant、穷尽性检查）。
 - Sema: 已支持 `match` payload 绑定第一版（`Text(v)` / `Pair(a,b)`），绑定变量参与 arm 内类型检查。
 - Sema: 已支持非 enum `match` 的 literal pattern 语义校验（仅允许字面量/`_`，并校验 pattern 与目标类型一致性）。
+- Sema: 已支持 `match` arm guard 第一版（`pattern if (cond) => ...`），并校验 guard 条件为 `bool`。
 - Sema: 已支持 `Result` builtin enum（`Ok/Err`）的构造与 `match` 校验。
 - Sema: 已支持 `null` 最小语义（字面量 + 基础类型约束检查）。
 - Sema: 已支持 enum 类型流扩展到函数返回、`match` 中间表达式与赋值链路。

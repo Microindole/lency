@@ -59,19 +59,31 @@ impl Parser {
 
         var patterns = vec![]
         var arm_values = vec![]
+        var arm_guards = vec![]
+        var arm_has_guards = vec![]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             var pattern = this.parse_match_pattern()
+            var guard_expr = make_expr_literal(make_token(T_TRUE(), "true", this.current.line, this.current.column))
+            var has_guard = false
+            if this.match_token(T_IF()) {
+                has_guard = true
+                this.consume(T_LEFT_PAREN(), "Expect '(' after 'if' in match guard.")
+                guard_expr = this.expression()
+                this.consume(T_RIGHT_PAREN(), "Expect ')' after match guard.")
+            }
             this.consume(T_EQUAL(), "Expect '=>' in match arm.")
             this.consume(T_GREATER(), "Expect '=>' in match arm.")
             var arm_value = this.expression()
             patterns.push(pattern)
             arm_values.push(arm_value)
+            arm_guards.push(guard_expr)
+            arm_has_guards.push(has_guard)
             if this.match_token(T_COMMA()) || this.match_token(T_SEMICOLON()) {
                 // Optional arm delimiter.
             }
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after match arms.")
-        return make_expr_match(target, patterns, arm_values)
+        return make_expr_match(target, patterns, arm_values, arm_guards, arm_has_guards)
     }
 
     Expr expression() {

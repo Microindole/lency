@@ -24,7 +24,7 @@
   - Lency：当前为最小语义约束（name resolution、基础类型一致性、函数签名与 arity、impl/struct 最小校验）。
   - 已完成：nullable 类型匹配已接入 `type_name` 约束，自定义类型与 `Type?` 不再走 `unknown` 兼容放行。
   - 已完成：`match` 嵌套模式解构语义第一版（支持 enum payload 递归 variant 模式，如 `Wrap(Text(v))`）。
-  - TODO: 复杂模式仍未覆盖 guard 等高级形态（literal pattern 已接入非 enum match 语义校验）。
+  - TODO: 复杂模式仍未覆盖更高级 guard 形态（当前已接入 `pattern if (cond)` 基础 guard 与类型校验）。
   - TODO: enum 类型流在更复杂控制流/多层调用组合场景继续增强（当前已覆盖函数返回、match 中间表达式与赋值链）。
   - 已完成：`std.*` 采用模块文件自动签名导入（递归 `import std.*`），并在导入路径启用 `signature_only` + `suppress_error_output` 提取声明签名。
 - 后端：
@@ -109,6 +109,8 @@
 - enum 类型流回归已扩展到多层调用组合（`id(id(make_status()))`）正/负例，覆盖跨函数链路的 enum 参数/返回约束。
 - enum 类型流与调用签名校验已扩展到“分组 callee”场景（如 `(id)(id(make_status()))`）：调用链可继续命中用户函数签名与 enum 返回推断，并补齐跨 enum 负例拦截。
 - `match` literal pattern 语义已接入：非 enum 目标仅允许字面量或 `_`，并校验 pattern 与目标类型一致性（含 `null`）；非法标识符 pattern 现在会显式报错。
+- `match` arm guard 第一版已接入：支持 `pattern if (cond) => ...`，resolver 会校验 `cond` 为 `bool`；guard 分支不参与 enum 穷尽性覆盖计数（保守策略），并补齐正/负例回归。
+- guard 语法负例回归已补：`if` 后缺失括号（如 `1 if true => ...`）会在 parser 阶段稳定报错，防止 guard 语法约束回退。
 - 函数签名的 enum 返回名查找已改为“后写优先”（`lookup_user_function_return_enum_name`），避免历史签名覆盖新签名。
 - import 语义第一版已接入：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）。
 - `std.*` 导入已升级为“递归模块签名自动导入”：对 std 模块源码做 ASCII sanitize + `signature_only` 解析，仅提取声明签名并递归处理 `import std.*`，并已移除旧的 minimal 预加载分支。

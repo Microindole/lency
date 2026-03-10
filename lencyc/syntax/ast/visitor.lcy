@@ -94,7 +94,15 @@ impl ExprStringVisitor {
                 if i + 1 < expr.children.len() {
                     arm_expr = this.visit_expr(expr.children[i + 1])
                 }
-                out = out + this.pattern_to_string(expr.arm_patterns[i]) + " => " + arm_expr
+                var guard_suffix = ""
+                if i < expr.arm_has_guards.len() && expr.arm_has_guards[i] {
+                    if i < expr.arm_guards.len() {
+                        guard_suffix = " if " + this.visit_expr(expr.arm_guards[i])
+                    } else {
+                        guard_suffix = " if ?"
+                    }
+                }
+                out = out + this.pattern_to_string(expr.arm_patterns[i]) + guard_suffix + " => " + arm_expr
                 if i + 1 < expr.arm_patterns.len() {
                     out = out + ", "
                 }

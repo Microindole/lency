@@ -6,6 +6,40 @@ import lencyc.syntax.ast
 import lencyc.sema.resolver
 
 impl Resolver {
+    bool has_match_arm_guard(Expr expr, int arm_index) {
+        return arm_index < expr.arm_has_guards.len() && expr.arm_has_guards[arm_index]
+    }
+
+    void resolve_match_arm_guard(Expr expr, int arm_index) {
+        if !this.has_match_arm_guard(expr, arm_index) {
+            return
+        }
+        if arm_index >= expr.arm_guards.len() {
+            this.error("match arm guard expression missing")
+            return
+        }
+        var guard_ty = this.resolve_expr(expr.arm_guards[arm_index])
+        var guard_ty_name = this.infer_expr_type_name(expr.arm_guards[arm_index], guard_ty)
+        if guard_ty_name == "" {
+            guard_ty_name = this.type_to_string(guard_ty)
+        }
+        if !this.types_match_or_unknown_by_name(TYPE_BOOL(), "bool", guard_ty, guard_ty_name) {
+            this.error("match arm guard must be bool, got " + guard_ty_name)
+        }
+    }
+
+    string match_arm_key(Expr expr, int arm_index, MatchPattern pattern) {
+        var key = this.match_pattern_to_string(pattern)
+        if this.has_match_arm_guard(expr, arm_index) {
+            if arm_index < expr.arm_guards.len() {
+                key = key + " if " + expr_to_string(expr.arm_guards[arm_index])
+            } else {
+                key = key + " if ?"
+            }
+        }
+        return key
+    }
+
     int infer_literal_pattern_type(MatchPattern pattern) {
         if pattern.tag.kind == T_NUMBER() {
             if contains(pattern.tag.lexeme, ".") || contains(pattern.tag.lexeme, "e") || contains(pattern.tag.lexeme, "E") {
@@ -42,7 +76,7 @@ impl Resolver {
                 return
             }
             // TODO: Extend nested pattern matching beyond current recursive branch-pattern coverage
-            // (e.g. literal/guard patterns) once pattern coverage roadmap enters Phase 3+.
+            // (e.g. richer guard forms and deeper mixed literal-variant conditions) in Phase 3+.
             this.bind_match_pattern_nested_enum(expected_ty_name, leaf, seen_binders)
             return
         }
@@ -127,9 +161,12 @@ impl Resolver {
         var i = 0
         while i < expr.arm_patterns.len() {
             var pattern = expr.arm_patterns[i]
+            var has_guard = this.has_match_arm_guard(expr, i)
             if target_enum_name != "" {
                 if this.is_wildcard_pattern(pattern) {
-                    has_wildcard = true
+                    if !has_guard {
+                        has_wildcard = true
+                    }
                 } else {
                     if pattern.tag.kind != T_IDENTIFIER() {
                         this.error("EnumMatch pattern must be identifier variant or '_'")
@@ -140,13 +177,13 @@ impl Resolver {
                                 ": " + pattern.tag.lexeme
                             )
                         } else {
-                            var pattern_key = this.match_pattern_to_string(pattern)
+                            var pattern_key = this.match_arm_key(expr, i, pattern)
                             if this.contains_name(seen_patterns, pattern_key) {
                                 this.error("duplicate match pattern: " + pattern_key)
                             } else {
                                 seen_patterns.push(pattern_key)
                             }
-                            if !this.contains_name(seen_variants, pattern.tag.lexeme) {
+                            if !has_guard && !this.contains_name(seen_variants, pattern.tag.lexeme) {
                                 seen_variants.push(pattern.tag.lexeme)
                             }
                         }
@@ -174,7 +211,7 @@ impl Resolver {
                                     target_ty_name + ", pattern " + literal_ty_name
                                 )
                             }
-                            var pattern_key = this.match_pattern_to_string(pattern)
+                            var pattern_key = this.match_arm_key(expr, i, pattern)
                             if this.contains_name(seen_patterns, pattern_key) {
                                 this.error("duplicate match pattern: " + pattern_key)
                             } else {
@@ -196,9 +233,11 @@ impl Resolver {
                 if (pattern.children.len() > 0 || pattern.has_group) && this.is_enum_variant(target_enum_name, pattern.tag.lexeme) {
                     this.bind_match_pattern_nested_enum(target_enum_name, pattern, seen_binders)
                 }
+                this.resolve_match_arm_guard(expr, i)
                 arm_ty = this.resolve_expr(expr.children[i + 1])
                 this.end_scope()
             } else {
+                this.resolve_match_arm_guard(expr, i)
                 arm_ty = this.resolve_expr(expr.children[i + 1])
             }
             if result_ty == TYPE_UNKNOWN() {

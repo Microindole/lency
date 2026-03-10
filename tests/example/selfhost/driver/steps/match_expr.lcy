@@ -106,12 +106,39 @@ bool run_match_and_enum_payload_tests() {
         print("Match null literal pattern AST shape mismatch.\n")
         return false
     }
+    var guard_pattern_source = read_match_case_or_empty("tests/example/parser/match_guard_pattern.lcy")
+    if guard_pattern_source == "" {
+        return false
+    }
+    var guard_pattern_parser = make_parser(guard_pattern_source)
+    var guard_pattern_program = guard_pattern_parser.parse_program()
+    if guard_pattern_parser.has_error {
+        print("Match guard pattern parse failed unexpectedly.\n")
+        return false
+    }
+    if guard_pattern_program.statements.len() < 3 || guard_pattern_program.statements[2].kind != STMT_VAR_DECL() {
+        print("Match guard pattern AST kind mismatch.\n")
+        return false
+    }
+    var guard_stmt_str = stmt_to_string(guard_pattern_program.statements[2])
+    if !contains(guard_stmt_str, "(var y = (match m {Quit => 0, Text(v) if ") ||
+       !contains(guard_stmt_str, "=> 1, Text(v) => 2}))") {
+        print("Match guard pattern AST shape mismatch.\n")
+        return false
+    }
 
     var bad_match_source = read_match_case_or_empty("tests/example/parser/match_missing_arrow_bad.lcy")
     if bad_match_source == "" {
         return false
     }
     if !expect_shared_parse_error(bad_match_source, "match missing '=>'") {
+        return false
+    }
+    var bad_guard_source = read_match_case_or_empty("tests/example/parser/match_guard_missing_paren_bad.lcy")
+    if bad_guard_source == "" {
+        return false
+    }
+    if !expect_shared_parse_error(bad_guard_source, "match guard missing parentheses") {
         return false
     }
     if !expect_shared_resolve_success(match_source, "match resolver smoke positive") {
@@ -226,6 +253,21 @@ bool run_match_and_enum_payload_tests() {
         return false
     }
     if !expect_shared_resolve_error(src_resolver_non_enum_match_identifier_pattern_bad(), "non-enum match identifier pattern negative") {
+        return false
+    }
+    if !expect_shared_resolve_success(src_resolver_match_guard_bool_ok(), "match guard bool positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_match_guard_non_bool_bad(), "match guard non-bool negative") {
+        return false
+    }
+    if !expect_shared_resolve_success(src_resolver_enum_match_guard_binder_ok(), "enum match guard binder positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_match_guard_non_exhaustive_bad(), "enum match guard non-exhaustive negative") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_match_guard_non_bool_bad(), "enum match guard non-bool negative") {
         return false
     }
     if !expect_shared_resolve_error(src_resolver_enum_flow_assignment_mismatch_bad(), "enum flow assignment mismatch negative") {

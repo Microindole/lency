@@ -104,6 +104,8 @@
 - [x] `match` 嵌套 payload 模式解构语义第一版：支持 `Wrap(Text(v))` 递归模式，接入未知 variant/arity 校验与绑定类型传播
 - [x] parser 已支持递归模式 AST（`MatchPattern(children + has_group)`），并新增 `Num` vs `Num()` 语义区分回归
 - [x] 非 enum `match` 已接入 literal pattern 语义校验：仅允许字面量/`_`，并校验 pattern 与目标类型一致性（含 `null`）
+- [x] `match` arm guard 第一版已接入：支持 `pattern if (cond)` 解析与 `bool` 条件校验，guard 分支按保守策略不计入 enum 穷尽覆盖
+- [x] guard 语法负例回归已补：`if` 后缺失括号会在 parser 阶段稳定报错（防止 guard 语法约束回退）
 - [x] 新增 `xtask bootstrap-check`（stage1→stage2→stage3 收敛验证）并接入独立 CI 工作流（仅手动或 `bootstrap-check/**` tag 触发）
 - [x] import 语义第一版：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）
 - [x] `std.*` 已切到模块源码签名自动导入：递归解析 `import std.*` 并预加载声明签名（移除最小符号预加载依赖）
@@ -114,7 +116,7 @@
 
 未完成：
 - [ ] TODO: enum 类型流在更复杂控制流/多层调用组合场景继续增强（当前已覆盖函数返回、match 中间表达式与赋值链）
-- [ ] TODO: `match` 复杂模式仍未覆盖 guard 等高级形态（literal pattern 已接入）
+- [ ] TODO: `match` 复杂模式仍未覆盖更高级 guard 形态（当前已支持基础 `pattern if (cond)`）
 - [ ] TODO: Visitor 是否扩展到 resolver expr 分派，待后续以复杂度收益评估后决定（暂不全量迁移）
 
 ## 3. 与 Rust 使用水平的差距评估（2026-03-07）
