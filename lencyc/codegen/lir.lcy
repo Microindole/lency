@@ -4,6 +4,7 @@
 import std.core
 import std.convert
 import lencyc.syntax.ast
+import lencyc.codegen.lir.match_expr
 
 struct LirBuilder {
     string out
@@ -270,6 +271,9 @@ impl LirBuilder {
             var dst = this.new_temp()
             this.emit_line("  " + dst + " = call " + callee + "(" + this.join_args(args) + ")")
             return dst
+        }
+        if expr.kind == EXPR_MATCH() {
+            return this.emit_expr_match(expr)
         }
 
         var fallback = this.new_temp()

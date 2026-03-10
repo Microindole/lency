@@ -106,6 +106,7 @@
 - [x] 非 enum `match` 已接入 literal pattern 语义校验：仅允许字面量/`_`，并校验 pattern 与目标类型一致性（含 `null`）
 - [x] `match` arm guard 第一版已接入：支持 `pattern if (cond)` 解析与 `bool` 条件校验，guard 分支按保守策略不计入 enum 穷尽覆盖
 - [x] guard 语法负例回归已补：`if` 后缺失括号会在 parser 阶段稳定报错（防止 guard 语法约束回退）
+- [x] selfhost LIR 后端已接入 `match` 最小 lowering（数字 literal + `_` + guard 子集），并新增 runtime 端到端回归
 - [x] 新增 `xtask bootstrap-check`（stage1→stage2→stage3 收敛验证）并接入独立 CI 工作流（仅手动或 `bootstrap-check/**` tag 触发）
 - [x] import 语义第一版：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）
 - [x] `std.*` 已切到模块源码签名自动导入：递归解析 `import std.*` 并预加载声明签名（移除最小符号预加载依赖）

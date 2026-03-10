@@ -1,0 +1,73 @@
+// lencyc/codegen/lir/match_expr.lcy
+// Match-expression lowering helpers for self-host LIR emitter.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.codegen.lir
+
+impl LirBuilder {
+    string new_match_var() {
+        var name = "%match_" + int_to_string(this.temp_counter)
+        this.temp_counter = this.temp_counter + 1
+        return name
+    }
+
+    bool is_wildcard_pattern(MatchPattern pattern) {
+        return pattern.tag.kind == T_IDENTIFIER() && pattern.tag.lexeme == "_"
+    }
+
+    bool is_numeric_literal_pattern(MatchPattern pattern) {
+        return pattern.tag.kind == T_NUMBER() && pattern.children.len() == 0 && !pattern.has_group
+    }
+
+    string emit_expr_match(Expr expr) {
+        if expr.children.len() == 0 || expr.arm_patterns.len() == 0 {
+            return "0"
+        }
+        var target = this.emit_expr(expr.children[0])
+        var result_var = this.new_match_var()
+        this.emit_line("  var " + result_var + " = 0")
+        var end_label = this.new_label("match_end")
+        var i = 0
+        while i < expr.arm_patterns.len() {
+            if i + 1 >= expr.children.len() {
+                i = i + 1
+                continue
+            }
+            var pattern = expr.arm_patterns[i]
+            var next_label = this.new_label("match_next")
+            var arm_value_label = this.new_label("match_arm")
+            if this.is_wildcard_pattern(pattern) {
+                this.emit_line("  jmp " + arm_value_label)
+            } else {
+                if this.is_numeric_literal_pattern(pattern) {
+                    var cond = this.new_temp()
+                    this.emit_line("  " + cond + " = cmp_eq " + target + ", " + pattern.tag.lexeme)
+                    this.emit_line("  br " + cond + ", " + arm_value_label + ", " + next_label)
+                } else {
+                    // TODO: Extend match lowering beyond numeric literal + wildcard pattern subset.
+                    this.emit_line("  jmp " + next_label)
+                }
+            }
+            this.emit_line(arm_value_label + ":")
+            if i < expr.arm_has_guards.len() && expr.arm_has_guards[i] {
+                if i < expr.arm_guards.len() {
+                    var guard_val = this.emit_expr(expr.arm_guards[i])
+                    var guard_ok_label = this.new_label("match_guard_ok")
+                    this.emit_line("  br " + guard_val + ", " + guard_ok_label + ", " + next_label)
+                    this.emit_line(guard_ok_label + ":")
+                }
+            }
+            var arm_val = this.emit_expr(expr.children[i + 1])
+            this.emit_line("  store " + result_var + ", " + arm_val)
+            this.emit_line("  jmp " + end_label)
+            this.emit_line(next_label + ":")
+            if i + 1 >= expr.arm_patterns.len() {
+                this.emit_line("  jmp " + end_label)
+            }
+            i = i + 1
+        }
+        this.emit_line(end_label + ":")
+        return result_var
+    }
+}
