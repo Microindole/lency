@@ -1,0 +1,19 @@
+// Parser regression: nested payload patterns in match expression.
+
+enum Payload {
+  Num(int),
+  Text(string)
+}
+
+enum Message {
+  Quit,
+  Wrap(Payload)
+}
+
+var m = Wrap(Text("x"))
+var y = match (m) {
+  Quit => 0,
+  Wrap(Num(v)) => v,
+  Wrap(Text(msg)) => 1
+}
+return y

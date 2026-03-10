@@ -6,6 +6,89 @@ import lencyc.syntax.ast
 import lencyc.sema.resolver
 
 impl Resolver {
+    void bind_match_pattern_leaf(string variant_name, MatchPattern leaf, int expected_ty, string expected_ty_name, Vec<string> seen_binders) {
+        if this.is_wildcard_pattern(leaf) {
+            if leaf.children.len() > 0 {
+                this.error("Wildcard pattern '_' cannot bind payload.")
+            }
+            return
+        }
+
+        if leaf.children.len() > 0 || leaf.has_group {
+            if expected_ty_name == "" || !this.is_enum_type_name(expected_ty_name) {
+                this.error(
+                    "nested payload pattern requires enum-typed payload, got " +
+                    this.match_pattern_to_string(leaf)
+                )
+                return
+            }
+            // TODO: Extend nested pattern matching beyond current recursive branch-pattern coverage
+            // (e.g. literal/guard patterns) once pattern coverage roadmap enters Phase 3+.
+            this.bind_match_pattern_nested_enum(expected_ty_name, leaf, seen_binders)
+            return
+        }
+
+        if leaf.tag.kind != T_IDENTIFIER() {
+            this.error("payload pattern must be identifier/wildcard or nested variant pattern")
+            return
+        }
+
+        if !leaf.has_group && expected_ty_name != "" && this.is_enum_type_name(expected_ty_name) && this.is_enum_variant(expected_ty_name, leaf.tag.lexeme) {
+            // Backward-compatible: variant name without children means "ignore payload".
+            return
+        }
+
+        var binder_name = leaf.tag.lexeme
+        if this.contains_name(seen_binders, binder_name) {
+            this.error("duplicate payload binder in pattern " + variant_name + ": " + binder_name)
+            return
+        }
+        seen_binders.push(binder_name)
+        if this.table.is_defined_in_current_scope(binder_name) {
+            this.error("duplicate payload binder in match arm scope: " + binder_name)
+            return
+        }
+        this.table.define(binder_name)
+        var binder_ty_name = expected_ty_name
+        if binder_ty_name == "" {
+            binder_ty_name = this.type_to_string(expected_ty)
+        }
+        this.define_typed_symbol(binder_name, expected_ty, binder_ty_name)
+    }
+
+    void bind_match_pattern_nested_enum(string enum_name, MatchPattern pattern, Vec<string> seen_binders) {
+        if pattern.tag.kind != T_IDENTIFIER() {
+            this.error("EnumMatch nested pattern must use variant identifier")
+            return
+        }
+        if !this.is_enum_variant(enum_name, pattern.tag.lexeme) {
+            this.error(
+                "unknown EnumVariant in nested pattern for " + enum_name +
+                ": " + pattern.tag.lexeme
+            )
+            return
+        }
+        var expected_payload_arity = this.lookup_enum_constructor_arity_in(enum_name, pattern.tag.lexeme)
+        if expected_payload_arity != pattern.children.len() {
+            this.error(
+                "EnumMatch payload binder arity mismatch for " + pattern.tag.lexeme +
+                ": expected " + int_to_string(expected_payload_arity) +
+                ", got " + int_to_string(pattern.children.len())
+            )
+            return
+        }
+        var b = 0
+        while b < pattern.children.len() {
+            var binder_ty = this.lookup_enum_constructor_param_type_in(enum_name, pattern.tag.lexeme, b)
+            var binder_ty_name = this.lookup_enum_constructor_param_type_name_in(enum_name, pattern.tag.lexeme, b)
+            if binder_ty_name == "" {
+                binder_ty_name = this.type_to_string(binder_ty)
+            }
+            this.bind_match_pattern_leaf(pattern.tag.lexeme, pattern.children[b], binder_ty, binder_ty_name, seen_binders)
+            b = b + 1
+        }
+    }
+
     int resolve_expr_match(Expr expr) {
         if expr.children.len() == 0 {
             this.error("match expression missing target")
@@ -16,6 +99,7 @@ impl Resolver {
         var result_ty = TYPE_UNKNOWN()
         var result_ty_name = ""
         var seen_variants = vec![]
+        var seen_patterns = vec![]
         var has_wildcard = false
         var i = 0
         while i < expr.arm_patterns.len() {
@@ -33,24 +117,20 @@ impl Resolver {
                                 ": " + pattern.tag.lexeme
                             )
                         } else {
-                            if this.contains_name(seen_variants, pattern.tag.lexeme) {
-                                this.error("duplicate match pattern: " + pattern.tag.lexeme)
+                            var pattern_key = this.match_pattern_to_string(pattern)
+                            if this.contains_name(seen_patterns, pattern_key) {
+                                this.error("duplicate match pattern: " + pattern_key)
                             } else {
-                                seen_variants.push(pattern.tag.lexeme)
+                                seen_patterns.push(pattern_key)
                             }
-                            var expected_payload_arity = this.lookup_enum_constructor_arity(pattern.tag.lexeme)
-                            if pattern.binders.len() > 0 && expected_payload_arity != pattern.binders.len() {
-                                this.error(
-                                    "EnumMatch payload binder arity mismatch for " + pattern.tag.lexeme +
-                                    ": expected " + int_to_string(expected_payload_arity) +
-                                    ", got " + int_to_string(pattern.binders.len())
-                                )
+                            if !this.contains_name(seen_variants, pattern.tag.lexeme) {
+                                seen_variants.push(pattern.tag.lexeme)
                             }
                         }
                     }
                 }
             } else {
-                if pattern.binders.len() > 0 {
+                if pattern.children.len() > 0 || pattern.has_group {
                     this.error(
                         "payload binders require EnumMatch target, got pattern: " +
                         this.match_pattern_to_string(pattern)
@@ -65,29 +145,9 @@ impl Resolver {
             var arm_ty = TYPE_UNKNOWN()
             if target_enum_name != "" && pattern.tag.kind == T_IDENTIFIER() && !this.is_wildcard_pattern(pattern) {
                 this.begin_scope()
-                var b = 0
                 var seen_binders = vec![]
-                while b < pattern.binders.len() {
-                    var binder_name = pattern.binders[b].lexeme
-                    if this.contains_name(seen_binders, binder_name) {
-                        this.error("duplicate payload binder in pattern " + pattern.tag.lexeme + ": " + binder_name)
-                        b = b + 1
-                        continue
-                    }
-                    seen_binders.push(binder_name)
-                    if this.table.is_defined_in_current_scope(binder_name) {
-                        this.error("duplicate payload binder in match arm scope: " + binder_name)
-                        b = b + 1
-                        continue
-                    }
-                    this.table.define(binder_name)
-                    var binder_ty = this.lookup_enum_constructor_param_type(pattern.tag.lexeme, b)
-                    var binder_ty_name = this.lookup_enum_constructor_param_type_name(pattern.tag.lexeme, b)
-                    if binder_ty_name == "" {
-                        binder_ty_name = this.type_to_string(binder_ty)
-                    }
-                    this.define_typed_symbol(binder_name, binder_ty, binder_ty_name)
-                    b = b + 1
+                if (pattern.children.len() > 0 || pattern.has_group) && this.is_enum_variant(target_enum_name, pattern.tag.lexeme) {
+                    this.bind_match_pattern_nested_enum(target_enum_name, pattern, seen_binders)
                 }
                 arm_ty = this.resolve_expr(expr.children[i + 1])
                 this.end_scope()

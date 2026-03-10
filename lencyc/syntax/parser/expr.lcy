@@ -7,11 +7,21 @@ import lencyc.syntax.ast
 import lencyc.syntax.parser
 
 impl Parser {
-    MatchPattern parse_match_pattern() {
+    MatchPattern parse_match_pattern_with_depth(int depth) {
+        if depth > 16 {
+            this.error("MatchPattern nesting is too deep.")
+            return make_match_pattern(
+                make_token(T_ERROR(), "", this.current.line, this.current.column),
+                vec![],
+                false
+            )
+        }
         if this.match_token(T_IDENTIFIER()) || this.match_token(T_NUMBER()) || this.match_token(T_STRING_LITERAL()) || this.match_token(T_TRUE()) || this.match_token(T_FALSE()) {
             var tag = this.previous
-            var binders = vec![]
+            var children = vec![]
+            var has_group = false
             if tag.kind == T_IDENTIFIER() && this.check(T_LEFT_PAREN()) {
+                has_group = true
                 var maybe_wildcard = tag.lexeme == "_"
                 if maybe_wildcard {
                     this.error("Wildcard pattern '_' cannot bind payload.")
@@ -19,8 +29,7 @@ impl Parser {
                 this.consume(T_LEFT_PAREN(), "Expect '(' after match variant name.")
                 if !this.check(T_RIGHT_PAREN()) {
                     while true {
-                        this.consume(T_IDENTIFIER(), "Expect payload binder name in match pattern.")
-                        binders.push(this.previous)
+                        children.push(this.parse_match_pattern_with_depth(depth + 1))
                         if !this.match_token(T_COMMA()) {
                             break
                         }
@@ -28,13 +37,18 @@ impl Parser {
                 }
                 this.consume(T_RIGHT_PAREN(), "Expect ')' after payload binders.")
             }
-            return make_match_pattern(tag, binders)
+            return make_match_pattern(tag, children, has_group)
         }
         this.error("Expect match pattern.")
         return make_match_pattern(
             make_token(T_ERROR(), "", this.current.line, this.current.column),
-            vec![]
+            vec![],
+            false
         )
+    }
+
+    MatchPattern parse_match_pattern() {
+        return this.parse_match_pattern_with_depth(0)
     }
 
     Expr match_expression() {

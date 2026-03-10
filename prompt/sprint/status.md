@@ -51,6 +51,7 @@
 - [x] `DECL_UNKNOWN` 预加载防御回归已接入 `test_entry`（防止静默吞错回归）
 - [x] 删除 syntax Decl 过渡层未使用 API：`extract_non_declaration_statements`
 - [x] `test_entry` Step3-10 拆分到 `test_steps_parser_frontend`，继续收敛入口文件体积
+- [x] `test_entry` Step11.5（resolver 防御 + 签名优先级）已拆分到 `steps/resolver_defense`，入口文件降到 300 行预警线以下
 - [x] resolver `resolve_stmt` 拆分到 `sema/resolver/stmt.lcy`，继续收敛单文件复杂度
 - [x] resolver return-flow 分析拆分到 `sema/resolver/return_flow.lcy`
 - [x] resolver 声明语句分支拆分到 `sema/resolver/decl_stmt.lcy`，`resolve_stmt` 收敛为“普通语句 + 声明分派”
@@ -98,6 +99,8 @@
 - [x] enum 类型流追踪已扩展到函数返回、`match` 中间表达式与赋值链路（含负例拦截）
 - [x] enum 类型流已增强到“赋值链作为 match 目标”场景（`match (s = make_status())`），并补充穷尽性正/负例
 - [x] 函数签名 `return_enum_name` 查找已改为“后写优先”，并补充签名优先级回归断言
+- [x] `match` 嵌套 payload 模式解构语义第一版：支持 `Wrap(Text(v))` 递归模式，接入未知 variant/arity 校验与绑定类型传播
+- [x] parser 已支持递归模式 AST（`MatchPattern(children + has_group)`），并新增 `Num` vs `Num()` 语义区分回归
 - [x] import 语义第一版：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）
 - [x] `std.*` 已切到模块源码签名自动导入：递归解析 `import std.*` 并预加载声明签名（移除最小符号预加载依赖）
 - [x] `null` 最小语义已接入：lexer/parser/resolver 支持 `null` 字面量与基础约束检查
@@ -107,7 +110,7 @@
 
 未完成：
 - [ ] TODO: enum 类型流在更复杂控制流/多层调用组合场景继续增强（当前已覆盖函数返回、match 中间表达式与赋值链）
-- [ ] TODO: `match` 嵌套/复杂模式解构（当前仅支持 variant + 一层 binder）
+- [ ] TODO: `match` 复杂模式仍未覆盖 literal/guard 等高级形态（当前已支持 enum payload 递归解构）
 - [ ] TODO: Visitor 是否扩展到 resolver expr 分派，待后续以复杂度收益评估后决定（暂不全量迁移）
 
 ## 3. 与 Rust 使用水平的差距评估（2026-03-07）

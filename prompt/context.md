@@ -23,7 +23,8 @@
   - Rust：Resolver + TypeInfer + TypeCheck + NullSafety 分层较完整。
   - Lency：当前为最小语义约束（name resolution、基础类型一致性、函数签名与 arity、impl/struct 最小校验）。
   - 已完成：nullable 类型匹配已接入 `type_name` 约束，自定义类型与 `Type?` 不再走 `unknown` 兼容放行。
-  - TODO: `match` 嵌套/复杂模式解构语义（当前仅支持 variant + 一层 binder）。
+  - 已完成：`match` 嵌套模式解构语义第一版（支持 enum payload 递归 variant 模式，如 `Wrap(Text(v))`）。
+  - TODO: 复杂模式仍未覆盖 literal/guard 等高级形态（当前聚焦 enum payload 递归解构）。
   - TODO: enum 类型流在更复杂控制流/多层调用组合场景继续增强（当前已覆盖函数返回、match 中间表达式与赋值链）。
   - 已完成：`std.*` 采用模块文件自动签名导入（递归 `import std.*`），并在导入路径启用 `signature_only` + `suppress_error_output` 提取声明签名。
 - 后端：
@@ -83,6 +84,7 @@
 - `parse-error` 断言已统一迁入 `test_support`（`parser_frontend/import_extern` 本地重复 helper 已移除）。
 - syntax 声明过渡层已删除未使用的 `extract_non_declaration_statements`，减少无效 API 面。
 - `test_entry` 已进一步拆分：Step 3-10（解析前端回归）迁移到 `test_steps_parser_frontend.lcy`，主入口体积继续下降。
+- `test_entry` 继续拆分：Step 11.5 resolver 防御与签名优先级回归下沉到 `steps/resolver_defense.lcy`，入口文件重新回落到 300 行预警线以下。
 - resolver 结构继续拆分：`resolve_stmt` 已迁移到 `sema/resolver/stmt.lcy`，降低 `core.lcy` 单文件复杂度。
 - resolver return-flow 分析也已拆分到 `sema/resolver/return_flow.lcy`，继续压低 `core.lcy` 体积与职责耦合。
 - resolver 声明语句分支已拆分到 `sema/resolver/decl_stmt.lcy`（`resolve_decl_stmt`），`resolve_stmt` 仅保留分派与普通语句处理。
@@ -110,6 +112,8 @@
 - Rust LIR backend member lowering 已统一到 member-ref 调用路径：`to_string/len/trim/substr/split/format/join` 与通用成员调用共用 `get + call` 降低分派。
 - std 签名导入的 parser 噪音已抑制：`Parser.suppress_error_output` 仅静默输出，不影响错误计数与恢复提取。
 - parser_frontend/signature 回归已新增泛型入口统一正负例：`foo<int, Result<string>>(...)` 正例、破损泛型调用负例、`1 < 2` 比较表达式防回退、声明签名泛型负例。
+- `match` 模式 AST 已升级为递归 `MatchPattern(children + has_group)`，支持显式空参数模式（如 `Num()`）与嵌套解构的语义区分。
+- `match` 语义已支持嵌套 payload 模式校验（`unknown variant/arity`）与绑定类型传播，并新增 `tests/example/parser/match_payload_nested_pattern.lcy` 回归。
 
 ## 4. 目录与职责
 - `crates/`：Rust 主编译器与主工具链。

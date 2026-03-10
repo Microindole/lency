@@ -61,6 +61,27 @@ var code = match (m) {
 }
 ```
 
+## 嵌套 payload 模式
+
+```lency
+enum Payload {
+    Num(int),
+    Text(string)
+}
+
+enum Message {
+    Quit,
+    Wrap(Payload)
+}
+
+var m = Wrap(Text("x"))
+var code = match (m) {
+    Quit => 0,
+    Wrap(Num(v)) => v,
+    Wrap(Text(msg)) => 1
+}
+```
+
 ## 当前语义检查（自举链路）
 
 - `match` 在目标可推断为 enum 时，检查：
@@ -70,6 +91,7 @@ var code = match (m) {
   - payload binder arity（如 `Pair(a)` 对 `Pair(int, string)` 报错）
   - payload binder 类型传播（binder 会在对应 arm 内按 payload 类型参与表达式检查）
   - 赋值链目标（如 `match (s = make_status())`）同样执行未知 variant/穷尽性校验
+  - 嵌套 payload 模式（如 `Wrap(Text(msg))`）的 variant 存在性与 arity
 - enum variant 构造调用检查：
   - 参数个数（arity）一致
   - 参数类型一致（payload 类型）

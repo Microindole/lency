@@ -22,9 +22,17 @@ impl Resolver {
     }
 
     int lookup_enum_constructor_arity(string variant_name) {
+        return this.lookup_enum_constructor_arity_in("", variant_name)
+    }
+
+    int lookup_enum_constructor_arity_in(string enum_name, string variant_name) {
         var i = this.enum_variant_signatures.len() - 1
         while i >= 0 {
             if this.enum_variant_signatures[i].variant_name == variant_name {
+                if enum_name != "" && this.enum_variant_signatures[i].enum_name != enum_name {
+                    i = i - 1
+                    continue
+                }
                 return this.enum_variant_signatures[i].payload_tys.len()
             }
             i = i - 1
@@ -33,9 +41,17 @@ impl Resolver {
     }
 
     int lookup_enum_constructor_param_type(string variant_name, int arg_index) {
+        return this.lookup_enum_constructor_param_type_in("", variant_name, arg_index)
+    }
+
+    int lookup_enum_constructor_param_type_in(string enum_name, string variant_name, int arg_index) {
         var i = this.enum_variant_signatures.len() - 1
         while i >= 0 {
             if this.enum_variant_signatures[i].variant_name == variant_name {
+                if enum_name != "" && this.enum_variant_signatures[i].enum_name != enum_name {
+                    i = i - 1
+                    continue
+                }
                 if arg_index < this.enum_variant_signatures[i].payload_tys.len() {
                     return this.enum_variant_signatures[i].payload_tys[arg_index]
                 }
@@ -47,9 +63,17 @@ impl Resolver {
     }
 
     string lookup_enum_constructor_param_type_name(string variant_name, int arg_index) {
+        return this.lookup_enum_constructor_param_type_name_in("", variant_name, arg_index)
+    }
+
+    string lookup_enum_constructor_param_type_name_in(string enum_name, string variant_name, int arg_index) {
         var i = this.enum_variant_signatures.len() - 1
         while i >= 0 {
             if this.enum_variant_signatures[i].variant_name == variant_name {
+                if enum_name != "" && this.enum_variant_signatures[i].enum_name != enum_name {
+                    i = i - 1
+                    continue
+                }
                 if arg_index < this.enum_variant_signatures[i].payload_ty_names.len() {
                     return this.enum_variant_signatures[i].payload_ty_names[arg_index]
                 }
@@ -99,14 +123,17 @@ impl Resolver {
 
     string match_pattern_to_string(MatchPattern pattern) {
         var out = pattern.tag.lexeme
-        if pattern.binders.len() == 0 {
+        if pattern.children.len() == 0 {
+            if pattern.has_group {
+                return out + "()"
+            }
             return out
         }
         out = out + "("
         var i = 0
-        while i < pattern.binders.len() {
-            out = out + pattern.binders[i].lexeme
-            if i + 1 < pattern.binders.len() {
+        while i < pattern.children.len() {
+            out = out + this.match_pattern_to_string(pattern.children[i])
+            if i + 1 < pattern.children.len() {
                 out = out + ", "
             }
             i = i + 1

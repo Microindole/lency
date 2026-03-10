@@ -1,0 +1,73 @@
+// tests/example/selfhost/driver/steps/resolver_defense.lcy
+// Resolver defensive and signature precedence checks split from test_entry.
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.syntax.token
+import lencyc.sema.resolver
+
+bool run_resolver_preload_defensive_tests() {
+    print("Step 11.5: Resolver declaration preload defensive tests...\n")
+    var invalid_decl_program = make_program(vec![make_decl_base(DECL_UNKNOWN())], vec![])
+    var invalid_decl_result = resolve_program(invalid_decl_program)
+    if !invalid_decl_result.has_error {
+        print("Resolver defensive test failed: DECL_UNKNOWN preload should report error.\n")
+        return false
+    }
+    print("Resolver defensive test passed: DECL_UNKNOWN preload reports error.\n")
+    var mismatch_stmt = make_stmt_function(
+        make_token(T_IDENTIFIER(), "foo", 1, 1),
+        make_type_ref(TYPE_UNKNOWN(), "int"),
+        vec![],
+        vec![],
+        vec![]
+    )
+    mismatch_stmt.decl.kind = DECL_STRUCT()
+    if !has_decl_payload_mismatch(mismatch_stmt) {
+        print("Decl payload mismatch defensive test failed: mismatch should be detected.\n")
+        return false
+    }
+    var mismatch_decl = stmt_to_decl(mismatch_stmt)
+    if mismatch_decl.kind != DECL_UNKNOWN() {
+        print("Decl payload mismatch defensive test failed: stmt_to_decl should return DECL_UNKNOWN.\n")
+        return false
+    }
+    print("Decl payload mismatch defensive test passed.\n")
+    var sig_resolver = make_resolver()
+    sig_resolver.preload_enum_variant_signature("Result", "Ok", vec![TYPE_UNKNOWN()], vec!["unknown"])
+    sig_resolver.preload_enum_variant_signature("Result", "Ok", vec![TYPE_INT()], vec!["int"])
+    if sig_resolver.lookup_enum_constructor_param_type("Ok", 0) != TYPE_INT() {
+        print("Signature precedence test failed: latest enum payload type should win.\n")
+        return false
+    }
+    if sig_resolver.lookup_enum_constructor_param_type_name("Ok", 0) != "int" {
+        print("Signature precedence test failed: latest enum payload type-name should win.\n")
+        return false
+    }
+    sig_resolver.function_signatures.push(
+        make_function_signature("demo", TYPE_UNKNOWN(), vec![TYPE_UNKNOWN()], "unknown", vec!["unknown"], "")
+    )
+    sig_resolver.function_signatures.push(
+        make_function_signature("demo", TYPE_INT(), vec![TYPE_INT()], "int", vec!["int"], "")
+    )
+    if sig_resolver.lookup_user_function_return_type("demo") != TYPE_INT() {
+        print("Signature precedence test failed: latest function return type should win.\n")
+        return false
+    }
+    if sig_resolver.lookup_user_function_param_type("demo", 0) != TYPE_INT() {
+        print("Signature precedence test failed: latest function param type should win.\n")
+        return false
+    }
+    sig_resolver.function_signatures.push(
+        make_function_signature("demo_enum", TYPE_NAMED(), vec![], "Status", vec![], "")
+    )
+    sig_resolver.function_signatures.push(
+        make_function_signature("demo_enum", TYPE_NAMED(), vec![], "Status", vec![], "Status")
+    )
+    if sig_resolver.lookup_user_function_return_enum_name("demo_enum") != "Status" {
+        print("Signature precedence test failed: latest function return enum-name should win.\n")
+        return false
+    }
+    print("Signature precedence test passed.\n")
+    return true
+}

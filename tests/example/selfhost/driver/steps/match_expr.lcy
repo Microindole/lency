@@ -113,6 +113,24 @@ bool run_match_and_enum_payload_tests() {
         print("Match payload pattern AST shape mismatch.\n")
         return false
     }
+    var nested_payload_pattern_source = read_match_case_or_empty("tests/example/parser/match_payload_nested_pattern.lcy")
+    if nested_payload_pattern_source == "" {
+        return false
+    }
+    var nested_payload_pattern_parser = make_parser(nested_payload_pattern_source)
+    var nested_payload_pattern_program = nested_payload_pattern_parser.parse_program()
+    if nested_payload_pattern_parser.has_error {
+        print("Match nested payload pattern parse failed unexpectedly.\n")
+        return false
+    }
+    if nested_payload_pattern_program.statements.len() < 4 || nested_payload_pattern_program.statements[3].kind != STMT_VAR_DECL() {
+        print("Match nested payload pattern AST kind mismatch.\n")
+        return false
+    }
+    if !contains(stmt_to_string(nested_payload_pattern_program.statements[3]), "(var y = (match m {Quit => 0, Wrap(Num(v)) => v, Wrap(Text(msg)) => 1}))") {
+        print("Match nested payload pattern AST shape mismatch.\n")
+        return false
+    }
     if !expect_shared_resolve_success(src_resolver_enum_match_exhaustive_ok(), "enum match exhaustive positive") {
         return false
     }
@@ -144,6 +162,15 @@ bool run_match_and_enum_payload_tests() {
         return false
     }
     if !expect_shared_resolve_error(src_resolver_enum_payload_match_bind_duplicate_bad(), "enum payload match binder duplicate negative") {
+        return false
+    }
+    if !expect_shared_resolve_success(src_resolver_enum_payload_match_nested_ok(), "enum payload nested pattern positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_payload_match_nested_unknown_variant_bad(), "enum payload nested pattern unknown variant negative") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_payload_match_nested_arity_bad(), "enum payload nested pattern arity negative") {
         return false
     }
     if !expect_shared_resolve_success(src_resolver_enum_flow_function_return_ok(), "enum flow function return positive") {

@@ -14,14 +14,17 @@ ExprStringVisitor make_expr_string_visitor() {
 impl ExprStringVisitor {
     string pattern_to_string(MatchPattern pattern) {
         var out = pattern.tag.lexeme
-        if pattern.binders.len() == 0 {
+        if pattern.children.len() == 0 {
+            if pattern.has_group {
+                return out + "()"
+            }
             return out
         }
         out = out + "("
         var i = 0
-        while i < pattern.binders.len() {
-            out = out + pattern.binders[i].lexeme
-            if i + 1 < pattern.binders.len() {
+        while i < pattern.children.len() {
+            out = out + this.pattern_to_string(pattern.children[i])
+            if i + 1 < pattern.children.len() {
                 out = out + ", "
             }
             i = i + 1

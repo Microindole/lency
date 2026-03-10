@@ -56,13 +56,15 @@ EnumVariant make_enum_variant(string name, Vec<TypeRef> payload_types) {
 
 struct MatchPattern {
     Token tag
-    Vec<Token> binders
+    Vec<MatchPattern> children
+    bool has_group
 }
 
-MatchPattern make_match_pattern(Token tag, Vec<Token> binders) {
+MatchPattern make_match_pattern(Token tag, Vec<MatchPattern> children, bool has_group) {
     return MatchPattern {
         tag: tag,
-        binders: binders
+        children: children,
+        has_group: has_group
     }
 }
 
