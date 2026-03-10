@@ -46,7 +46,42 @@ impl Emitter {
     }
 
     pub(super) fn parse_i64_literal(op: &str) -> Option<i64> {
+        if op == "true" {
+            return Some(1);
+        }
+        if op == "false" || op == "null" {
+            return Some(0);
+        }
+        if let Some(v) = Self::parse_char_literal(op) {
+            return Some(v);
+        }
         op.parse::<i64>().ok()
+    }
+
+    fn parse_char_literal(op: &str) -> Option<i64> {
+        if op.len() < 3 || !op.starts_with('\'') || !op.ends_with('\'') {
+            return None;
+        }
+        let inner = &op[1..op.len() - 1];
+        let value = if let Some(escaped) = inner.strip_prefix('\\') {
+            match escaped {
+                "n" => '\n',
+                "r" => '\r',
+                "t" => '\t',
+                "0" => '\0',
+                "'" => '\'',
+                "\\" => '\\',
+                _ => return None,
+            }
+        } else {
+            let mut chars = inner.chars();
+            let ch = chars.next()?;
+            if chars.next().is_some() {
+                return None;
+            }
+            ch
+        };
+        Some(value as i64)
     }
 
     pub(super) fn ensure_i64(&mut self, repr: String, ty: ValueType) -> (String, ValueType) {

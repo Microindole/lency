@@ -111,7 +111,7 @@
 - `match` literal pattern 语义已接入：非 enum 目标仅允许字面量或 `_`，并校验 pattern 与目标类型一致性（含 `null`）；非法标识符 pattern 现在会显式报错。
 - `match` arm guard 第一版已接入：支持 `pattern if (cond) => ...`，resolver 会校验 `cond` 为 `bool`；guard 分支不参与 enum 穷尽性覆盖计数（保守策略），并补齐正/负例回归。
 - guard 语法负例回归已补：`if` 后缺失括号（如 `1 if true => ...`）会在 parser 阶段稳定报错，防止 guard 语法约束回退。
-- selfhost 后端已补齐 `match` 最小 lowering（数字 literal + `_` + guard 子集），并新增 runtime 端到端回归 `tests/example/runtime/lencyc_run_match_guard.lcy`；复杂 pattern lowering 仍以 TODO 挂账。
+- selfhost 后端已补齐 `match` 最小 lowering（number/bool/null/char literal + `_` + guard 子集），并新增 runtime 端到端回归 `tests/example/runtime/lencyc_run_match_guard.lcy`、`tests/example/runtime/lencyc_run_match_bool_null.lcy` 与 `tests/example/runtime/lencyc_run_match_char.lcy`；复杂 pattern lowering 仍以 TODO 挂账。
 - codegen 结构收敛：`lencyc/codegen/lir.lcy` 的 `match` lowering helper 已下沉到 `lencyc/codegen/lir/match_expr.lcy`，主发射器文件职责进一步聚焦表达式分派与通用控制流。
 - 函数签名的 enum 返回名查找已改为“后写优先”（`lookup_user_function_return_enum_name`），避免历史签名覆盖新签名。
 - import 语义第一版已接入：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）。

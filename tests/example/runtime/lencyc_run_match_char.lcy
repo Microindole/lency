@@ -1,0 +1,13 @@
+// Runtime smoke case: match lowering supports char literal patterns.
+// @expect-exit: 0
+
+var ch = 'x'
+var code = match (ch) {
+  'x' => 6,
+  _ => 1
+}
+
+if code == 6 {
+  return 0
+}
+return 9

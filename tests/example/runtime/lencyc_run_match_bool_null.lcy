@@ -1,0 +1,19 @@
+// Runtime smoke case: match lowering supports bool/null literal patterns.
+// @expect-exit: 0
+
+var flag = true
+var a = match (flag) {
+  true => 3,
+  _ => 1
+}
+
+var nothing = null
+var b = match (nothing) {
+  null => 4,
+  _ => 2
+}
+
+if a + b == 7 {
+  return 0
+}
+return 9

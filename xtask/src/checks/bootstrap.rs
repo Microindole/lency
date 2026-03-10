@@ -23,14 +23,23 @@ pub(crate) fn bootstrap_check() -> Result<()> {
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
         .unwrap_or(false);
 
-    step(
-        "B1. Compiling Rust Host Compiler (release lencyc)",
-        || run_cmd("cargo", &["build", "--release", "-p", "lency_cli"], false, &[], &[0]),
-    )?;
+    step("B1. Compiling Rust Host Compiler (release lencyc)", || {
+        run_cmd(
+            "cargo",
+            &["build", "--release", "-p", "lency_cli"],
+            false,
+            &[],
+            &[0],
+        )
+    })?;
     let rust_lency_exec = resolve_exec(&rust_lency_exec_base)?;
 
-    fs::create_dir_all(out_dir)
-        .with_context(|| format!("failed to create bootstrap output dir: {}", out_dir.display()))?;
+    fs::create_dir_all(out_dir).with_context(|| {
+        format!(
+            "failed to create bootstrap output dir: {}",
+            out_dir.display()
+        )
+    })?;
 
     step("B2. Building Stage1 Compiler with Rust Host", || {
         run_cmd(
@@ -52,13 +61,31 @@ pub(crate) fn bootstrap_check() -> Result<()> {
 
     step(
         "B3. Building Stage2 Compiler from Stage1 emitted LIR",
-        || build_next_stage(&stage1_exec, &rust_lency_exec, compiler_source, &stage2_compiler_lir, out_dir, stage2_name),
+        || {
+            build_next_stage(
+                &stage1_exec,
+                &rust_lency_exec,
+                compiler_source,
+                &stage2_compiler_lir,
+                out_dir,
+                stage2_name,
+            )
+        },
     )?;
     let stage2_exec = resolve_exec(&out_dir.join(stage2_name))?;
 
     step(
         "B4. Building Stage3 Compiler from Stage2 emitted LIR",
-        || build_next_stage(&stage2_exec, &rust_lency_exec, compiler_source, &stage3_compiler_lir, out_dir, stage3_name),
+        || {
+            build_next_stage(
+                &stage2_exec,
+                &rust_lency_exec,
+                compiler_source,
+                &stage3_compiler_lir,
+                out_dir,
+                stage3_name,
+            )
+        },
     )?;
     let stage3_exec = resolve_exec(&out_dir.join(stage3_name))?;
 
@@ -71,31 +98,38 @@ pub(crate) fn bootstrap_check() -> Result<()> {
         )
     })?;
 
-    step(
-        "B6. Comparing Stage2/Stage3 sample output LIR",
-        || {
-            emit_lir_with_compiler(&stage2_exec, sample_input, &stage2_sample_lir)?;
-            emit_lir_with_compiler(&stage3_exec, sample_input, &stage3_sample_lir)?;
-            compare_files_exact(
-                &stage2_sample_lir,
-                &stage3_sample_lir,
-                "stage2_sample.lir",
-                "stage3_sample.lir",
-            )
-        },
-    )?;
+    step("B6. Comparing Stage2/Stage3 sample output LIR", || {
+        emit_lir_with_compiler(&stage2_exec, sample_input, &stage2_sample_lir)?;
+        emit_lir_with_compiler(&stage3_exec, sample_input, &stage3_sample_lir)?;
+        compare_files_exact(
+            &stage2_sample_lir,
+            &stage3_sample_lir,
+            "stage2_sample.lir",
+            "stage3_sample.lir",
+        )
+    })?;
 
     step("B7. Running Stage2/Stage3 smoke pipeline", || {
         run_cmd(
             &stage2_exec,
-            &[&sample_input.to_string_lossy(), "--emit-lir", "-o", &stage2_sample_lir.to_string_lossy()],
+            &[
+                &sample_input.to_string_lossy(),
+                "--emit-lir",
+                "-o",
+                &stage2_sample_lir.to_string_lossy(),
+            ],
             true,
             &[],
             &[0],
         )?;
         run_cmd(
             &stage3_exec,
-            &[&sample_input.to_string_lossy(), "--emit-lir", "-o", &stage3_sample_lir.to_string_lossy()],
+            &[
+                &sample_input.to_string_lossy(),
+                "--emit-lir",
+                "-o",
+                &stage3_sample_lir.to_string_lossy(),
+            ],
             true,
             &[],
             &[0],
@@ -104,9 +138,7 @@ pub(crate) fn bootstrap_check() -> Result<()> {
 
     step("B8. Optional strict binary comparison", || {
         if !strict_binary {
-            println!(
-                "skip strict binary compare (set LENCY_BOOTSTRAP_STRICT_BINARY=1 to enable)"
-            );
+            println!("skip strict binary compare (set LENCY_BOOTSTRAP_STRICT_BINARY=1 to enable)");
             // TODO: keep strict mode opt-in until toolchain reproducibility is fully controlled in CI.
             return Ok(());
         }
@@ -147,7 +179,11 @@ fn build_next_stage(
     )
 }
 
-fn emit_lir_with_compiler(compiler_exec: &Path, input_file: &Path, output_lir: &Path) -> Result<()> {
+fn emit_lir_with_compiler(
+    compiler_exec: &Path,
+    input_file: &Path,
+    output_lir: &Path,
+) -> Result<()> {
     run_cmd(
         compiler_exec,
         &[
@@ -163,10 +199,10 @@ fn emit_lir_with_compiler(compiler_exec: &Path, input_file: &Path, output_lir: &
 }
 
 fn compare_files_exact(left: &Path, right: &Path, left_name: &str, right_name: &str) -> Result<()> {
-    let left_bytes =
-        fs::read(left).with_context(|| format!("failed to read comparison file: {}", left.display()))?;
-    let right_bytes =
-        fs::read(right).with_context(|| format!("failed to read comparison file: {}", right.display()))?;
+    let left_bytes = fs::read(left)
+        .with_context(|| format!("failed to read comparison file: {}", left.display()))?;
+    let right_bytes = fs::read(right)
+        .with_context(|| format!("failed to read comparison file: {}", right.display()))?;
     if left_bytes != right_bytes {
         bail!(
             "bootstrap mismatch: {} != {} ({} vs {})",

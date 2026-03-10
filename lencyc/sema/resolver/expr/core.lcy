@@ -19,6 +19,9 @@ impl Resolver {
             if expr.literal_value.kind == T_STRING_LITERAL() {
                 return TYPE_STRING()
             }
+            if expr.literal_value.kind == T_CHAR_LITERAL() {
+                return TYPE_INT()
+            }
             if expr.literal_value.kind == T_NULL() {
                 return TYPE_NULL()
             }

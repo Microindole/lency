@@ -16,8 +16,20 @@ impl LirBuilder {
         return pattern.tag.kind == T_IDENTIFIER() && pattern.tag.lexeme == "_"
     }
 
-    bool is_numeric_literal_pattern(MatchPattern pattern) {
-        return pattern.tag.kind == T_NUMBER() && pattern.children.len() == 0 && !pattern.has_group
+    bool is_lowerable_literal_pattern(MatchPattern pattern) {
+        if pattern.children.len() != 0 || pattern.has_group {
+            return false
+        }
+        if pattern.tag.kind == T_NUMBER() {
+            return true
+        }
+        if pattern.tag.kind == T_TRUE() || pattern.tag.kind == T_FALSE() || pattern.tag.kind == T_NULL() {
+            return true
+        }
+        if pattern.tag.kind == T_CHAR_LITERAL() {
+            return true
+        }
+        return false
     }
 
     string emit_expr_match(Expr expr) {
@@ -40,12 +52,12 @@ impl LirBuilder {
             if this.is_wildcard_pattern(pattern) {
                 this.emit_line("  jmp " + arm_value_label)
             } else {
-                if this.is_numeric_literal_pattern(pattern) {
+                if this.is_lowerable_literal_pattern(pattern) {
                     var cond = this.new_temp()
                     this.emit_line("  " + cond + " = cmp_eq " + target + ", " + pattern.tag.lexeme)
                     this.emit_line("  br " + cond + ", " + arm_value_label + ", " + next_label)
                 } else {
-                    // TODO: Extend match lowering beyond numeric literal + wildcard pattern subset.
+                    // TODO: Extend match lowering beyond literal(bool/null/number/char) + wildcard subset.
                     this.emit_line("  jmp " + next_label)
                 }
             }

@@ -16,7 +16,7 @@ impl Parser {
                 false
             )
         }
-        if this.match_token(T_IDENTIFIER()) || this.match_token(T_NUMBER()) || this.match_token(T_STRING_LITERAL()) || this.match_token(T_TRUE()) || this.match_token(T_FALSE()) || this.match_token(T_NULL()) {
+        if this.match_token(T_IDENTIFIER()) || this.match_token(T_NUMBER()) || this.match_token(T_STRING_LITERAL()) || this.match_token(T_CHAR_LITERAL()) || this.match_token(T_TRUE()) || this.match_token(T_FALSE()) || this.match_token(T_NULL()) {
             var tag = this.previous
             var children = vec![]
             var has_group = false

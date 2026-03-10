@@ -116,4 +116,4 @@ var code = match (m) {
 
 > TODO: `match` 的嵌套/复杂模式（例如更深层结构解构）尚未接入。
 > FIXME: 自举链路仍存在 `TYPE_UNKNOWN` 兼容路径，复杂组合场景可能把类型错误降级为弱诊断。
-> TODO: selfhost LIR 后端当前仅保证 `match` 的数字 literal / `_` / 基础 guard 可运行；更完整的 pattern lowering 仍待扩展。
+> TODO: selfhost LIR 后端当前仅保证 `match` 的 number/bool/null/char literal / `_` / 基础 guard 可运行；更完整的 pattern lowering 仍待扩展。
