@@ -147,6 +147,7 @@ string src_resolver_enum_flow_multi_call_chain_mismatch_bad() { return "enum Sta
 string src_resolver_enum_flow_grouped_callee_chain_ok() { return "enum Status {\n  Idle,\n  Running,\n  Done\n}\nStatus id(Status s) {\n  return s\n}\nStatus make_status() {\n  return Running()\n}\nvar s = (id)(id(make_status()))\nvar code = match (s) {\n  Idle => 0,\n  Running => 1,\n  Done => 2\n}\nreturn code"; }
 string src_resolver_enum_flow_grouped_callee_chain_mismatch_bad() { return "enum Status {\n  Idle,\n  Running,\n  Done\n}\nenum Traffic {\n  Red,\n  Green\n}\nStatus id(Status s) {\n  return s\n}\nTraffic make_traffic() {\n  return Green()\n}\nvar s = (id)(id(make_traffic()))\nreturn 0"; }
 string src_resolver_non_enum_match_literal_ok() { return "var x = 1\nvar y = match (x) {\n  0 => 10,\n  1 => 20,\n  _ => 30\n}\nvar z = match (null) {\n  null => 1,\n  _ => 0\n}\nreturn y + z"; }
+string src_resolver_non_enum_match_char_literal_ok() { return "var x = 'x'\nvar y = match (x) {\n  'x' => 10,\n  _ => 0\n}\nreturn y"; }
 string src_resolver_non_enum_match_literal_type_mismatch_bad() { return "var x = 1\nvar y = match (x) {\n  \"1\" => 10,\n  _ => 0\n}\nreturn y"; }
 string src_resolver_non_enum_match_identifier_pattern_bad() { return "var x = 1\nvar y = match (x) {\n  foo => 10,\n  _ => 0\n}\nreturn y"; }
 string src_resolver_match_guard_bool_ok() { return "var x = 1\nvar y = match (x) {\n  1 if (true) => 10,\n  _ => 0\n}\nreturn y"; }

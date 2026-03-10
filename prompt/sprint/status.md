@@ -9,13 +9,19 @@
 
 ## 1. 双链路现状基线
 - Rust 主链路：
-  - `crates/` 源码文件：175
-  - `tests/integration/` 文件：74
+  - `crates/` 文件：178
+  - `tests/integration/` 文件：75
   - 能力层级：语法/语义/单态化/LLVM codegen/CLI 已成体系
 - Lency 自举链路：
-  - `lencyc/` 源码文件：26
-  - `tests/example/` 文件：25（已按 `lir/runtime/parser/modules/selfhost` 分层）
+  - `lencyc/` `.lcy` 文件：34
+  - `tests/example/` 文件：38（已按 `lir/runtime/parser/modules/selfhost` 分层）
   - 能力层级：最小语法与最小语义可运行，后端与类型系统仍是子集
+  - 统计口径：递归文件计数（Windows `Get-ChildItem -Recurse -File`；`lencyc` 按 `*.lcy` 计）
+
+## 1.5 版本口径（用于回答“Rust/Lency 当前版本”）
+- Rust toolchain：`rustc 1.87.0 (17067e9ac 2025-05-09)`。
+- Rust 主链路 crate：`crates/*/Cargo.toml` 版本当前统一为 `0.1.0`。
+- Lency selfhost：`lencyc/driver/main.lcy` banner 为 `v0.1.0`。
 
 ## 2. Sprint 状态
 
@@ -107,6 +113,7 @@
 - [x] `match` arm guard 第一版已接入：支持 `pattern if (cond)` 解析与 `bool` 条件校验，guard 分支按保守策略不计入 enum 穷尽覆盖
 - [x] guard 语法负例回归已补：`if` 后缺失括号会在 parser 阶段稳定报错（防止 guard 语法约束回退）
 - [x] selfhost LIR 后端已接入 `match` 最小 lowering（number/bool/null/char literal + `_` + guard 子集），并新增 runtime 端到端回归
+- [x] Step 29 已补 non-enum `char literal` pattern 语义正例回归（resolver 路径）
 - [x] 新增 `xtask bootstrap-check`（stage1→stage2→stage3 收敛验证）并接入独立 CI 工作流（仅手动或 `bootstrap-check/**` tag 触发）
 - [x] import 语义第一版：非 `std.*` 模块支持文件加载 + 声明符号导入（函数/类型/enum 构造器）
 - [x] `std.*` 已切到模块源码签名自动导入：递归解析 `import std.*` 并预加载声明签名（移除最小符号预加载依赖）

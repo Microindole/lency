@@ -249,6 +249,9 @@ bool run_match_and_enum_payload_tests() {
     if !expect_shared_resolve_success(src_resolver_non_enum_match_literal_ok(), "non-enum match literal positive") {
         return false
     }
+    if !expect_shared_resolve_success(src_resolver_non_enum_match_char_literal_ok(), "non-enum match char literal positive") {
+        return false
+    }
     if !expect_shared_resolve_error(src_resolver_non_enum_match_literal_type_mismatch_bad(), "non-enum match literal type mismatch negative") {
         return false
     }
