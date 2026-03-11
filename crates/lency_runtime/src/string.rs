@@ -7,6 +7,11 @@ use std::os::raw::c_char;
 
 use crate::LencyVec;
 
+fn is_obviously_invalid_c_string_ptr(ptr: *const c_char) -> bool {
+    let addr = ptr as usize;
+    addr != 0 && addr < 4096
+}
+
 /// 比较两个字符串是否内容相等
 ///
 /// # Safety
@@ -15,6 +20,11 @@ use crate::LencyVec;
 pub unsafe extern "C" fn lency_string_eq(lhs: *const c_char, rhs: *const c_char) -> i64 {
     if lhs.is_null() || rhs.is_null() {
         return if lhs == rhs { 1 } else { 0 };
+    }
+    // FIXME: This low-address guard is a defensive stopgap for self-host runtime
+    // crashes when a scalar payload is misused as a string handle on Linux.
+    if is_obviously_invalid_c_string_ptr(lhs) || is_obviously_invalid_c_string_ptr(rhs) {
+        return 0;
     }
 
     let lhs_str = unsafe { CStr::from_ptr(lhs) };
@@ -449,6 +459,24 @@ mod tests {
         assert_eq!(
             unsafe { lency_string_eq(std::ptr::null(), std::ptr::null()) },
             1
+        );
+    }
+
+    #[test]
+    fn test_string_eq_rejects_obviously_invalid_small_pointers() {
+        assert!(is_obviously_invalid_c_string_ptr(1usize as *const c_char));
+        assert!(is_obviously_invalid_c_string_ptr(
+            4095usize as *const c_char
+        ));
+        assert!(!is_obviously_invalid_c_string_ptr(std::ptr::null()));
+        assert!(!is_obviously_invalid_c_string_ptr(
+            4096usize as *const c_char
+        ));
+
+        let rhs = CString::new("hello").unwrap();
+        assert_eq!(
+            unsafe { lency_string_eq(8usize as *const c_char, rhs.as_ptr()) },
+            0
         );
     }
 
