@@ -247,7 +247,10 @@ pub(crate) fn run_runtime_cases(
             )?;
             let out_exe = resolve_exec(&output_base)?;
             let run_args_ref: Vec<&str> = meta.run_args.iter().map(String::as_str).collect();
-            run_cmd(&out_exe, &run_args_ref, true, &[], &[meta.expect_exit])?;
+            println!("runtime case: {}", case.display());
+            println!("runtime lir: {}", emit_path.display());
+            println!("runtime exe: {}", out_exe.display());
+            run_cmd(&out_exe, &run_args_ref, false, &[], &[meta.expect_exit])?;
         }
         Ok(())
     })
