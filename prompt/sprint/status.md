@@ -1,11 +1,11 @@
 # Sprint 状态总结
 
-更新时间：2026-03-10
+更新时间：2026-03-13
 
 ## 0. 当前结论（先看）
 - `lencyc` 已完成最小自举闭环：`Read -> Lex -> Parse -> Resolve -> Emit(AST/LIR)`。
 - 与 Rust 主链路仍有显著差距，不能再使用“~98% 准备度”这类失真数字。
-- 当前主线：继续补 Sema 拦截密度，并扩 selfhost `match` lowering 覆盖；不要再回头把 parser 当主战场。
+- 当前主线：Sprint 18 语义主缺口已基本收口，开始把重点转向 selfhost codegen/runtime 能力提升；不要再回头把 parser 当主战场。
 
 ## 1. 双链路现状基线
 - Rust 主链路：
@@ -121,6 +121,7 @@
 - [x] `match` 嵌套 payload guard binder 回归已补，覆盖 `Wrap(Text(msg)) if (...)` 路径
 - [x] `match` 嵌套 payload 模式已支持字面量 leaf（如 `Wrap(Num(1))`），并补充类型负例
 - [x] enum 类型流已扩展到 grouped constructor + grouped callee 组合调用，并补 resolver 正例
+- [x] enum 类型流已扩展到“match 结果作为函数实参”的多层调用链路，并补充跨 enum 负例，修复 `assign/match/grouping` 类型名传播缺口
 - [x] selfhost runtime 已补 `match_guard_combo` 回归，覆盖多 guard arm 顺序与回退路径
 - [x] selfhost `match` lowering 已扩展到 `string literal`，并补 Rust LIR 编译层与 runtime 回归
 - [x] selfhost `match` lowering 已接入递归 enum payload mixed pattern lowering，覆盖 constructor lowering、tag/payload runtime ABI、5 payload constructor 与更深 nested payload runtime 回归
@@ -137,8 +138,8 @@
 - [x] nullable 签名语义已接入（`int?/string?/bool?/float?` + 自定义 `Type?`），且自定义可空类型不再走 `TYPE_UNKNOWN` 兼容放行
 
 未完成：
-- [ ] TODO: enum 类型流在更复杂控制流/多层调用组合场景继续增强（当前已覆盖函数返回、match 中间表达式、赋值链、grouped callee/constructor、参数透传、派生局部变量、block 遮蔽与 if/while 写回）
 - [x] resolver expr 已切到 visitor 风格分派骨架：`resolve_expr` 仅保留入口，具体 kind 逻辑下沉到 `visit_expr_*`
+- [ ] TODO: selfhost codegen/runtime 继续补齐真实 stdlib/样例仍受限的 lowering 能力（当前语义主缺口已不再是 enum 类型流）
 
 ## 3. 与 Rust 使用水平的差距评估（2026-03-07）
 - 前端语法能力：约 35%

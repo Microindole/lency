@@ -117,6 +117,12 @@ bool run_match_resolver_semantic_tests(string match_source) {
     if !expect_shared_resolve_error(src_resolver_enum_flow_while_writeback_mismatch_bad(), "enum flow while writeback mismatch negative") {
         return false
     }
+    if !expect_shared_resolve_success(src_resolver_enum_flow_match_arg_chain_ok(), "enum flow match arg chain positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_enum_flow_match_arg_chain_mismatch_bad(), "enum flow match arg chain mismatch negative") {
+        return false
+    }
     if !expect_shared_resolve_success(src_resolver_non_enum_match_literal_ok(), "non-enum match literal positive") {
         return false
     }

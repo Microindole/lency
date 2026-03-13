@@ -79,6 +79,43 @@ impl Resolver {
                 }
             }
         }
+        if expr.kind == EXPR_ASSIGN() {
+            if expr.children.len() > 0 {
+                var rhs_name = this.infer_expr_type_name(expr.children[0], resolved_ty)
+                if rhs_name != "" {
+                    return rhs_name
+                }
+            }
+            return this.lookup_typed_symbol_name(expr.literal_value.lexeme)
+        }
+        if expr.kind == EXPR_MATCH() {
+            if expr.children.len() <= 1 {
+                return ""
+            }
+            var result_name = ""
+            var i = 1
+            while i < expr.children.len() {
+                var arm_name = this.infer_expr_type_name(expr.children[i], TYPE_UNKNOWN())
+                if arm_name == "" {
+                    arm_name = this.infer_expr_enum_name(expr.children[i])
+                }
+                if arm_name == "" {
+                    return ""
+                }
+                if result_name == "" {
+                    result_name = arm_name
+                } else {
+                    if result_name != arm_name {
+                        return ""
+                    }
+                }
+                i = i + 1
+            }
+            return result_name
+        }
+        if expr.kind == EXPR_GROUPING() && expr.children.len() > 0 {
+            return this.infer_expr_type_name(expr.children[0], resolved_ty)
+        }
         if resolved_ty != TYPE_UNKNOWN() {
             return this.type_to_string(resolved_ty)
         }
