@@ -41,6 +41,7 @@ npm run package:vsix
 
 - Main project release tags use `vX.Y.Z`
 - VSCode extension release tags use `evX.Y.Z`
+- VSCode extension packaging syncs `package.json` version from the `ev` tag inside CI before building the `.vsix`
 
 Do not mix them. The extension is packaged by the root workflow:
 

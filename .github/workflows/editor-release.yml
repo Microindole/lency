@@ -49,14 +49,9 @@ jobs:
         working-directory: editors/vscode
         run: npm ci
 
-      - name: Verify extension version matches tag
-        shell: bash
-        run: |
-          PKG_VERSION="$(node -p "require('./editors/vscode/package.json').version")"
-          if [ "${PKG_VERSION}" != "${{ steps.resolve.outputs.version }}" ]; then
-            echo "package.json version ${PKG_VERSION} does not match tag ${{ steps.resolve.outputs.version }}" >&2
-            exit 1
-          fi
+      - name: Sync extension version from tag
+        working-directory: editors/vscode
+        run: npm version ${{ steps.resolve.outputs.version }} --no-git-tag-version
 
       - name: Run editor checks
         working-directory: editors/vscode

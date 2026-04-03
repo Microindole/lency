@@ -24,6 +24,7 @@
 - 2026-04-03：monorepo 的 GitHub Actions / Dependabot 统一收口在仓库根目录 `.github/`；VSCode 扩展打包使用独立 workflow `editor-release.yml`，Dependabot 统一管理 `github-actions`、根级 `cargo` 和 `editors/vscode` 下的 `npm`。
 - 2026-04-03：`editors/vscode` 已补发布页必需元数据与打包忽略规则，并新增 `media/icon.png` 作为扩展图标；扩展发布不再只靠开发时的脚本和裸目录凑合。
 - 2026-04-03：版本 tag 口径已分流：主项目 release 使用 `vX.Y.Z`，VSCode 扩展 release 使用 `evX.Y.Z`；两条 release 线独立，不要再混用。
+- 2026-04-03：VSCode 扩展 release 已改为在 CI 中按 `evX.Y.Z` 自动写回 `editors/vscode/package.json` 的 `version` 后再打包 `.vsix`；插件 release 的版本真值现在以 tag 为准。
 - 前端现状：`match/enum payload/import/extern/null/泛型入口` 已接入；parser 当前不是主瓶颈。
 - 工具检查现状：`scripts/check_lencyc_meta.py` 已从返回类型白名单正则改为结构化词法扫描，并继续拆分为 `models/lexer/checker/runner` 模块；对应 Python `unittest` 已接入 `check-lency`，`lencyc/**/*.lcy` 的头注释与命名检查不再继续靠土味 regex 拼凑。
 - 语义现状：
