@@ -27,7 +27,7 @@ bitflags = "2.4"                                  # 位掩码标志
 
 # --- 2. 编译器前端 (Lexer & Parser) ---
 logos = "0.14"         # 极速词法分析器 (基于状态机生成)
-chumsky = "0.9"        # 极其优雅的 Parser Combinator (容错性强)
+chumsky = "0.12"        # 极其优雅的 Parser Combinator (容错性强)
 ariadne = "0.4"        # 漂亮的编译器报错 (Rust 风格)
 lasso = "0.7"          # 字符串驻留 (String Interning)，优化编译器性能
 
