@@ -1,0 +1,74 @@
+name: Dependabot Auto Review
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: ["main", "dev"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-auto-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auto-review:
+    name: Auto Approve And Auto Squash
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve safe Dependabot PR
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          (
+            steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
+            (
+              steps.metadata.outputs.package-ecosystem == 'github-actions' ||
+              (
+                steps.metadata.outputs.package-ecosystem == 'npm' &&
+                steps.metadata.outputs.dependency-type == 'direct:development'
+              )
+            )
+          )
+        run: gh pr review --approve "$PR_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+
+      - name: Enable auto-merge with squash
+        if: |
+          steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+          (
+            steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
+            (
+              steps.metadata.outputs.package-ecosystem == 'github-actions' ||
+              (
+                steps.metadata.outputs.package-ecosystem == 'npm' &&
+                steps.metadata.outputs.dependency-type == 'direct:development'
+              )
+            )
+          )
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+
+      - name: Scope Summary
+        run: |
+          {
+            echo "### CI Scope"
+            echo "- workflow: dependabot-auto.yml"
+            echo "- actor: ${{ github.event.pull_request.user.login }}"
+            echo "- update-type: ${{ steps.metadata.outputs.update-type }}"
+            echo "- ecosystem: ${{ steps.metadata.outputs.package-ecosystem }}"
+            echo "- dependency-type: ${{ steps.metadata.outputs.dependency-type }}"
+            echo "- action: approve + enable auto-merge with squash for patch updates and selected minor updates"
+          } >> "$GITHUB_STEP_SUMMARY"
