@@ -44,7 +44,7 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       lency: ${{ steps.filter.outputs.lency }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - id: filter
@@ -87,7 +87,7 @@ jobs:
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install LLVM
         run: |
           sudo apt-get update
@@ -105,7 +105,7 @@ jobs:
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install LLVM
         run: |
           sudo apt-get update
@@ -124,7 +124,7 @@ jobs:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
     if: (github.ref == 'refs/heads/main' && needs.changes.outputs.rust == 'true') || (github.event_name == 'workflow_dispatch' && inputs.run_full_matrix == 'true')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install LLVM
         run: |
           sudo apt-get update
@@ -145,7 +145,7 @@ jobs:
       # Use Rust v0 symbol mangling to avoid macOS ld64 symbol name length bug
       RUSTFLAGS: "-C symbol-mangling-version=v0"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install LLVM
         run: brew install llvm@15
       - uses: dtolnay/rust-toolchain@stable
@@ -162,7 +162,7 @@ jobs:
     env:
       LLVM15_WINDOWS_URL: https://github.com/Microindole/lency/releases/download/llvm-15.0.7-custom-v1/llvm-15.0.7-custom-windows-x86_64-msvc-x86only.zip
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate LLVM release URL
         shell: pwsh
         run: |
