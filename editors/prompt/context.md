@@ -26,6 +26,7 @@
 - 2026-04-03：VSCode 扩展打包/发布工作流统一放在仓库根目录 `.github/workflows/editor-release.yml`；Dependabot 也统一放在根目录 `.github/dependabot.yml`，不要在 `editors/` 里摆第二套假 `.github`。
 - 2026-04-03：VSCode 扩展已补发布用 `README.md`、`.vscodeignore` 与 `media/icon.png`；发布页图标与包内容收敛到可发布状态，不再是开发目录裸奔。
 - 2026-04-03：扩展发布 tag 口径已收口为 `evX.Y.Z`；主项目继续使用 `vX.Y.Z`，不要再把插件 tag 写成长串 `vscode-v...`。
+- 2026-04-03：扩展 release workflow 现已在 CI 内根据 `evX.Y.Z` 自动同步 `editors/vscode/package.json` 的 `version` 后再打包；tag 是唯一真值，不再要求手工先改版本号。
 
 ## 4. 已知边界
 
