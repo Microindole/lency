@@ -22,6 +22,7 @@
 - 模式可视化：状态栏 `Lency: LSP/Fallback`。
 - LSP 路径：支持 `lency.serverPath`（含 `${workspaceFolder}`）。
 - 配置热更新：修改 `lency.serverPath` 后自动重连并切换模式。
+- 2026-04-03：已提供 `Lency File Icons` 文件图标主题；选择该主题后，`.lcy` 文件会显示基于 `assets/lency-icon.svg` 语言徽记简化而来的扩展内置图标，而不是继续使用 VSCode 默认文档图标或纸张折角伪装。
 
 ## 4. 已知边界
 

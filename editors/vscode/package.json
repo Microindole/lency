@@ -61,6 +61,13 @@
                 "path": "./syntaxes/lency.tmLanguage.json"
             }
         ],
+        "iconThemes": [
+            {
+                "id": "lency-file-icons",
+                "label": "Lency File Icons",
+                "path": "./fileicons/lency-icon-theme.json"
+            }
+        ],
         "snippets": [
             {
                 "language": "lency",
