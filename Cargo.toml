@@ -23,7 +23,7 @@ clap = { version = "4.5", features = ["derive"] }  # 命令行参数解析
 colored = "2.1"                                   # 终端颜色
 anyhow = "1.0"                                    # 错误处理
 thiserror = "1.0"                                 # 自定义错误派生
-bitflags = "2.4"                                  # 位掩码标志
+bitflags = "2.11"                                  # 位掩码标志
 
 # --- 2. 编译器前端 (Lexer & Parser) ---
 logos = "0.14"         # 极速词法分析器 (基于状态机生成)
