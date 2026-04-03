@@ -4,11 +4,18 @@
     "description": "Professional industrial-grade support for Lency language (.lcy)",
     "version": "0.7.0",
     "publisher": "lency",
+    "icon": "media/icon.png",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Microindole/lency.git"
+    },
     "main": "./dist/extension.js",
     "scripts": {
         "build": "tsc -p .",
         "watch": "tsc -watch -p .",
         "test": "tsc -p . && node dist/test/index.js",
+        "package:vsix": "npm run build && npx @vscode/vsce package",
         "dev:ide": "node ../scripts/dev_ide.mjs",
         "dev:ide:check": "node ../scripts/dev_ide.mjs --check-only",
         "check:editor": "npm run build && node dist/test/index.js",
