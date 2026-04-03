@@ -34,7 +34,7 @@ lasso = "0.7"          # 字符串驻留 (String Interning)，优化编译器性
 # --- 3. 编译器后端 (LLVM) ---
 # 注意：inkwell 依赖系统安装的 LLVM。
 # 这里选择 llvm15 是因为它比较稳定。如果你的系统是 LLVM 16/17，请相应修改 feature
-inkwell = { version = "0.4", default-features = false, features = ["llvm15-0", "target-x86"] }
+inkwell = { version = "0.8", default-features = false, features = ["llvm15-0", "target-x86"] }
 
 # --- 4. 项目内相互依赖 (路径映射) ---
 lency_cli = { path = "crates/lency_cli" }
