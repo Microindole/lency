@@ -22,7 +22,7 @@
 - 模式可视化：状态栏 `Lency: LSP/Fallback`。
 - LSP 路径：支持 `lency.serverPath`（含 `${workspaceFolder}`）。
 - 配置热更新：修改 `lency.serverPath` 后自动重连并切换模式。
-- 2026-04-03：已提供 `Lency File Icons` 文件图标主题；选择该主题后，`.lcy` 文件会显示基于 `assets/lency-icon.svg` 语言徽记简化而来的扩展内置图标，而不是继续使用 VSCode 默认文档图标或纸张折角伪装。
+- 2026-04-03：`.lcy` 文件图标已改为走 VSCode 语言贡献里的原生 `languages[].icon`，不再额外提供 `Lency File Icons` 独立主题去抢用户现有 file icon theme。
 - 2026-04-03：VSCode 扩展打包/发布工作流统一放在仓库根目录 `.github/workflows/editor-release.yml`；Dependabot 也统一放在根目录 `.github/dependabot.yml`，不要在 `editors/` 里摆第二套假 `.github`。
 - 2026-04-03：VSCode 扩展已补发布用 `README.md`、`.vscodeignore` 与 `media/icon.png`；发布页图标与包内容收敛到可发布状态，不再是开发目录裸奔。
 - 2026-04-03：扩展发布 tag 口径已收口为 `evX.Y.Z`；主项目继续使用 `vX.Y.Z`，不要再把插件 tag 写成长串 `vscode-v...`。

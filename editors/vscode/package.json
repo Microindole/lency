@@ -58,6 +58,10 @@
                 "extensions": [
                     ".lcy"
                 ],
+                "icon": {
+                    "light": "./media/file-light.png",
+                    "dark": "./media/file-dark.png"
+                },
                 "configuration": "./language-configuration.json"
             }
         ],
@@ -66,13 +70,6 @@
                 "language": "lency",
                 "scopeName": "source.lcy",
                 "path": "./syntaxes/lency.tmLanguage.json"
-            }
-        ],
-        "iconThemes": [
-            {
-                "id": "lency-file-icons",
-                "label": "Lency File Icons",
-                "path": "./fileicons/lency-icon-theme.json"
             }
         ],
         "snippets": [

@@ -8,7 +8,7 @@ Professional support for the Lency language in Visual Studio Code.
 - Snippets for common language constructs
 - Local fallback diagnostics for common single-file issues
 - Optional LSP mode through `lency_ls`
-- File icon theme for `.lcy`
+- Native language file icon for `.lcy` in VS Code default-capable icon flows
 
 ## Requirements
 

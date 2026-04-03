@@ -20,7 +20,7 @@
 - 自举链路已打通：`Rust(v0) -> Lency(stage1) -> Lency(stage2/stage3) -> bootstrap-check(stage2/stage3 LIR 收敛)`。
 - 当前判断：已具备最小可用自举闭环，但离 Rust 主链路使用水平仍有明显代差。
 - 2026-04-03：`assets/lency-icon.svg` 已加入首版矢量图标，视觉口径按“结构清晰、显式边界、少魔法、自举递归”组织；后续若扩展到 editors/docs 资产，禁止偏离该方向做花哨装饰。
-- 2026-04-03：`editors/vscode` 已补 `Lency File Icons` 文件图标主题，`.lcy` 文件图标不再依赖默认文档图标；当前文件图标视觉已收口到 `assets/lency-icon.svg` 的品牌徽记方向，启用方式是 VSCode 手动切换文件图标主题，不存在偷偷强制覆盖用户全局设置这种蠢做法。
+- 2026-04-03：`editors/vscode` 的 `.lcy` 文件图标已收口到 VSCode 原生语言图标贡献 `languages[].icon`，不再额外提供独立 file icon theme 去覆盖用户现有图标主题；当前视觉继续跟随 `assets/lency-icon.svg` 的品牌徽记方向。
 - 2026-04-03：monorepo 的 GitHub Actions / Dependabot 统一收口在仓库根目录 `.github/`；VSCode 扩展打包使用独立 workflow `editor-release.yml`，Dependabot 统一管理 `github-actions`、根级 `cargo` 和 `editors/vscode` 下的 `npm`。
 - 2026-04-03：`editors/vscode` 已补发布页必需元数据与打包忽略规则，并新增 `media/icon.png` 作为扩展图标；扩展发布不再只靠开发时的脚本和裸目录凑合。
 - 2026-04-03：版本 tag 口径已分流：主项目 release 使用 `vX.Y.Z`，VSCode 扩展 release 使用 `evX.Y.Z`；两条 release 线独立，不要再混用。
