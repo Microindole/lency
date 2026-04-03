@@ -19,6 +19,8 @@
 ## 2. 当前边界
 - 自举链路已打通：`Rust(v0) -> Lency(stage1) -> Lency(stage2/stage3) -> bootstrap-check(stage2/stage3 LIR 收敛)`。
 - 当前判断：已具备最小可用自举闭环，但离 Rust 主链路使用水平仍有明显代差。
+- 2026-04-03：`assets/lency-icon.svg` 已加入首版矢量图标，视觉口径按“结构清晰、显式边界、少魔法、自举递归”组织；后续若扩展到 editors/docs 资产，禁止偏离该方向做花哨装饰。
+- 2026-04-03：`editors/vscode` 已补 `Lency File Icons` 文件图标主题，`.lcy` 文件图标不再依赖默认文档图标；当前文件图标视觉已收口到 `assets/lency-icon.svg` 的品牌徽记方向，启用方式是 VSCode 手动切换文件图标主题，不存在偷偷强制覆盖用户全局设置这种蠢做法。
 - 前端现状：`match/enum payload/import/extern/null/泛型入口` 已接入；parser 当前不是主瓶颈。
 - 工具检查现状：`scripts/check_lencyc_meta.py` 已从返回类型白名单正则改为结构化词法扫描，并继续拆分为 `models/lexer/checker/runner` 模块；对应 Python `unittest` 已接入 `check-lency`，`lencyc/**/*.lcy` 的头注释与命名检查不再继续靠土味 regex 拼凑。
 - 语义现状：
