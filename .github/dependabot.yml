@@ -6,9 +6,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 3
     cooldown:
-      semver-major-days: 14
-      semver-minor-days: 3
-      semver-patch-days: 1
+      default-days: 3
     commit-message:
       prefix: "build"
       include: "scope"
