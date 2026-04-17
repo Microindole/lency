@@ -62,7 +62,7 @@ jobs:
           (cd dist && sha256sum "lency-linux-x86_64-${TAG}.tar.gz" > "lency-linux-x86_64-${TAG}.sha256")
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.resolve_tag.outputs.tag }}
           generate_release_notes: true
