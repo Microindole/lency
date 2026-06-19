@@ -68,7 +68,7 @@ jobs:
           path: editors/vscode/dist/lency-lang-${{ steps.resolve.outputs.version }}.vsix
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.resolve.outputs.tag }}
           generate_release_notes: true
