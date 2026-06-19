@@ -23,7 +23,7 @@ jobs:
     name: Build Linux Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Resolve release tag
         id: resolve_tag
