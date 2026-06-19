@@ -19,7 +19,7 @@ jobs:
     name: Package VSIX
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
 
       - name: Resolve release version
         id: resolve

@@ -24,7 +24,7 @@ jobs:
     name: Stage Bootstrap Convergence
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Install LLVM
         run: |
           sudo apt-get update
