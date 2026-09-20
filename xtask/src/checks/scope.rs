@@ -38,8 +38,6 @@ fn is_lency_change(path: &str) -> bool {
 
 fn is_docs_change(path: &str) -> bool {
     path.starts_with("docs/")
-        || path.starts_with("prompt/")
-        || path.starts_with("assets/")
         || path.ends_with(".md")
         || path.ends_with(".txt")
 }
@@ -134,7 +132,7 @@ mod tests {
 
     #[test]
     fn scope_docs_only() {
-        let status = " M prompt/context.md\n?? docs/notes.md\n";
+        let status = " M docs/development/status.md\n?? docs/notes.md\n";
         assert_eq!(detect_check_scope_from_status(status), CheckScope::DocsOnly);
     }
 

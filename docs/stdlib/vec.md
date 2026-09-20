@@ -1,68 +1,19 @@
-# Vec 动态数组
+# Vec
 
-## 创建
-
-```lency
-// 字面量创建
-var numbers = vec![1, 2, 3]
-
-// 空向量（需要类型注解）
-Vec<int> empty = vec![]
-```
-
-## 方法
-
-| 方法 | 描述 |
-|------|------|
-| `len()` | 返回元素数量 |
-| `push(item)` | 添加元素到末尾 |
-| `get(index)` | 获取指定索引的元素 |
-| `set(index, value)` | 设置指定索引的值 |
-
-## 示例
+`Vec<T>` 是编译器内建集合类型，基础操作由 runtime 提供：
 
 ```lency
-int main() {
-    var v = vec![1, 2, 3]
-    
-    print(v.len())      // 3
-    print(v.get(0))     // 1
-    
-    v.push(4)
-    v.set(0, 10)
-    
-    print(v.get(0))     // 10
-    print(v.len())      // 4
-    
-    return 0
-}
+var values = vec![1, 2, 3]
+values.push(4)
+var size = values.len()
+var first = values.get(0)
+values.set(0, 10)
 ```
 
-## 遍历
+`lib/std/collections.lcy` 还定义了 `reverse`、`range`、查找和整数聚合等辅助函数。
 
-```lency
-import std.collections
+## 实现边界
 
-var items = vec![1, 2, 3, 4, 5]
-var iter = vec_iter(items)
-var sum = 0
-
-var opt = iter.next()
-while opt != null {
-    match opt {
-        case Some(value) => sum = sum + value
-        case None => break
-    }
-    opt = iter.next()
-}
-print(sum)  // 15
-```
-
-## 泛型
-
-Vec 支持任意类型：
-
-```lency
-Vec<string> names = vec!["Alice", "Bob"]
-Vec<Vec<int>> matrix = vec![vec![1, 2], vec![3, 4]]
-```
+- Rust 母体已有较完整的 Vec 与泛型回归。
+- selfhost 编译器内部会使用 vec-backed 数据结构，但这不等于任意 `Vec<T>` 程序都已能由 selfhost 端到端生成。
+- generic struct 包装和 impl 方法仍会阻塞标准库中部分抽象；推进时应以具体 runtime 用例为准。

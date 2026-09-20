@@ -1,20 +1,14 @@
-# 基础类型总览
+# 基础类型
 
-Lency 的核心基础类型：
+| 类型 | 含义 | 当前底层表示 |
+|---|---|---|
+| `int` | 有符号整数 | 64 位整数 |
+| `float` | 浮点数 | IEEE 754 双精度 |
+| `bool` | `true` / `false` | LLVM `i1` |
+| `char` | 字符值 | 当前按整数值参与部分 runtime 接口 |
+| `string` | 字符串 | runtime 管理的字符串句柄 |
+| `void` | 无返回值 | 仅用于无值结果 |
 
-- `int`: 整数类型
-- `float`: 浮点类型
-- `bool`: 布尔类型
-- `string`: 字符串类型
-- `void`: 无返回值类型（主要用于函数返回）
+Lency 是静态类型语言。赋值、函数实参和返回值应与声明类型一致；不要依赖未写入规范的隐式转换。
 
-## 文档分流
-
-- Bool: [bool.md](./bool.md)
-- Float: [float.md](./float.md)
-- Null 安全: [null-safety.md](./null-safety.md)
-
-## 说明
-
-类型系统在 Rust 主编译器与 Lency 自举编译器之间存在阶段差异。
-如需查看当前自举能力，优先参考 [README.md](../README.md) 的“实现状态（2026-03-04）”。
+可空类型写作 `T?`，详见[可空类型](./null-safety.md)。`Vec<T>`、结构体、枚举等复合类型的 selfhost 支持范围与基础类型不同，必须分别查看对应文档和 runtime 回归。

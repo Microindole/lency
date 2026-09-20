@@ -2,19 +2,9 @@
 <title id="title">Lency icon</title>
 <desc id="desc">A dynamic ribbon-like L emblem with a nested core, expressing clarity, structure, and bootstrap recursion.</desc>
 <defs>
-<linearGradient id="body" x1="60" y1="48" x2="182" y2="208" gradientUnits="userSpaceOnUse">
-<stop offset="0" stop-color="#0f3d56"/>
-<stop offset="0.52" stop-color="#165a67"/>
-<stop offset="1" stop-color="#1f7a74"/>
-</linearGradient>
-<linearGradient id="highlight" x1="116" y1="66" x2="210" y2="142" gradientUnits="userSpaceOnUse">
-<stop offset="0" stop-color="#f1c36a"/>
-<stop offset="1" stop-color="#cf7d2f"/>
-</linearGradient>
-<linearGradient id="glow" x1="128" y1="36" x2="128" y2="220" gradientUnits="userSpaceOnUse">
-<stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
-<stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-</linearGradient>
+<linearGradient id="body" x1="60" y1="48" x2="182" y2="208" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0f3d56"/><stop offset="0.52" stop-color="#165a67"/><stop offset="1" stop-color="#1f7a74"/></linearGradient>
+<linearGradient id="highlight" x1="116" y1="66" x2="210" y2="142" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#f1c36a"/><stop offset="1" stop-color="#cf7d2f"/></linearGradient>
+<linearGradient id="glow" x1="128" y1="36" x2="128" y2="220" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
 </defs>
 <path d="M84 42C69.64 42 58 53.64 58 68V188C58 202.36 69.64 214 84 214H171C185.36 214 197 202.36 197 188V172C197 157.64 185.36 146 171 146H145V68C145 53.64 133.36 42 119 42H84ZM89 68H111C115.42 68 119 71.58 119 76V166C119 172.63 124.37 178 131 178H171V186C171 190.42 167.42 194 163 194H92C87.58 194 84 190.42 84 186V73C84 70.24 86.24 68 89 68Z" fill="url(#body)"/>
 <path d="M145 68V146H171C185.36 146 197 157.64 197 172V188C197 202.36 185.36 214 171 214H163C176.25 214 187 203.25 187 190V175C187 163.4 177.6 154 166 154H139V76C139 61.64 127.36 50 113 50H84C70.75 50 60 60.75 60 74V68C60 53.64 71.64 42 86 42H119C133.36 42 145 53.64 145 68Z" fill="url(#glow)"/>
