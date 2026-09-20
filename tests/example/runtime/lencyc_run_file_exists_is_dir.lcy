@@ -1,22 +1,22 @@
 // Runtime smoke case: selfhost codegen wires file_exists/is_dir builtins through Rust LIR backend.
 // @expect-exit: 0
 
-var existing_file = file_exists("assets/Lency.txt")
+var existing_file = file_exists("docs/design.md")
 if !existing_file {
     return 11
 }
 
-var existing_dir = is_dir("assets")
+var existing_dir = is_dir("docs")
 if !existing_dir {
     return 12
 }
 
-var missing_file = file_exists("assets/__lency_missing__.txt")
+var missing_file = file_exists("docs/__lency_missing__.txt")
 if missing_file {
     return 13
 }
 
-var file_is_dir = is_dir("assets/Lency.txt")
+var file_is_dir = is_dir("docs/design.md")
 if file_is_dir {
     return 14
 }

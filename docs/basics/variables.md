@@ -1,53 +1,23 @@
 # 变量与类型
 
-## 变量声明
+局部变量使用 `var` 声明，可由初始值推断类型，也可显式标注类型：
 
 ```lency
-var x = 10           // 类型推导为 int
-var name = "Alice"   // 类型推导为 string
-var flag = true      // 类型推导为 bool
+var count = 10
+var name: string = "Lency"
+var active: bool = true
 ```
 
-### 显式类型注解
+常量使用 `const`：
 
 ```lency
-int count = 0
-string message = "hello"
-bool active = false
+const MAX_RETRY = 3
 ```
 
-## 基本类型
+基础类型见[基础类型](../types/primitives.md)，可空类型见[可空类型](../types/null-safety.md)。
 
-| 类型 | 描述 | 示例 |
-|------|------|------|
-| `int` | 64位整数 | `42`, `-100` |
-| `float` | 64位浮点数 | `3.14`, `-0.5` |
-| `bool` | 布尔值 | `true`, `false` |
-| `string` | 字符串 | `"hello"` |
-| `void` | 无返回值 | 函数返回类型 |
+## 实现说明
 
-## 可空类型
-
-默认所有类型都是非空的。使用 `?` 表示可空：
-
-```lency
-int? maybe_number = null
-string? name = null
-
-// 检查非空
-if name != null {
-    print(name)  // 智能转型为 string
-}
-```
-
-## 数组与向量
-
-```lency
-// 固定长度数组
-int[3] arr = [1, 2, 3]
-
-// 动态向量
-var numbers = vec![1, 2, 3]
-numbers.push(4)
-print(numbers.len())  // 4
-```
+- Rust 母体支持完整变量与常量编译链路。
+- selfhost 已支持 `var`、`const` 的解析和基础语义约束。
+- 是否能够端到端运行，还取决于具体值类型和 selfhost LIR lowering；以 `tests/example/runtime/` 为准。

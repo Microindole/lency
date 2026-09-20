@@ -1,87 +1,53 @@
-# Lency 语言文档
+# Lency 文档
 
-欢迎使用 Lency。
+Lency 是一门强调简洁、显式和静态类型的编译语言。仓库同时包含两套实现：
 
-## 快速开始
+- `crates/`：功能完整的 Rust 母体编译器，负责提供稳定的 stage0 和参考行为。
+- `lencyc/`：使用 Lency 编写的自举编译器，是当前开发主线。
 
-```lency
-int main() {
-    print("Hello, Lency!")
-    return 0
-}
+当前目标不是继续扩展 Rust 母体，而是先让 Lency 自举编译器以最小语言子集稳定编译自身。实现状态与规划以[自举状态](./development/status.md)为准。
+
+## 文档导航
+
+### 项目与开发
+
+- [设计原则](./design.md)
+- [实现分层与成熟度](./development/implementations.md)
+- [自举路线](./development/bootstrap.md)
+- [当前状态](./development/status.md)
+- [贡献与维护规则](./development/contributing.md)
+- [工具与脚本](./tools/scripts.md)
+
+### 语言
+
+- 基础：[变量与类型](./basics/variables.md)、[函数](./basics/functions.md)、[控制流](./basics/control-flow.md)
+- 类型：[基础类型](./types/primitives.md)、[结构体](./types/structs.md)、[枚举与匹配](./types/enums.md)、[可空类型](./types/null-safety.md)
+- 标准库：[Vec](./stdlib/vec.md)、[字符串](./stdlib/string.md)、[文件 I/O](./stdlib/file-io.md)、[HashMap](./stdlib/hashmap.md)
+
+语言文档以 Rust 母体的已实现行为作为当前参考语义，同时会明确标注 Lency 自举链路尚未支持的部分。不能仅凭 Rust 母体能够编译某段程序，就认定自举编译器也已支持。
+
+在 selfhost 成为独立可用编译器之前，普通 Lency 程序默认使用 Rust 母体的 `lencyc`：
+
+```powershell
+cargo run --bin lencyc -- check <input.lcy>
+cargo run --bin lencyc -- run <input.lcy>
+cargo run --bin lencyc -- build <input.lcy> -o <name>
 ```
 
-## 文档目录
+`xtask selfhost-*` 是自举开发和验证入口，不是当前默认的用户编译器入口。
 
-### 基础
-- [变量与类型](./basics/variables.md)
-- [函数](./basics/functions.md)
-- [控制流](./basics/control-flow.md)
+## 最小验证
 
-### 类型系统
-- [基础类型总览](./types/primitives.md)
-- [Bool](./types/bool.md)
-- [Float](./types/float.md)
-- [结构体](./types/structs.md)
-- [枚举](./types/enums.md)
-- [Null 安全](./types/null-safety.md)
+环境需要 Rust、MSVC/系统链接器和 LLVM 15。配置方法见[工具与脚本](./tools/scripts.md)。
 
-### 标准库
-- [Vec](./stdlib/vec.md)
-- [字符串操作](./stdlib/string.md)
-- [文件 I/O](./stdlib/file-io.md)
-- [HashMap](./stdlib/hashmap.md)
+```powershell
+cargo build --release -p lency_cli -p lency_runtime
+cargo run -p xtask -- check-lency
+cargo run -p xtask -- bootstrap-check
+```
 
-### 工具链
-- [脚本指南](./tools/scripts.md)
+涉及 Rust 母体修改时再额外运行：
 
----
-
-## 实现状态（2026-03-10）
-
-Lency 当前是双链路并行：
-- Rust 主编译器链路：功能更完整，作为稳定构建与验证主体。
-- Lency 自举编译器链路（`lencyc/`）：按最小闭环持续补齐语法与语义能力。
-
-### 自举阶段能力快照（2026-03-10）
-
-- Lexer: 已支持 `int/float/scientific/string/char/null` 字面量。
-- Parser: 已支持 `var/if/while/for/block/return/break/continue` 与 `call/member` 链，并已接入 `function/struct/impl/import/extern/enum/match` 声明与表达式子集（含 `import std.*` 通配导入与 `import std.{a,b}` 分组导入语法）。
-- Parser: 声明层与表达式调用层的泛型实参入口已统一为 `<...>` 解析（如 `Result<int, string>`、`foo<int>(x)`）。
-- Sema: 已支持最小 name resolution（undefined/duplicate/out-of-scope/shadowing）。
-- Sema: 已支持 builtin 调用参数个数校验（arity）。
-- Sema: 已支持用户函数最小 arity 校验（含先调用后声明）。
-- Sema: 已支持用户函数签名类型校验（参数类型 + 返回类型，基础内建类型 token）。
-- Sema: 已支持函数体最小 return 约束（禁止 `return` 空值，要求可达 value-return）。
-- Sema: 已支持最小类型一致性检查（`int/bool/string/float`，覆盖赋值/一元/二元/逻辑）。
-- Sema: 已支持 `enum + match` 语义第一版（重复 pattern、未知 variant、穷尽性检查）。
-- Sema: 已支持 `match` payload 绑定第一版（`Text(v)` / `Pair(a,b)`），绑定变量参与 arm 内类型检查。
-- Sema: 已支持非 enum `match` 的 literal pattern 语义校验（仅允许字面量/`_`，并校验 pattern 与目标类型一致性）。
-- Sema: 已支持 `match` arm guard 第一版（`pattern if (cond) => ...`），并校验 guard 条件为 `bool`。
-- Sema: `match` 重复 pattern 判定已按语义形状归一化，binder 改名不再绕过重复检查；嵌套 payload guard 也已纳入回归。
-- Sema: 嵌套 payload 模式已支持字面量 leaf（如 `Wrap(Num(1))`），并会校验 leaf 字面量与 payload 类型一致。
-- Sema: 已支持 `Result` builtin enum（`Ok/Err`）的构造与 `match` 校验。
-- Sema: 已支持 `null` 最小语义（字面量 + 基础类型约束检查）。
-- Sema: 已支持 enum 类型流扩展到函数返回、`match` 中间表达式、赋值链路与 grouped callee/constructor 组合调用。
-- Sema: import 语义第一版已支持非 `std.*` 模块文件加载与声明符号导入。
-- Sema: `std.*` 已切到“模块源码签名自动导入”（递归 `import std.*`），不再依赖模块白名单最小符号预加载。
-- Sema: 已支持 `import std.*` 全量标准模块签名自动预加载；非 `std.*` 的通配导入会报错，避免静默误解语义。
-- Sema: 已支持 `import std.{a,b}` 分组导入（解析阶段展开为多个顺序 import 语句）。
-- Sema: 函数签名查找已统一“后写优先”，包含 enum 返回类型名（`return_enum_name`）查找，避免旧签名覆盖新签名。
-- Sema: 对 `arg_at/int_to_string/float_to_string/bool_to_string` 暂按 `unknown` 返回类型处理，以兼容现有 self-host runtime pointer-as-value 回归。
-- Sema: 已支持 nullable 签名语义（`int?/string?/bool?/float?` + 自定义 `Type?`），自定义可空类型不再走 `TYPE_UNKNOWN` 兼容放行。
-- Backend: Rust LIR backend member lowering 已改为“intrinsic 映射 + 通用 fallback”统一路径（含 `to_string/len/trim/substr/split/format/join`）。
-- Backend: selfhost LIR 发射器已接入 `match` lowering（number/string/bool/null/char literal + `_` + guard），并已支持递归 enum payload mixed pattern lowering；selfhost enum 构造已收口为 `lency_enum_new0 + lency_enum_push`，runtime 回归已覆盖 guard 组合、string literal、5 payload constructor 与更深层 nested enum payload。
-- Tooling/Backend: Rust `.lir` 编译链已使用 LLVM 15 兼容的 typed pointer（`i8*`）文本，避免字符串相关路径在 `llc` 阶段因 opaque `ptr` 语法失败。
-- Pipeline: 已打通 `Read -> Lex -> Parse -> Resolve -> Emit(AST/LIR)`。
-- Tooling: 规范入口统一为 `cargo run -p xtask -- auto-check`（按范围派发 `check-rust/check-lency`）；Windows 下 `xtask` 会自动补齐 `lency_runtime.dll` 搜索路径，避免自举 runtime case 因 DLL 装载失败假红。
-
-### 自举编译器内部结构快照（2026-03-08）
-
-- AST: 声明数据已从 `Stmt` 散落字段收敛为 `stmt.decl` payload，新增声明特性不再需要修改 `Stmt` 结构体字段列表。
-- Resolver: 声明语义路径已切到 `Decl` 视图处理，`resolve_stmt` 仅负责语句分派。
-- AST Printer: expr 打印分派已引入 Visitor 试点（低风险路径验证）。
-
-### 当前主线
-
-当前开发优先级是继续提升 enum 类型流在复杂控制流里的拦截密度，并在 resolver expr 路径按 visitor 风格持续收口分派；不是继续打磨 parser 外形。
+```powershell
+cargo run -p xtask -- check-rust
+```

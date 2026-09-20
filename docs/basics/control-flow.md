@@ -1,87 +1,37 @@
 # 控制流
 
-## if 语句
+## 条件与循环
 
 ```lency
-if condition {
-    // 条件为 true 时执行
-}
-
-if x > 0 {
+if value > 0 {
     print("positive")
-} else if x < 0 {
-    print("negative")
 } else {
-    print("zero")
+    print("not positive")
+}
+
+var index = 0
+while index < 10 {
+    index = index + 1
 }
 ```
 
-## while 循环
+支持 `break`、`continue` 和 `return`。selfhost parser 也能解析 `for`，内部按当前实现降为循环结构；端到端使用前应有对应 runtime 回归。
+
+## match
 
 ```lency
-var i = 0
-while i < 10 {
-    print(i)
-    i = i + 1
+enum Status {
+    Idle,
+    Running,
+    Done
+}
+
+var status = Running()
+var code = match (status) {
+    Idle => 0,
+    Running => 1,
+    Done => 2
 }
 ```
 
-## for 循环
-
-```lency
-// C 风格 for
-for var i = 0; i < 10; i = i + 1 {
-    print(i)
-}
-
-// for-in 遍历
-var items = vec![1, 2, 3]
-for item in items {
-    print(item)
-}
-```
-
-## match 表达式
-
-```lency
-enum Color {
-    Red,
-    Green,
-    Blue
-}
-
-var c = Color.Red
-var name = match c {
-    case Red => "红色"
-    case Green => "绿色"
-    case Blue => "蓝色"
-}
-```
-
-### 带数据的枚举匹配
-
-```lency
-enum Option<T> {
-    Some(T),
-    None
-}
-
-var opt = Option::<int>.Some(42)
-match opt {
-    case Some(value) => print(value)
-    case None => print("nothing")
-}
-```
-
-## 循环控制
-
-```lency
-while true {
-    if done {
-        break     // 退出循环
-    }
-    if skip {
-        continue  // 跳过本次迭代
-    }
-}
-```
+payload、嵌套模式和 guard 见[枚举与匹配](../types/enums.md)。

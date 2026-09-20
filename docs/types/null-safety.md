@@ -1,69 +1,25 @@
-# Null 安全
+# 可空类型
 
-Lency 默认所有类型都是非空的。使用 `?` 后缀表示可空类型。
-
-## 可空类型声明
+默认类型为非空；`T?` 明确表示值可以为 `null`：
 
 ```lency
-int value = 42          // 非空，不能赋值 null
-int? maybe = null       // 可空，可以赋值 null
-int? also = 42          // 可空，也可以有值
-```
+int value = 42
+int? maybe_value = null
 
-## 安全操作符
-
-### 安全导航 `?.`
-
-```lency
-struct User {
-    string? name
-}
-
-var user = get_user()
-var len = user?.name?.len()  // 如果任一为 null，返回 null
-```
-
-### Elvis 操作符 `??`
-
-```lency
-string? name = null
-var display = name ?? "Anonymous"  // 如果 null，使用默认值
-```
-
-## 智能转型
-
-在 `if` 条件检查后，编译器自动将可空类型转为非空：
-
-```lency
-int? x = get_value()
-
-if x != null {
-    // 这里 x 自动转型为 int（非空）
-    print(x + 1)
-}
-```
-
-## 类型兼容性
-
-```lency
-int a = 10
-int? b = a      // ✅ 非空可以赋值给可空
-
-int? c = null
-int d = c       // ❌ 编译错误：可空不能直接赋值给非空
-```
-
-## 自定义类型可空
-
-```lency
-struct User {
+struct Boxed {
     int id
 }
 
-User? maybe_user = null      // ✅
-User? keep(User? u) { return u }
+Boxed? keep(Boxed? value) {
+    return value
+}
 ```
 
-说明：
-- `Type?` 已参与签名与调用类型检查；
-- `A?` 与 `B?` 不再因 `unknown` 兼容被误判为可互换。
+## selfhost 状态
+
+- lexer/parser 支持 `null` 和 `T?`。
+- resolver 已对基础类型和自定义类型的 nullable 签名做最小一致性检查。
+- literal `null` 可参与当前 match 子集。
+- 安全导航、空值合并和完整流敏感智能转型尚未作为稳定 selfhost 能力记录，不应在依赖它们前只参考 Rust 母体行为。
+
+对应 parser 回归位于 `tests/example/parser/custom_nullable_*.lcy`。
