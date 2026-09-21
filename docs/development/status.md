@@ -6,6 +6,7 @@
 
 - Rust 母体编译器已经形成完整的语法、语义、单态化、LLVM codegen、CLI 和 runtime 链路，是稳定的 stage0。
 - `lencyc/` 已打通 `Read -> Lex -> Parse -> Resolve -> Emit(AST/LIR)`，并具备依赖 Rust LIR backend 的 stage1/stage2/stage3 收敛检查。
+- `bootstrap-check` 已能由 stage1 生成 stage2、由 stage2 生成 stage3，并通过编译器 LIR、样例 LIR 与 smoke pipeline 的收敛比较。
 - 当前主线是让 Lency 自举编译器完成并稳定最基础的自举子集，而不是继续扩展 Rust 母体。
 - selfhost 前端覆盖面已明显大于后端可运行子集；它目前不是普通程序的默认编译器。下一步应由真实自举或 runtime 用例驱动缺口，不再以 parser 外形为进度指标。
 
@@ -34,10 +35,9 @@
 
 ## 当前缺口
 
-- FIXME: `bootstrap-check` 的 stage1 已能读取含非 ASCII 内容及超过 8 KiB 的源码，但在 B3 解析 `lencyc/driver/main.lcy` 的导入依赖时，会重复报告 `6:27 Expect expression` 并最终栈溢出；stage2/stage3 尚未生成。该问题取代了原 UTF-8 切片崩溃，仍是当前自举主线的首要阻塞。
 - selfhost codegen/runtime 仍不足以承载完整标准库和真实程序。
 - selfhost emitter 对部分未知节点仍存在占位输出；这些路径应逐步改为显式失败或真实 lowering，避免产生“成功但错误”的结果。
-- generic struct、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
+- 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
 - Rust 母体已停止接受公开的 `T!` 返回类型糖和后缀 `?` 错误传播；基础文件 I/O 使用普通 `string`/`void` 签名并在无法继续时 panic。底层 `Result` 仍是过渡实现。TODO: 在可恢复失败的普通数据契约确定后移除剩余编译器特判，并同步 selfhost 与标准库。

@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Result};
 use std::collections::HashMap;
 
 use super::super::emitter::{llvm_type_str, Emitter, ValueType};
-use super::helpers::resolve_builtin_call;
+use super::helpers::{resolve_builtin_call, split_top_level_commas};
 use super::member_call::emit_member_call;
 
 pub(super) fn emit_call_assignment(
@@ -27,7 +27,7 @@ pub(super) fn emit_call_assignment(
     let parsed_args = if args_raw.trim().is_empty() {
         vec![]
     } else {
-        args_raw.trim().split(", ").collect::<Vec<_>>()
+        split_top_level_commas(args_raw.trim())
     };
 
     let callee = callee.trim();
@@ -75,11 +75,7 @@ pub(super) fn emit_call_assignment(
     let default_arg_tys = if args_raw.trim().is_empty() {
         vec![]
     } else {
-        args_raw
-            .trim()
-            .split(", ")
-            .map(|_| ValueType::I64)
-            .collect()
+        parsed_args.iter().map(|_| ValueType::I64).collect()
     };
     let (llvm_callee_name, arg_tys, ret_ty) =
         if let Some((builtin_name, builtin_arg_tys, builtin_ret_ty)) =
@@ -100,10 +96,6 @@ pub(super) fn emit_call_assignment(
             parsed_args.len()
         );
     }
-    if ret_ty == ValueType::Void {
-        bail!("void call cannot be used as value: {}", callee_name);
-    }
-
     let mut arg_values: Vec<(String, ValueType)> = Vec::new();
     for (idx, arg) in parsed_args.iter().enumerate() {
         let (arg_repr, arg_ty) = emitter.emit_operand(arg.trim())?;
@@ -116,6 +108,15 @@ pub(super) fn emit_call_assignment(
         .map(|(repr, ty)| format!("{} {}", llvm_type_str(*ty), repr))
         .collect::<Vec<_>>()
         .join(", ");
+    if ret_ty == ValueType::Void {
+        if !function_sigs.contains_key(callee_name) {
+            emitter.note_extern_func(llvm_callee_name, arg_tys.clone(), ret_ty)?;
+        }
+        emitter.push(format!("  call void @{}({})", llvm_callee_name, args_sig));
+        emitter.push(format!("  {} = add i64 0, 0", dst));
+        emitter.mark_temp(dst, ValueType::I64);
+        return Ok(());
+    }
     if !function_sigs.contains_key(callee_name) {
         emitter.note_extern_func(llvm_callee_name, arg_tys.clone(), ret_ty)?;
     }
@@ -144,7 +145,7 @@ pub(super) fn emit_call_statement(
     let parsed_args = if args_raw.trim().is_empty() {
         vec![]
     } else {
-        args_raw.trim().split(", ").collect::<Vec<_>>()
+        split_top_level_commas(args_raw.trim())
     };
     let callee = callee.trim();
     if !callee.starts_with('%') {
@@ -154,11 +155,7 @@ pub(super) fn emit_call_statement(
     let default_arg_tys = if args_raw.trim().is_empty() {
         vec![]
     } else {
-        args_raw
-            .trim()
-            .split(", ")
-            .map(|_| ValueType::I64)
-            .collect()
+        parsed_args.iter().map(|_| ValueType::I64).collect()
     };
     let (llvm_callee_name, arg_tys, ret_ty) =
         if let Some((builtin_name, builtin_arg_tys, builtin_ret_ty)) =

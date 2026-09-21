@@ -9,32 +9,41 @@ use super::emitter::{Emitter, ValueType};
 use call::{emit_call_assignment, emit_call_statement};
 use helpers::{
     build_function_signatures, build_output_ir, collect_vars, llvm_function_ret_ty,
-    parse_functions, LirFunction,
+    parse_functions, split_top_level_commas, LirFunction,
 };
 
 fn compile_function(
     func: &LirFunction,
     function_sigs: &HashMap<String, (Vec<ValueType>, ValueType)>,
+    string_global_offset: usize,
 ) -> Result<Emitter> {
     let mut vars = collect_vars(&func.body_lines)?;
     for (param_name, _) in &func.params {
         vars.insert(param_name.clone());
     }
     let mut emitter = Emitter::new(vars.clone());
+    emitter.set_string_global_offset(string_global_offset);
     let mut member_call_targets: HashMap<String, (String, ValueType, String)> = HashMap::new();
 
     let header_ret_ty = llvm_function_ret_ty(&func.name, func.ret_ty);
-    let header_params = func
-        .params
-        .iter()
-        .map(|(name, ty)| format!("{} {}", super::emitter::llvm_type_str(*ty), name))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let header_params = if func.name == "main" {
+        "i32 %process_argc, i8** %process_argv".to_string()
+    } else {
+        func.params
+            .iter()
+            .map(|(name, ty)| format!("{} {}", super::emitter::llvm_type_str(*ty), name))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
     emitter.push(format!(
         "define {} @{}({}) {{",
         header_ret_ty, func.name, header_params
     ));
     emitter.push("entry:");
+    if func.name == "main" {
+        emitter.push("  store i32 %process_argc, i32* @lency_process_argc");
+        emitter.push("  store i8** %process_argv, i8*** @lency_process_argv");
+    }
 
     for var in &vars {
         emitter.push(format!("  {}.addr = alloca i64", var));
@@ -215,9 +224,12 @@ fn compile_function(
                     .strip_prefix(op)
                     .ok_or_else(|| anyhow!("invalid binary instruction: {}", line))?
                     .trim();
-                let (lhs, rhs_val) = rhs_joined
-                    .split_once(", ")
-                    .ok_or_else(|| anyhow!("invalid binary operands: {}", line))?;
+                let operands = split_top_level_commas(rhs_joined);
+                if operands.len() != 2 {
+                    bail!("invalid binary operands: {}", line);
+                }
+                let lhs = operands[0];
+                let rhs_val = operands[1];
                 emitter.emit_binary(dst, op, lhs.trim(), rhs_val.trim())?;
                 continue;
             }
@@ -251,18 +263,21 @@ pub fn compile_lir_to_llvm_ir(source: &str) -> Result<String> {
     let mut all_lines = Vec::new();
     let mut all_string_globals = HashMap::new();
     let mut all_extern_funcs = HashMap::new();
+    let mut string_global_offset = 0;
 
     for func in &functions {
-        let emitter = compile_function(func, &function_sigs)?;
+        let emitter = compile_function(func, &function_sigs, string_global_offset)?;
         let Emitter {
             lines,
             string_globals,
             extern_funcs,
             ..
         } = emitter;
+        string_global_offset += string_globals.len();
         all_lines.extend(lines);
         for (literal, tuple) in string_globals {
-            all_string_globals.entry(literal).or_insert(tuple);
+            let unique_key = format!("{}\0{}", literal, tuple.0);
+            all_string_globals.insert(unique_key, tuple);
         }
         for (name, sig) in extern_funcs {
             all_extern_funcs.entry(name).or_insert(sig);

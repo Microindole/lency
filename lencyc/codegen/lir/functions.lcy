@@ -74,6 +74,16 @@ impl LirBuilder {
     }
 
     void emit_main_function(Vec<Stmt> statements) {
+        var f = 0
+        while f < statements.len() {
+            if statements[f].kind == STMT_FUNCTION() {
+                var decl = stmt_to_decl(statements[f])
+                if decl.name.lexeme == "main" {
+                    return
+                }
+            }
+            f = f + 1
+        }
         this.reset_function_state()
         this.current_function_name = "main"
         this.emit_line("func main() -> i64 {")
@@ -97,8 +107,48 @@ impl LirBuilder {
             if statements[i].kind == STMT_FUNCTION() {
                 this.emit_function_decl(stmt_to_decl(statements[i]))
             }
+            if statements[i].kind == STMT_IMPL() {
+                var impl_decl = stmt_to_decl(statements[i])
+                var m = 0
+                while m < impl_decl.body.len() {
+                    var member = stmt_to_decl(impl_decl.body[m])
+                    if member.kind == DECL_FUNCTION() {
+                        this.emit_method_decl(impl_decl.name.lexeme, member)
+                    }
+                    m = m + 1
+                }
+            }
             i = i + 1
         }
+    }
+
+    void emit_method_decl(string owner_name, Decl decl) {
+        this.reset_function_state()
+        this.current_function_name = owner_name + "__" + decl.name.lexeme
+        var params = vec!["this"]
+        var param_types = vec![owner_name]
+        var i = 0
+        while i < decl.params.len() {
+            params.push(decl.params[i])
+            param_types.push(decl.param_types[i].name)
+            i = i + 1
+        }
+        this.emit_function_header(this.current_function_name, params, param_types, decl.return_type.name)
+        this.track_typed_variable("this", owner_name)
+        i = 0
+        while i < decl.params.len() {
+            this.track_typed_variable(decl.params[i], decl.param_types[i].name)
+            i = i + 1
+        }
+        this.emit_stmt_list(decl.body)
+        if !this.current_function_returns {
+            if decl.return_type.name == "void" {
+                this.emit_line("  ret")
+            } else {
+                this.emit_line("  ret 0")
+            }
+        }
+        this.emit_line("}")
     }
 
     void emit_function_decl(Decl decl) {

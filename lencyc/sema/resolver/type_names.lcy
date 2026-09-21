@@ -67,6 +67,15 @@ impl Resolver {
         if expr.kind == EXPR_STRUCT() {
             return expr.literal_value.lexeme
         }
+        if expr.kind == EXPR_VEC() {
+            if expr.children.len() > 0 {
+                var element_name = this.infer_expr_type_name(expr.children[0], TYPE_UNKNOWN())
+                if element_name != "" {
+                    return "Vec<" + element_name + ">"
+                }
+            }
+            return "Vec"
+        }
         if expr.kind == EXPR_CALL() {
             if expr.children.len() > 0 {
                 var callee_name = this.extract_callee_name(expr.children[0])

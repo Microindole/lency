@@ -91,6 +91,26 @@ pub unsafe extern "C" fn lency_file_read_string(path: *const c_char) -> *mut c_c
     }
 }
 
+/// Write an entire C string to a path, replacing the existing file.
+///
+/// # Safety
+/// `path` and `data` must be valid null-terminated C strings.
+#[no_mangle]
+pub unsafe extern "C" fn lency_file_write_string(path: *const c_char, data: *const c_char) -> i64 {
+    if path.is_null() || data.is_null() {
+        return -1;
+    }
+    let path = match unsafe { CStr::from_ptr(path) }.to_str() {
+        Ok(path) => path,
+        Err(_) => return -1,
+    };
+    let bytes = unsafe { CStr::from_ptr(data) }.to_bytes();
+    match std::fs::write(path, bytes) {
+        Ok(()) => 0,
+        Err(_) => -1,
+    }
+}
+
 /// 关闭文件
 ///
 /// # Safety

@@ -6,6 +6,17 @@ import lencyc.syntax.ast
 import lencyc.codegen.lir
 
 impl LirBuilder {
+    bool is_vec_type_name(string type_name) {
+        return type_name == "Vec" || starts_with(type_name, "Vec<")
+    }
+
+    string vec_element_type_name(string type_name) {
+        if !starts_with(type_name, "Vec<") || len(type_name) < 6 {
+            return ""
+        }
+        return substr(type_name, 4, len(type_name) - 5)
+    }
+
     void preload_function_metadata(Vec<Stmt> statements) {
         var i = 0
         while i < statements.len() {
@@ -20,6 +31,27 @@ impl LirBuilder {
                     this.function_param_names.push(decl.params[p])
                     this.function_param_type_names.push(decl.param_types[p].name)
                     p = p + 1
+                }
+            }
+            if stmt.kind == STMT_IMPL() {
+                var impl_decl = stmt_to_decl(stmt)
+                var m = 0
+                while m < impl_decl.body.len() {
+                    var member = stmt_to_decl(impl_decl.body[m])
+                    if member.kind == DECL_FUNCTION() {
+                        this.function_names.push(impl_decl.name.lexeme + "__" + member.name.lexeme)
+                        this.function_return_type_names.push(member.return_type.name)
+                        this.function_param_counts.push(member.params.len() + 1)
+                        this.function_param_names.push("this")
+                        this.function_param_type_names.push(impl_decl.name.lexeme)
+                        var mp = 0
+                        while mp < member.params.len() {
+                            this.function_param_names.push(member.params[mp])
+                            this.function_param_type_names.push(member.param_types[mp].name)
+                            mp = mp + 1
+                        }
+                    }
+                    m = m + 1
                 }
             }
             i = i + 1
@@ -277,18 +309,50 @@ impl LirBuilder {
         if expr.kind == EXPR_ASSIGN() && expr.children.len() > 0 {
             return this.infer_expr_type_name(expr.children[0])
         }
+        if expr.kind == EXPR_BINARY() && expr.children.len() >= 2 {
+            if expr.operator.lexeme == "+" {
+                var lhs_ty = this.infer_expr_type_name(expr.children[0])
+                var rhs_ty = this.infer_expr_type_name(expr.children[1])
+                if lhs_ty == "string" || rhs_ty == "string" {
+                    return "string"
+                }
+            }
+        }
         if expr.kind == EXPR_CALL() && expr.children.len() > 0 {
             var enum_name2 = this.infer_expr_enum_name(expr)
             if enum_name2 != "" {
                 return enum_name2
             }
-            var callee_name = this.expr_callee_name(expr.children[0])
+            var callee_expr = expr.children[0]
+            if callee_expr.kind == EXPR_GET() && callee_expr.children.len() > 0 {
+                var receiver_type = this.infer_expr_type_name(callee_expr.children[0])
+                var member_name = callee_expr.literal_value.lexeme
+                if this.is_vec_type_name(receiver_type) && (member_name == "get" || member_name == "pop" || member_name == "index") {
+                    return this.vec_element_type_name(receiver_type)
+                }
+                if this.is_vec_type_name(receiver_type) && member_name == "len" {
+                    return "int"
+                }
+                if receiver_type != "" {
+                    return this.lookup_function_return_type_name(receiver_type + "__" + member_name)
+                }
+            }
+            var callee_name = this.expr_callee_name(callee_expr)
             if callee_name != "" {
                 return this.lookup_function_return_type_name(callee_name)
             }
         }
         if expr.kind == EXPR_STRUCT() {
             return expr.literal_value.lexeme
+        }
+        if expr.kind == EXPR_VEC() {
+            if expr.children.len() > 0 {
+                var element_type = this.infer_expr_type_name(expr.children[0])
+                if element_type != "" {
+                    return "Vec<" + element_type + ">"
+                }
+            }
+            return "Vec"
         }
         if expr.kind == EXPR_SET() && expr.children.len() >= 2 {
             return this.infer_expr_type_name(expr.children[1])

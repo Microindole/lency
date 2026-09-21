@@ -64,6 +64,8 @@ impl Resolver {
         this.preload_prelude_symbol("write_string")
         this.preload_prelude_symbol("bool_to_string")
         this.preload_prelude_symbol("int_to_bool")
+        this.preload_prelude_symbol("print")
+        this.preload_prelude_symbol("len")
     }
 
     void error(string message) {

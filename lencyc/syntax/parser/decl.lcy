@@ -16,6 +16,34 @@ Vec<Stmt> empty_stmt_list() {
 }
 
 impl Parser {
+    string parse_signature_generic_suffix() {
+        if !this.match_token(T_LESS()) {
+            return ""
+        }
+        var suffix = "<"
+        while !this.check(T_GREATER()) && !this.is_at_end() {
+            if !this.is_signature_type_token(this.current.kind) {
+                this.error("Expect type in generic arguments.")
+                return suffix + ">"
+            }
+            suffix = suffix + this.current.lexeme
+            this.advance()
+            if this.check(T_LESS()) {
+                suffix = suffix + this.parse_signature_generic_suffix()
+            }
+            if this.match_token(T_QUESTION()) {
+                suffix = suffix + "?"
+            }
+            if this.match_token(T_COMMA()) {
+                suffix = suffix + ","
+            } else {
+                break
+            }
+        }
+        this.consume(T_GREATER(), "Expect '>' after generic type arguments.")
+        return suffix + ">"
+    }
+
     Vec<string> clone_segments(Vec<string> source) {
         var copied = vec![]
         var i = 0
@@ -46,7 +74,7 @@ impl Parser {
             var kind = this.current.kind
             var name = this.current.lexeme
             this.advance()
-            this.skip_generic_type_arguments_if_any()
+            name = name + this.parse_signature_generic_suffix()
             if this.match_token(T_QUESTION()) {
                 name = name + "?"
             }
@@ -262,7 +290,10 @@ impl Parser {
     Stmt var_declaration(bool is_const) {
         this.consume(T_IDENTIFIER(), "Expect variable name.")
         var name = this.previous
-        
+
+        if this.match_token(T_COLON()) {
+            var declared_type = this.parse_signature_type_ref()
+        }
         this.consume(T_EQUAL(), "Expect '=' after variable name.")
         
         var initializer = this.expression()

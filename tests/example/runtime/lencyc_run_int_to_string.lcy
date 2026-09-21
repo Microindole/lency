@@ -3,7 +3,4 @@
 // @expect-exit: 0
 
 var s = int_to_string(42)
-if s == 0 {
-    return 2
-}
-return 0
+return len(s) - 2

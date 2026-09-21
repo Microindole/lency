@@ -3,6 +3,7 @@
 
 import std.core
 import std.fs
+import std.str
 import lencyc.cli.args
 import lencyc.syntax.token
 import lencyc.syntax.lexer
@@ -16,6 +17,66 @@ string render_ast_program(Vec<Stmt> statements) {
     var i = 0
     while i < statements.len() {
         out = out + "AST[" + int_to_string(i) + "]: " + stmt_to_string(statements[i]) + "\n"
+        i = i + 1
+    }
+    return out
+}
+
+bool path_was_loaded(Vec<string> loaded_paths, string path) {
+    var i = 0
+    while i < loaded_paths.len() {
+        if loaded_paths[i] == path {
+            return true
+        }
+        i = i + 1
+    }
+    return false
+}
+
+string import_file_path(Stmt stmt) {
+    var decl = stmt_to_decl(stmt)
+    if decl.params.len() == 0 || decl.params[0] == "std" {
+        return ""
+    }
+    var path = ""
+    var i = 0
+    while i < decl.params.len() {
+        if i > 0 {
+            path = path + "/"
+        }
+        path = path + decl.params[i]
+        i = i + 1
+    }
+    return path + ".lcy"
+}
+
+Vec<Stmt> load_compilation_statements(string path, Vec<string> loaded_paths) {
+    var out = vec![]
+    if path_was_loaded(loaded_paths, path) {
+        return out
+    }
+    loaded_paths.push(path)
+    var parser = make_parser(read_to_string(path))
+    var program = parser.parse_program()
+    if parser.has_error {
+        return out
+    }
+    var i = 0
+    while i < program.statements.len() {
+        var stmt = program.statements[i]
+        if stmt.kind == STMT_IMPORT() {
+            var imported_path = import_file_path(stmt)
+            if imported_path != "" && file_exists(imported_path) {
+                var imported = load_compilation_statements(imported_path, loaded_paths)
+                var j = 0
+                while j < imported.len() {
+                    out.push(imported[j])
+                    j = j + 1
+                }
+            }
+        } else {
+            out.push(stmt)
+        }
         i = i + 1
     }
     return out
@@ -78,7 +139,8 @@ int main() {
 
     var emit_text = ""
     if args.emit_lir {
-        emit_text = emit_lir_program(statements)
+        var compilation_statements = load_compilation_statements(args.input_file, vec![])
+        emit_text = emit_lir_program(compilation_statements)
     } else {
         // Bootstrap emit target: stable AST text output for regression and debugging.
         emit_text = render_ast_program(statements)

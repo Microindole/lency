@@ -2,7 +2,7 @@
 //!
 //! 提供 Lency 语言的字符串处理运行时支持
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use crate::LencyVec;
@@ -47,6 +47,91 @@ pub unsafe extern "C" fn lency_string_len(ptr: *const c_char) -> i64 {
     }
     let c_str = unsafe { CStr::from_ptr(ptr) };
     c_str.to_bytes().len() as i64
+}
+
+/// Return one UTF-8 byte as an integer, or zero when out of bounds.
+///
+/// # Safety
+/// `ptr` must be a valid null-terminated C string.
+#[no_mangle]
+pub unsafe extern "C" fn lency_string_index(ptr: *const c_char, index: i64) -> i64 {
+    if ptr.is_null() || index < 0 {
+        return 0;
+    }
+    let bytes = unsafe { CStr::from_ptr(ptr) }.to_bytes();
+    bytes.get(index as usize).copied().unwrap_or(0) as i64
+}
+
+/// Test whether a string starts with another string.
+///
+/// # Safety
+/// Both pointers must reference valid null-terminated C strings.
+#[no_mangle]
+pub unsafe extern "C" fn lency_string_starts_with(
+    value: *const c_char,
+    prefix: *const c_char,
+) -> i64 {
+    if value.is_null() || prefix.is_null() {
+        return 0;
+    }
+    let value = unsafe { CStr::from_ptr(value) }.to_bytes();
+    let prefix = unsafe { CStr::from_ptr(prefix) }.to_bytes();
+    i64::from(value.starts_with(prefix))
+}
+
+/// Test whether a string contains another string.
+///
+/// # Safety
+/// Both pointers must reference valid null-terminated C strings.
+#[no_mangle]
+pub unsafe extern "C" fn lency_string_contains(value: *const c_char, needle: *const c_char) -> i64 {
+    if value.is_null() || needle.is_null() {
+        return 0;
+    }
+    let value = unsafe { CStr::from_ptr(value) }.to_bytes();
+    let needle = unsafe { CStr::from_ptr(needle) }.to_bytes();
+    if needle.is_empty() {
+        return 1;
+    }
+    i64::from(value.windows(needle.len()).any(|part| part == needle))
+}
+
+/// Concatenate two C strings into a newly allocated C string.
+///
+/// # Safety
+/// Both pointers must reference valid null-terminated C strings.
+#[no_mangle]
+pub unsafe extern "C" fn lency_string_concat(
+    left: *const c_char,
+    right: *const c_char,
+) -> *mut c_char {
+    if left.is_null() || right.is_null() {
+        return std::ptr::null_mut();
+    }
+    let left = unsafe { CStr::from_ptr(left) }.to_bytes();
+    let right = unsafe { CStr::from_ptr(right) }.to_bytes();
+    let mut bytes = Vec::with_capacity(left.len() + right.len());
+    bytes.extend_from_slice(left);
+    bytes.extend_from_slice(right);
+    match CString::new(bytes) {
+        Ok(value) => value.into_raw(),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lency_char_is_alpha(value: i64) -> i64 {
+    i64::from((value as u8).is_ascii_alphabetic())
+}
+
+#[no_mangle]
+pub extern "C" fn lency_char_is_digit(value: i64) -> i64 {
+    i64::from((value as u8).is_ascii_digit())
+}
+
+#[no_mangle]
+pub extern "C" fn lency_char_is_alphanumeric(value: i64) -> i64 {
+    i64::from((value as u8).is_ascii_alphanumeric())
 }
 
 /// 去除字符串首尾空白

@@ -7,6 +7,18 @@ import lencyc.sema.resolver
 
 impl Resolver {
     void preload_program_declarations(Vec<Decl> decls) {
+        var import_index = 0
+        while import_index < decls.len() {
+            var import_decl = decls[import_index]
+            if import_decl.kind == DECL_IMPORT() {
+                var module_path = this.resolve_import_module_file_path(import_decl.params)
+                if module_path != "" {
+                    this.preload_import_module(module_path)
+                }
+            }
+            import_index = import_index + 1
+        }
+
         var i = 0
         while i < decls.len() {
             var decl = decls[i]

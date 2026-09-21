@@ -121,6 +121,21 @@ impl Resolver {
             if this.is_struct_field(object_ty_name, expr.literal_value.lexeme) {
                 return this.lookup_struct_field_type(object_ty_name, expr.literal_value.lexeme)
             }
+            if this.signature_base_type_name(object_ty_name) == "Vec" {
+                if expr.literal_value.lexeme == "len" {
+                    return TYPE_INT()
+                }
+                if expr.literal_value.lexeme == "push" ||
+                   expr.literal_value.lexeme == "pop" ||
+                   expr.literal_value.lexeme == "get" ||
+                   expr.literal_value.lexeme == "set" ||
+                   expr.literal_value.lexeme == "index" {
+                    return TYPE_UNKNOWN()
+                }
+            }
+            if this.lookup_user_function_arity(expr.literal_value.lexeme) >= 0 {
+                return this.lookup_user_function_return_type(expr.literal_value.lexeme)
+            }
             if object_ty == TYPE_NAMED() || object_ty == TYPE_NULLABLE_NAMED() {
                 this.error("unknown struct-field in access for " + object_ty_name + ": " + expr.literal_value.lexeme)
             }
@@ -207,6 +222,14 @@ impl Resolver {
         var right_ty = this.resolve_expr(expr.children[1])
         var op = expr.operator.kind
         if op == T_PLUS() || op == T_MINUS() || op == T_STAR() || op == T_SLASH() {
+            if op == T_PLUS() {
+                if left_ty == TYPE_STRING() && (right_ty == TYPE_STRING() || right_ty == TYPE_UNKNOWN()) {
+                    return TYPE_STRING()
+                }
+                if right_ty == TYPE_STRING() && left_ty == TYPE_UNKNOWN() {
+                    return TYPE_STRING()
+                }
+            }
             if left_ty != TYPE_UNKNOWN() && !this.is_numeric_type(left_ty) {
                 this.error("arithmetic left operand must be int/float, got " + this.type_to_string(left_ty))
             }
@@ -286,6 +309,14 @@ impl Resolver {
         }
         if expr.kind == EXPR_STRUCT() {
             return this.visit_expr_struct(expr)
+        }
+        if expr.kind == EXPR_VEC() {
+            var i = 0
+            while i < expr.children.len() {
+                this.resolve_expr(expr.children[i])
+                i = i + 1
+            }
+            return TYPE_NAMED()
         }
         if expr.kind == EXPR_UNARY() {
             return this.visit_expr_unary(expr)

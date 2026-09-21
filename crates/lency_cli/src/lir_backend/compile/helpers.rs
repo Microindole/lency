@@ -11,6 +11,38 @@ pub(super) struct LirFunction {
     pub(super) body_lines: Vec<String>,
 }
 
+pub(super) fn split_top_level_commas(input: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut start = 0;
+    let mut in_string = false;
+    let mut in_char = false;
+    let mut escaped = false;
+    for (index, ch) in input.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        if (in_string || in_char) && ch == '\\' {
+            escaped = true;
+            continue;
+        }
+        if !in_char && ch == '"' {
+            in_string = !in_string;
+            continue;
+        }
+        if !in_string && ch == '\'' {
+            in_char = !in_char;
+            continue;
+        }
+        if ch == ',' && !in_string && !in_char {
+            parts.push(input[start..index].trim());
+            start = index + ch.len_utf8();
+        }
+    }
+    parts.push(input[start..].trim());
+    parts
+}
+
 pub(super) fn parse_value_type(raw: &str) -> Result<ValueType> {
     match raw.trim() {
         "i64" => Ok(ValueType::I64),
@@ -67,7 +99,7 @@ pub(super) fn parse_functions(source: &str) -> Result<Vec<LirFunction>> {
         };
         let mut params = Vec::new();
         if !params_raw.trim().is_empty() {
-            for part in params_raw.split(", ") {
+            for part in split_top_level_commas(&params_raw) {
                 let (param_name, param_ty_raw) = part
                     .split_once(": ")
                     .ok_or_else(|| anyhow!("invalid function param: {}", part))?;
@@ -155,9 +187,44 @@ pub(super) fn resolve_builtin_call(
 ) -> Option<(&'static str, Vec<ValueType>, ValueType)> {
     // 当前仅映射 runtime ABI 已稳定的 builtin 子集。
     match callee_name {
-        "arg_count" => Some(("lency_arg_count", vec![], ValueType::I64)),
-        "arg_at" => Some(("lency_arg_at", vec![ValueType::I64], ValueType::Ptr)),
+        "arg_count" => Some(("lency_process_arg_count", vec![], ValueType::I64)),
+        "arg_at" => Some(("lency_process_arg_at", vec![ValueType::I64], ValueType::Ptr)),
         "int_to_string" => Some(("lency_int_to_string", vec![ValueType::I64], ValueType::Ptr)),
+        "char_to_string" => Some(("lency_char_to_string", vec![ValueType::I64], ValueType::Ptr)),
+        "len" => Some(("lency_string_len", vec![ValueType::Ptr], ValueType::I64)),
+        "substr" => Some((
+            "lency_string_substr",
+            vec![ValueType::Ptr, ValueType::I64, ValueType::I64],
+            ValueType::Ptr,
+        )),
+        "starts_with" => Some((
+            "lency_string_starts_with",
+            vec![ValueType::Ptr, ValueType::Ptr],
+            ValueType::I64,
+        )),
+        "contains" => Some((
+            "lency_string_contains",
+            vec![ValueType::Ptr, ValueType::Ptr],
+            ValueType::I64,
+        )),
+        "is_alpha" => Some(("lency_char_is_alpha", vec![ValueType::I64], ValueType::I64)),
+        "is_digit" => Some(("lency_char_is_digit", vec![ValueType::I64], ValueType::I64)),
+        "is_alphanumeric" => Some((
+            "lency_char_is_alphanumeric",
+            vec![ValueType::I64],
+            ValueType::I64,
+        )),
+        "print" => Some(("lency_print", vec![ValueType::Ptr], ValueType::I64)),
+        "read_to_string" => Some((
+            "lency_file_read_string",
+            vec![ValueType::Ptr],
+            ValueType::Ptr,
+        )),
+        "write_string" => Some((
+            "lency_file_write_string",
+            vec![ValueType::Ptr, ValueType::Ptr],
+            ValueType::I64,
+        )),
         "file_exists" => Some(("lency_file_exists", vec![ValueType::Ptr], ValueType::I64)),
         "is_dir" => Some(("lency_file_is_dir", vec![ValueType::Ptr], ValueType::I64)),
         "lency_vec_new" => Some(("lency_vec_new", vec![ValueType::I64], ValueType::Ptr)),
@@ -171,6 +238,13 @@ pub(super) fn resolve_builtin_call(
             vec![ValueType::Ptr, ValueType::I64],
             ValueType::I64,
         )),
+        "lency_string_index" => Some((
+            "lency_string_index",
+            vec![ValueType::Ptr, ValueType::I64],
+            ValueType::I64,
+        )),
+        "lency_vec_len" => Some(("lency_vec_len", vec![ValueType::Ptr], ValueType::I64)),
+        "lency_vec_pop" => Some(("lency_vec_pop", vec![ValueType::Ptr], ValueType::I64)),
         "lency_vec_set" => Some((
             "lency_vec_set",
             vec![ValueType::Ptr, ValueType::I64, ValueType::I64],
@@ -196,6 +270,9 @@ pub(super) fn build_output_ir(emitter: Emitter) -> String {
     extern_names.sort();
 
     for name in extern_names {
+        if name == "lency_process_arg_count" || name == "lency_process_arg_at" {
+            continue;
+        }
         let sig = emitter
             .extern_funcs
             .get(&name)
@@ -224,6 +301,26 @@ pub(super) fn build_output_ir(emitter: Emitter) -> String {
     if !out_lines.is_empty() {
         out_lines.push(String::new());
     }
+    out_lines.extend([
+        "@lency_process_argc = internal global i32 0".to_string(),
+        "@lency_process_argv = internal global i8** null".to_string(),
+        "".to_string(),
+        "define i64 @lency_process_arg_count() {".to_string(),
+        "entry:".to_string(),
+        "  %argc32 = load i32, i32* @lency_process_argc".to_string(),
+        "  %argc64 = sext i32 %argc32 to i64".to_string(),
+        "  ret i64 %argc64".to_string(),
+        "}".to_string(),
+        "".to_string(),
+        "define i8* @lency_process_arg_at(i64 %index) {".to_string(),
+        "entry:".to_string(),
+        "  %argv = load i8**, i8*** @lency_process_argv".to_string(),
+        "  %slot = getelementptr inbounds i8*, i8** %argv, i64 %index".to_string(),
+        "  %value = load i8*, i8** %slot".to_string(),
+        "  ret i8* %value".to_string(),
+        "}".to_string(),
+        "".to_string(),
+    ]);
     out_lines.extend(emitter.lines);
 
     format!("{}\n", out_lines.join("\n"))
