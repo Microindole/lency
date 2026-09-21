@@ -79,7 +79,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         let mut locals: HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)> =
             HashMap::new();
 
-        // 注入当前函数的返回类型，供 ExprGenerator (如 gen_try) 使用
+        // 注入当前函数的返回类型，供返回值转换使用
         // 使用特殊的 key "__return_type"
         // PointerValue 使用 null，因为这里只关注 Type
         // 注意：PointerValue 必须有类型。这里随便用 i8* null。

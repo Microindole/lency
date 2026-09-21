@@ -39,7 +39,7 @@ Parser make_parser(string source) {
 
 impl Parser {
     string format_error(string message) {
-        return "Error at " + int_to_string(this.current.line) + ":" + int_to_string(this.current.column) + ": " + message
+        return "[lencyc/parser] Error at " + int_to_string(this.current.line) + ":" + int_to_string(this.current.column) + ": " + message
     }
 
     void error(string message) {
@@ -101,9 +101,6 @@ impl Parser {
         }
         if this.match_token(T_QUESTION()) {
             // Optional nullable suffix in generic argument.
-        }
-        if this.match_token(T_BANG()) {
-            // Optional non-null assertion suffix in generic argument.
         }
         return true
     }
@@ -194,6 +191,9 @@ impl Parser {
         this.advance() // 启动 parser
         
         while !this.is_at_end() {
+            if this.match_token(T_SEMICOLON()) {
+                continue
+            }
             var before_error_count = this.error_count
             var stmt = make_stmt_block(vec![])
             if this.queued_import_paths.len() > 0 {

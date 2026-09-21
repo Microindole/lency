@@ -1,20 +1,16 @@
 // Lency 标准库 - 文件系统模块 (fs.lcy)
 // 提供文件系统操作功能
 //
-// 编译器内置函数:
-//   string! read_file(string path)                  - 读取文件全部内容
-//   void!   write_file(string path, string content) - 写入文件
+// read_file/write_file 当前由编译器提供，I/O 失败时 panic。
 
 import std.core
 
-// 读取文件内容到字符串
-string! read_to_string(string path) {
+string read_to_string(string path) {
     return read_file(path)
 }
 
-// 将字符串写入文件
-void! write_string(string path, string content) {
-    return write_file(path, content)
+void write_string(string path, string content) {
+    write_file(path, content)
 }
 
 // 当前 `file_exists(string)` / `is_dir(string)` 已由编译器 builtin + runtime 直接支持。

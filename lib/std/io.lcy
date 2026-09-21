@@ -43,11 +43,7 @@ void println_bool(bool b) {
 
 // 读取文件的所有行
 Vec<string> read_lines(string path) {
-    var result = read_file(path)
-    var content = match result {
-        case Result.Ok(v) => v,
-        case Result.Err(_) => ""
-    }
+    var content = read_file(path)
     return split(content, "\n")
 }
 
@@ -59,11 +55,7 @@ void write_lines(string path, Vec<string> lines) {
 
 // 追加内容到文件
 void append_file(string path, string content) {
-    var result = read_file(path)
-    var existing = match result {
-        case Result.Ok(v) => v,
-        case Result.Err(_) => ""
-    }
+    var existing = read_file(path)
     write_file(path, existing + content)
 }
 
@@ -126,8 +118,8 @@ string join_path(string base, string path) {
 // ============== 已实现的内置函数 (供参考) ==============
 //
 // 文件 I/O:
-//   string! read_file(string path)     - 读取文件全部内容
-//   void!   write_file(string path, string content) - 写入文件
+//   string read_file(string path) - 读取文件全部内容，失败时 panic
+//   void write_file(string path, string content) - 写入文件，失败时 panic
 //
 // 控制台输出:
 //   void print(any value)  - 打印到标准输出

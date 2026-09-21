@@ -34,12 +34,14 @@
 
 ## 当前缺口
 
-- FIXME: Windows 下 `bootstrap-check` 在 stage1 处理含非 ASCII 内容的源码时会进入 `lency_string_substr`；当前 `len` 的字节长度语义与 Rust UTF-8 `str` 切片不一致，可能在非字符边界索引上 panic。这是当前自举主线的首要阻塞。
+- FIXME: `bootstrap-check` 的 stage1 已能读取含非 ASCII 内容及超过 8 KiB 的源码，但在 B3 解析 `lencyc/driver/main.lcy` 的导入依赖时，会重复报告 `6:27 Expect expression` 并最终栈溢出；stage2/stage3 尚未生成。该问题取代了原 UTF-8 切片崩溃，仍是当前自举主线的首要阻塞。
 - selfhost codegen/runtime 仍不足以承载完整标准库和真实程序。
 - selfhost emitter 对部分未知节点仍存在占位输出；这些路径应逐步改为显式失败或真实 lowering，避免产生“成功但错误”的结果。
 - generic struct、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
+- Rust 母体已停止接受公开的 `T!` 返回类型糖和后缀 `?` 错误传播；基础文件 I/O 使用普通 `string`/`void` 签名并在无法继续时 panic。底层 `Result` 仍是过渡实现。TODO: 在可恢复失败的普通数据契约确定后移除剩余编译器特判，并同步 selfhost 与标准库。
+- 检查输出以 `[xtask]`、`[rust/cargo]`、`[lency/rust-host]`、`[lency/selfhost]` 标记执行来源；交互终端中使用颜色区分，`NO_COLOR` 或非终端输出保持纯文本。
 - 块内声明和顶层声明仍存在中间表示上的双轨边界。
 - Lency 尚不支持 `/* ... */` 块注释。
 

@@ -54,12 +54,7 @@ impl Resolver {
             return
         }
         visited.push(module_path)
-        var source_res = read_to_string(module_path)
-        if source_res.is_err() {
-            this.error("std module read failed: " + module_path)
-            return
-        }
-        var source = this.sanitize_source_for_bootstrap_parser(source_res.unwrap())
+        var source = this.sanitize_source_for_bootstrap_parser(read_to_string(module_path))
         var parser = make_parser(source)
         parser.signature_only = true
         parser.suppress_error_output = true

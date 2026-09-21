@@ -9,24 +9,11 @@ void main() {
     print("Checking file_io...")
 
     // Test 1: write_file - 写入文件
-    var write_result = write_file("/tmp/lency_test.txt", "Hello from Lency!")
+    write_file("/tmp/lency_test.txt", "Hello from Lency!")
     
     // Test 2: read_file - 读取文件
     var read_result = read_file("/tmp/lency_test.txt")
+    print(read_result)
     
-    // Test helper function
-    test_file_operations()
-
     print("Success")
-}
-
-// 一个返回 Result 的函数，可以使用 ? 运算符
-void! test_file_operations() {
-    write_file("/tmp/lency_io_test.txt", "Test content")?
-    
-    var content = read_file("/tmp/lency_io_test.txt")?
-    print(content)
-    
-    // void! 的 Ok 值应该是空的
-    return Ok(())
 }

@@ -129,7 +129,7 @@ def main():
             total_count += count
             
             icon = "🔴" if tag == "FIXME" else "📝"
-            print(f"{icon} Found {count} {tag}s:")
+            print(f"{icon} Found {count} {tag}s (scope={args.scope}, report only):")
             
             for file_path, line_num, content in items:
                 # 截断过长内容

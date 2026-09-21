@@ -23,10 +23,17 @@ pub(crate) fn bootstrap_check() -> Result<()> {
         .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
         .unwrap_or(false);
 
-    step("B1. Compiling Rust Host Compiler (release lencyc)", || {
+    step("B1. Compiling Rust Host Compiler and Runtime", || {
         run_cmd(
             "cargo",
-            &["build", "--release", "-p", "lency_cli"],
+            &[
+                "build",
+                "--release",
+                "-p",
+                "lency_cli",
+                "-p",
+                "lency_runtime",
+            ],
             false,
             &[],
             &[0],

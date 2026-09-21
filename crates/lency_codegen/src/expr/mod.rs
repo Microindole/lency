@@ -129,7 +129,6 @@ fn generate_expr<'ctx>(
         }
         ExprKind::Ok(inner) => result::gen_ok(ctx, locals, inner),
         ExprKind::Err(inner) => result::gen_err(ctx, locals, inner),
-        ExprKind::Try(inner) => result::gen_try(ctx, locals, inner),
         ExprKind::Closure { params, body } => closure::gen_closure(ctx, locals, params, body),
         // File I/O intrinsics (Sprint 12)
         ExprKind::ReadFile(path) => intrinsic::gen_read_file(ctx, locals, path),

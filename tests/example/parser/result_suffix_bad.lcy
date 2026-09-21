@@ -1,0 +1,6 @@
+// @expect-error
+// `T!` 已退出公开类型语法。
+
+int! divide(int left, int right) {
+    return left / right
+}

@@ -13,12 +13,7 @@ import lencyc.syntax.ast
 import lencyc.sema.resolver
 
 string read_match_case_or_empty(string path) {
-    var source_res = read_to_string(path)
-    if source_res.is_err() {
-        print("Failed to read test case: " + path + "\n")
-        return ""
-    }
-    return source_res.unwrap()
+    return read_to_string(path)
 }
 
 bool run_match_and_enum_payload_tests() {

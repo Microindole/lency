@@ -25,7 +25,7 @@ where
             span,
         });
 
-    // read_file("path") -> string!
+    // read_file("path") -> string，I/O 失败时 panic
     let read_file_expr = just(Token::ReadFile)
         .ignore_then(
             expr.clone()
@@ -36,7 +36,7 @@ where
             span,
         });
 
-    // write_file("path", "content") -> void!
+    // write_file("path", "content") -> void，I/O 失败时 panic
     let write_file_expr = just(Token::WriteFile)
         .ignore_then(
             expr.clone()

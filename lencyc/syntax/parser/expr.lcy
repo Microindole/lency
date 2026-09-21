@@ -316,6 +316,9 @@ impl Parser {
         }
         
         this.error("Expect expression.")
+        if !this.is_at_end() {
+            this.advance()
+        }
         // Return a dummy expression to prevent crashes
         return make_expr_literal(make_token(T_ERROR(), "", 0, 0))
     }

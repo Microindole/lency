@@ -159,6 +159,30 @@ pub fn gen_bounds_check<'ctx>(
     builder.position_at_end(cont_block);
 }
 
+/// 条件为真时终止程序，用于算术等运行时安全检查。
+pub fn gen_panic_if<'ctx>(
+    context: &'ctx Context,
+    builder: &inkwell::builder::Builder<'ctx>,
+    panic_func: FunctionValue<'ctx>,
+    condition: inkwell::values::IntValue<'ctx>,
+    message: &str,
+    line: u32,
+) {
+    let current_block = builder.get_insert_block().unwrap();
+    let function = current_block.get_parent().unwrap();
+    let panic_block = context.append_basic_block(function, "arithmetic_panic");
+    let cont_block = context.append_basic_block(function, "arithmetic_cont");
+
+    builder
+        .build_conditional_branch(condition, panic_block, cont_block)
+        .unwrap();
+
+    builder.position_at_end(panic_block);
+    gen_panic(context, builder, panic_func, message, line);
+
+    builder.position_at_end(cont_block);
+}
+
 /// 生成 panic 调用
 pub fn gen_panic<'ctx>(
     context: &'ctx Context,

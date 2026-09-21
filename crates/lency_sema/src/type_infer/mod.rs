@@ -104,7 +104,6 @@ impl<'a> TypeInferer<'a> {
             ExprKind::StructLiteral { .. }
             | ExprKind::VecLiteral(_)
             | ExprKind::GenericInstantiation { .. }
-            | ExprKind::Try(_)
             | ExprKind::Ok(_)
             | ExprKind::Err(_)
             | ExprKind::Closure { .. } => self.infer_adt(expr),

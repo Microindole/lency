@@ -28,12 +28,7 @@ int main() {
     var path = "lencyc/syntax/token.lcy"
     print("Reading test file: " + path + "\n")
     
-    var source_res = read_to_string(path)
-    if source_res.is_err() {
-        print("Failed to read file: " + path + "\n")
-        return 1
-    }
-    var source = source_res.unwrap()
+    var source = read_to_string(path)
     
     print("Step 1: Lexing test...\n")
     var lexer = make_lexer(source)

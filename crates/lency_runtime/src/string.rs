@@ -211,7 +211,7 @@ pub unsafe extern "C" fn lency_string_substr(
     };
 
     let start_idx = start as usize;
-    let end_idx = std::cmp::min(start_idx + len as usize, s.len());
+    let end_idx = start_idx.saturating_add(len as usize).min(s.len());
 
     if start_idx >= s.len() {
         // 返回空字符串
@@ -222,7 +222,17 @@ pub unsafe extern "C" fn lency_string_substr(
         return result;
     }
 
-    let substr = &s[start_idx..end_idx];
+    // Lency 的 len/index/substr 当前统一采用 UTF-8 字节索引。端点如果落在
+    // 多字节字符内部，则向前收敛到下一个合法边界，避免 panic 或非法 C 字符串。
+    let mut safe_start = start_idx;
+    while safe_start < s.len() && !s.is_char_boundary(safe_start) {
+        safe_start += 1;
+    }
+    let mut safe_end = end_idx.max(safe_start);
+    while safe_end < s.len() && !s.is_char_boundary(safe_end) {
+        safe_end += 1;
+    }
+    let substr = &s[safe_start..safe_end];
     let substr_len = substr.len();
     let result = unsafe { libc::malloc(substr_len + 1) as *mut c_char };
     if result.is_null() {
@@ -446,6 +456,24 @@ mod tests {
         let substr2 = unsafe { CStr::from_ptr(result2) }.to_str().unwrap();
         assert_eq!(substr2, "world");
         unsafe { libc::free(result2 as *mut libc::c_void) };
+    }
+
+    #[test]
+    fn test_string_substr_uses_utf8_byte_offsets_without_panicking() {
+        let s = CString::new("A自B").unwrap();
+
+        let whole_char = unsafe { lency_string_substr(s.as_ptr(), 1, 3) };
+        assert!(!whole_char.is_null());
+        assert_eq!(
+            unsafe { CStr::from_ptr(whole_char) }.to_bytes(),
+            "自".as_bytes()
+        );
+        unsafe { libc::free(whole_char as *mut libc::c_void) };
+
+        let inner_byte = unsafe { lency_string_substr(s.as_ptr(), 2, 1) };
+        assert!(!inner_byte.is_null());
+        assert_eq!(unsafe { CStr::from_ptr(inner_byte) }.to_bytes(), b"");
+        unsafe { libc::free(inner_byte as *mut libc::c_void) };
     }
 
     #[test]

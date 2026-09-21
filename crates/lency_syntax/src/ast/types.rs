@@ -35,8 +35,7 @@ pub enum Type {
     // 动态数组类型: Vec<T>
     Vec(Box<Type>),
 
-    // Result 类型: Result<T, E> 或 T! (语法糖)
-    // 用于错误处理，符合 "Safety by Default" 哲学
+    // Result 过渡类型；公开错误返回契约尚未冻结。
     Result {
         ok_type: Box<Type>,
         err_type: Box<Type>,

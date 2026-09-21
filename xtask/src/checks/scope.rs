@@ -37,9 +37,7 @@ fn is_lency_change(path: &str) -> bool {
 }
 
 fn is_docs_change(path: &str) -> bool {
-    path.starts_with("docs/")
-        || path.ends_with(".md")
-        || path.ends_with(".txt")
+    path.starts_with("docs/") || path.ends_with(".md") || path.ends_with(".txt")
 }
 
 fn detect_check_scope_from_status(stdout: &str) -> CheckScope {

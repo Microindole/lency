@@ -67,7 +67,7 @@ impl Resolver {
     }
 
     void error(string message) {
-        print("Resolver error: " + message + "\n")
+        print("[lencyc/resolver] Error: " + message + "\n")
         this.has_error = true
         this.error_count = this.error_count + 1
     }

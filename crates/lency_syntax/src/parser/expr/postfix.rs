@@ -12,7 +12,6 @@ enum PostfixOp {
     SafeMember(String, Span),
     Call(Vec<Expr>, Span),
     GenericInstantiation(Vec<Type>, Span),
-    Try(Span),
 }
 
 pub fn parser(
@@ -37,7 +36,6 @@ pub fn parser(
                         .map_with_span(|n, s| (n, s)),
                 )
                 .map(|(n, s)| PostfixOp::SafeMember(n, s)))
-            .or(just(Token::Question).map_with_span(|_, s| PostfixOp::Try(s))) // Try Operator
             .or(just(Token::Colon)
                 .then(just(Token::Colon))
                 .ignore_then(just(Token::Lt))
@@ -104,13 +102,6 @@ pub fn parser(
                     base: Box::new(lhs),
                     args,
                 },
-                span,
-            }
-        }
-        PostfixOp::Try(try_span) => {
-            let span = lhs.span.start..try_span.end;
-            Expr {
-                kind: ExprKind::Try(Box::new(lhs)),
                 span,
             }
         }

@@ -45,6 +45,9 @@ impl Parser {
     Vec<Stmt> block() {
         var statements = vec![]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
+            if this.match_token(T_SEMICOLON()) {
+                continue
+            }
             var stmt = this.declaration()
             statements.push(stmt)
         }
@@ -130,10 +133,16 @@ impl Parser {
     }
 
     Stmt return_statement() {
+        if this.match_token(T_SEMICOLON()) {
+            return make_stmt_return_void()
+        }
         if this.check(T_RIGHT_BRACE()) || this.check(T_EOF()) {
             return make_stmt_return_void()
         }
         var value = this.expression()
+        if this.match_token(T_SEMICOLON()) {
+            // Optional C-style statement terminator.
+        }
         return make_stmt_return(value)
     }
 
@@ -145,14 +154,25 @@ impl Parser {
             return this.return_statement()
         }
         if this.match_token(T_BREAK()) {
-            return this.break_statement()
+            var stmt = this.break_statement()
+            if this.match_token(T_SEMICOLON()) {
+                // Optional C-style statement terminator.
+            }
+            return stmt
         }
         if this.match_token(T_CONTINUE()) {
-            return this.continue_statement()
+            var stmt = this.continue_statement()
+            if this.match_token(T_SEMICOLON()) {
+                // Optional C-style statement terminator.
+            }
+            return stmt
         }
         
         // Expression statement
         var expr = this.expression()
+        if this.match_token(T_SEMICOLON()) {
+            // Optional C-style statement terminator.
+        }
         return make_stmt_expr(expr)
     }
 }
