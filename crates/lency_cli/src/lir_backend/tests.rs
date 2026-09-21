@@ -21,7 +21,7 @@ else_1:
     let result = compile_lir_to_llvm_ir(src);
     assert!(result.is_ok(), "lir compile failed: {:?}", result.err());
     let ir = result.unwrap_or_default();
-    assert!(ir.contains("define i32 @main()"));
+    assert!(ir.contains("define i32 @main(i32 %process_argc, i8** %process_argv)"));
     assert!(ir.contains("alloca i64"));
     assert!(ir.contains("icmp sgt i64"));
     assert!(ir.contains("ret i32"));
@@ -58,8 +58,8 @@ entry:
     let result = compile_lir_to_llvm_ir(src);
     assert!(result.is_ok(), "lir compile failed: {:?}", result.err());
     let ir = result.unwrap_or_default();
-    assert!(ir.contains("declare i64 @lency_arg_count()"));
-    assert!(ir.contains("call i64 @lency_arg_count()"));
+    assert!(ir.contains("define i64 @lency_process_arg_count()"));
+    assert!(ir.contains("call i64 @lency_process_arg_count()"));
 }
 
 #[test]
@@ -75,8 +75,8 @@ entry:
     let result = compile_lir_to_llvm_ir(src);
     assert!(result.is_ok(), "lir compile failed: {:?}", result.err());
     let ir = result.unwrap_or_default();
-    assert!(ir.contains("declare i8* @lency_arg_at(i64)"));
-    assert!(ir.contains("call i8* @lency_arg_at(i64 0)"));
+    assert!(ir.contains("define i8* @lency_process_arg_at(i64 %index)"));
+    assert!(ir.contains("call i8* @lency_process_arg_at(i64 0)"));
 }
 
 #[test]
@@ -355,6 +355,7 @@ entry:
   %t1 = call %bump_right(%t0)
   ret %t1
 }
+
 func make_pair(%left: i64, %right: i64) -> ptr {
 entry:
   %t0 = call %lency_vec_new(2)
@@ -375,9 +376,42 @@ entry:
     let result = compile_lir_to_llvm_ir(src);
     assert!(result.is_ok(), "lir compile failed: {:?}", result.err());
     let ir = result.unwrap_or_default();
-    assert!(ir.contains("define i32 @main()"));
+    assert!(ir.contains("define i32 @main(i32 %process_argc, i8** %process_argv)"));
     assert!(ir.contains("define i8* @make_pair(i64 %left, i64 %right)"));
     assert!(ir.contains("define i64 @bump_right(i8* %p)"));
     assert!(ir.contains("call i8* @make_pair(i64 1, i64 2)"));
     assert!(ir.contains("call i64 @bump_right(i8*"));
+}
+
+#[test]
+fn test_compile_lir_uses_unique_string_globals_across_functions() {
+    let src = r#"
+; lencyc-lir v0
+func first() -> ptr {
+entry:
+  ret "first"
+}
+
+func second() -> ptr {
+entry:
+  ret "second"
+}
+"#;
+    let ir = compile_lir_to_llvm_ir(src).expect("multi-function string LIR should compile");
+    assert_eq!(ir.matches("@.str.0 =").count(), 1);
+    assert_eq!(ir.matches("@.str.1 =").count(), 1);
+}
+
+#[test]
+fn test_compile_lir_keeps_commas_inside_string_operands() {
+    let src = r#"
+; lencyc-lir v0
+func message() -> ptr {
+entry:
+  %t0 = add "left, middle", ", right"
+  ret %t0
+}
+"#;
+    let ir = compile_lir_to_llvm_ir(src).expect("string commas must not split LIR operands");
+    assert!(ir.contains("define i8* @message()"));
 }

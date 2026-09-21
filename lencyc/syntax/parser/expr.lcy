@@ -303,8 +303,25 @@ impl Parser {
         }
         if this.match_token(T_IDENTIFIER()) {
             var name = this.previous
-            if this.check(T_LEFT_BRACE()) && this.is_struct_literal_body_ahead() {
-                return this.parse_struct_literal_after_name(name)
+            if name.lexeme == "vec" && this.match_token(T_BANG()) {
+                this.consume(T_LEFT_BRACKET(), "Expect '[' after 'vec!'.")
+                var elements = vec![]
+                if !this.check(T_RIGHT_BRACKET()) {
+                    while true {
+                        elements.push(this.expression())
+                        if !this.match_token(T_COMMA()) {
+                            break
+                        }
+                    }
+                }
+                this.consume(T_RIGHT_BRACKET(), "Expect ']' after Vec elements.")
+                return make_expr_vec(elements)
+            }
+            if this.check(T_LEFT_BRACE()) {
+                var starts_like_type = len(name.lexeme) > 0 && name.lexeme[0] >= 65 && name.lexeme[0] <= 90
+                if starts_like_type || this.is_struct_literal_body_ahead() {
+                    return this.parse_struct_literal_after_name(name)
+                }
             }
             return make_expr_variable(name)
         }

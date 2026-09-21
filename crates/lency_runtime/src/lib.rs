@@ -9,6 +9,7 @@ pub mod hashmap_string;
 pub mod string;
 use std::alloc::{alloc, dealloc, realloc, Layout};
 use std::ffi::{CStr, CString};
+use std::io::{self, Write};
 use std::os::raw::c_char;
 
 // ============== Panic Runtime ==============
@@ -29,6 +30,23 @@ pub unsafe extern "C" fn lency_panic(msg: *const c_char) {
         }
     }
     std::process::exit(1);
+}
+
+/// Print a UTF-8 C string without adding a newline.
+///
+/// # Safety
+/// `text` must be a valid null-terminated C string.
+#[no_mangle]
+pub unsafe extern "C" fn lency_print(text: *const c_char) -> i64 {
+    if text.is_null() {
+        return -1;
+    }
+    let bytes = unsafe { CStr::from_ptr(text) }.to_bytes();
+    let mut stdout = io::stdout().lock();
+    if stdout.write_all(bytes).is_err() || stdout.flush().is_err() {
+        return -1;
+    }
+    0
 }
 
 /// Lency 动态数组
@@ -340,10 +358,49 @@ pub unsafe extern "C" fn lency_free_string(s: *mut i8) {
     }
 }
 
+#[cfg(windows)]
+fn process_args() -> Vec<String> {
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetCommandLineW() -> *const u16;
+        fn LocalFree(memory: isize) -> isize;
+    }
+    #[link(name = "shell32")]
+    extern "system" {
+        fn CommandLineToArgvW(command_line: *const u16, argc: *mut i32) -> *mut *mut u16;
+    }
+
+    unsafe {
+        let mut argc = 0i32;
+        let argv = CommandLineToArgvW(GetCommandLineW(), &mut argc);
+        if argv.is_null() || argc <= 0 {
+            return Vec::new();
+        }
+        let mut result = Vec::with_capacity(argc as usize);
+        for index in 0..argc as usize {
+            let ptr = *argv.add(index);
+            let mut len = 0usize;
+            while *ptr.add(len) != 0 {
+                len += 1;
+            }
+            result.push(String::from_utf16_lossy(std::slice::from_raw_parts(
+                ptr, len,
+            )));
+        }
+        let _ = LocalFree(argv as isize);
+        result
+    }
+}
+
+#[cfg(not(windows))]
+fn process_args() -> Vec<String> {
+    std::env::args().collect()
+}
+
 /// Return process argument count (including executable path).
 #[no_mangle]
 pub extern "C" fn lency_arg_count() -> i64 {
-    std::env::args().count() as i64
+    process_args().len() as i64
 }
 
 /// Return process argument at index as newly allocated C string.
@@ -355,7 +412,7 @@ pub unsafe extern "C" fn lency_arg_at(index: i64) -> *mut i8 {
     if index < 0 {
         return std::ptr::null_mut();
     }
-    match std::env::args().nth(index as usize) {
+    match process_args().into_iter().nth(index as usize) {
         Some(s) => match CString::new(s) {
             Ok(cs) => cs.into_raw(),
             Err(_) => std::ptr::null_mut(),

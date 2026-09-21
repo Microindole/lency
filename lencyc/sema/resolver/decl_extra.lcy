@@ -46,6 +46,19 @@ impl Resolver {
                 if !this.table.resolve(decl.name.lexeme) {
                     this.table.define(decl.name.lexeme)
                 }
+                var f = 0
+                while f < decl.struct_fields.len() {
+                    var field = decl.struct_fields[f]
+                    this.struct_field_signatures.push(
+                        make_struct_field_signature(
+                            decl.name.lexeme,
+                            field.name.lexeme,
+                            this.resolve_signature_type_or_unknown(field.type_ref),
+                            this.resolve_signature_type_name(field.type_ref)
+                        )
+                    )
+                    f = f + 1
+                }
             }
             if decl.kind == DECL_ENUM() {
                 if !this.table.resolve(decl.name.lexeme) {
@@ -94,8 +107,59 @@ impl Resolver {
                     )
                 }
             }
+            if decl.kind == DECL_IMPL() {
+                var m = 0
+                while m < decl.body.len() {
+                    var member = stmt_to_decl(decl.body[m])
+                    if member.kind == DECL_FUNCTION() && !this.table.resolve(member.name.lexeme) {
+                        this.table.define(member.name.lexeme)
+                        this.preload_builtin_arity(member.name.lexeme, member.params.len())
+                        var member_param_tys = vec![]
+                        var member_param_ty_names = vec![]
+                        var mp = 0
+                        while mp < member.param_types.len() {
+                            member_param_tys.push(this.resolve_signature_type_or_unknown(member.param_types[mp]))
+                            member_param_ty_names.push(this.resolve_signature_type_name(member.param_types[mp]))
+                            mp = mp + 1
+                        }
+                        this.function_signatures.push(
+                            make_function_signature(
+                                member.name.lexeme,
+                                this.resolve_signature_type_or_unknown(member.return_type),
+                                member_param_tys,
+                                this.resolve_signature_type_name(member.return_type),
+                                member_param_ty_names,
+                                this.resolve_signature_enum_name_or_empty(member.return_type)
+                            )
+                        )
+                    }
+                    m = m + 1
+                }
+            }
+            if decl.kind == DECL_IMPORT() {
+                var imported_path = this.resolve_import_module_file_path(decl.params)
+                if imported_path != "" {
+                    this.preload_import_module(imported_path)
+                }
+            }
             i = i + 1
         }
+    }
+
+    void preload_import_module(string module_path) {
+        if this.contains_name(this.imported_module_paths, module_path) {
+            return
+        }
+        this.imported_module_paths.push(module_path)
+        var source = read_to_string(module_path)
+        var parser = make_parser(source)
+        parser.signature_only = true
+        var program = parser.parse_program()
+        if parser.has_error {
+            this.error("import module parse failed: " + module_path)
+            return
+        }
+        this.preload_imported_declarations(program, module_path)
     }
 
     bool try_resolve_std_import_decl(Decl decl) {
@@ -149,14 +213,7 @@ impl Resolver {
             this.error("import module file not found: " + this.import_path_join(decl.params, "."))
             return
         }
-        var source = read_to_string(module_path)
-        var parser = make_parser(source)
-        var program = parser.parse_program()
-        if parser.has_error {
-            this.error("import module parse failed: " + module_path)
-            return
-        }
-        this.preload_imported_declarations(program, module_path)
+        this.preload_import_module(module_path)
     }
 
     void resolve_extern_decl(Decl decl) {

@@ -144,6 +144,19 @@ impl LirBuilder {
 
     string binary_opcode_for_expr(Expr expr) {
         var op = expr.operator.lexeme
+        if op == "+" {
+            var lhs_add_ty = ""
+            var rhs_add_ty = ""
+            if expr.children.len() > 0 {
+                lhs_add_ty = this.infer_expr_type_name(expr.children[0])
+            }
+            if expr.children.len() > 1 {
+                rhs_add_ty = this.infer_expr_type_name(expr.children[1])
+            }
+            if lhs_add_ty == "string" || rhs_add_ty == "string" {
+                return "concat"
+            }
+        }
         if op == "==" || op == "!=" {
             var lhs_ty = ""
             var rhs_ty = ""
@@ -382,6 +395,17 @@ impl LirBuilder {
                 i = i + 1
             }
             return current
+        }
+        if expr.kind == EXPR_VEC() {
+            var dst_vec = this.new_temp()
+            this.emit_line("  " + dst_vec + " = call %lency_vec_new(" + int_to_string(expr.children.len()) + ")")
+            var i = 0
+            while i < expr.children.len() {
+                var element = this.emit_expr(expr.children[i])
+                this.emit_line("  call %lency_vec_push(" + dst_vec + ", " + element + ")")
+                i = i + 1
+            }
+            return dst_vec
         }
         if expr.kind == EXPR_CALL() {
             return this.emit_expr_call(expr)

@@ -23,6 +23,7 @@ pub(super) struct Emitter {
     pub(super) string_globals: HashMap<String, (String, usize, String)>,
     pub(super) extern_funcs: HashMap<String, ExternSig>,
     pub(super) terminated: bool,
+    string_global_offset: usize,
 }
 
 impl Emitter {
@@ -35,7 +36,12 @@ impl Emitter {
             string_globals: HashMap::new(),
             extern_funcs: HashMap::new(),
             terminated: false,
+            string_global_offset: 0,
         }
+    }
+
+    pub(super) fn set_string_global_offset(&mut self, offset: usize) {
+        self.string_global_offset = offset;
     }
 
     pub(super) fn push(&mut self, line: impl Into<String>) {
@@ -105,7 +111,10 @@ impl Emitter {
             return Some((name.clone(), *len));
         }
         let bytes = Self::parse_string_literal(literal)?;
-        let global_name = format!("@.str.{}", self.string_globals.len());
+        let global_name = format!(
+            "@.str.{}",
+            self.string_global_offset + self.string_globals.len()
+        );
         let global_len = bytes.len() + 1;
         let decl = format!(
             "{} = private unnamed_addr constant [{} x i8] c\"{}\"",
@@ -282,6 +291,20 @@ impl Emitter {
         let (rhs_repr, rhs_ty) = self.emit_operand(rhs)?;
 
         match op {
+            "concat" => {
+                let (lhs_ptr, _) = self.ensure_ptr(lhs_repr, lhs_ty);
+                let (rhs_ptr, _) = self.ensure_ptr(rhs_repr, rhs_ty);
+                self.note_extern_func(
+                    "lency_string_concat",
+                    vec![ValueType::Ptr, ValueType::Ptr],
+                    ValueType::Ptr,
+                )?;
+                self.push(format!(
+                    "  {} = call i8* @lency_string_concat(i8* {}, i8* {})",
+                    dst, lhs_ptr, rhs_ptr
+                ));
+                self.mark_temp(dst, ValueType::Ptr);
+            }
             "add" | "sub" | "mul" | "div" => {
                 let (lhs_i64, _) = self.ensure_i64(lhs_repr, lhs_ty);
                 let (rhs_i64, _) = self.ensure_i64(rhs_repr, rhs_ty);

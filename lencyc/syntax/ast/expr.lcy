@@ -17,6 +17,7 @@ int EXPR_GET()      { return 9; }
 int EXPR_MATCH()    { return 10; }
 int EXPR_STRUCT()   { return 11; }
 int EXPR_SET()      { return 12; }
+int EXPR_VEC()      { return 13; }
 
 Expr make_expr_literal(Token v) {
     return Expr {
@@ -162,6 +163,19 @@ Expr make_expr_set(Expr object, Token name, Expr value) {
         literal_value: name,
         operator: make_token(0, "", 0, 0),
         children: vec![object, value],
+        field_names: vec![],
+        arm_patterns: vec![],
+        arm_guards: vec![],
+        arm_has_guards: vec![]
+    }
+}
+
+Expr make_expr_vec(Vec<Expr> elements) {
+    return Expr {
+        kind: EXPR_VEC(),
+        literal_value: make_token(0, "", 0, 0),
+        operator: make_token(0, "vec", 0, 0),
+        children: elements,
         field_names: vec![],
         arm_patterns: vec![],
         arm_guards: vec![],

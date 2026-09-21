@@ -25,6 +25,8 @@ impl Resolver {
         this.preload_builtin_arity("write_string", 2)
         this.preload_builtin_arity("bool_to_string", 1)
         this.preload_builtin_arity("int_to_bool", 1)
+        this.preload_builtin_arity("print", 1)
+        this.preload_builtin_arity("len", 1)
     }
 
     void preload_builtin_type(string name, int ty) {
@@ -33,16 +35,20 @@ impl Resolver {
 
     void preload_builtin_types() {
         this.preload_builtin_type("arg_count", TYPE_INT())
-        this.preload_builtin_type("arg_at", TYPE_UNKNOWN())
-        this.preload_builtin_type("int_to_string", TYPE_UNKNOWN())
-        this.preload_builtin_type("float_to_string", TYPE_UNKNOWN())
-        this.preload_builtin_type("char_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("arg_at", TYPE_STRING())
+        this.preload_builtin_type("int_to_string", TYPE_STRING())
+        this.preload_builtin_type("float_to_string", TYPE_STRING())
+        this.preload_builtin_type("char_to_string", TYPE_STRING())
         this.preload_builtin_type("parse_int", TYPE_INT())
         this.preload_builtin_type("parse_float", TYPE_FLOAT())
         this.preload_builtin_type("file_exists", TYPE_BOOL())
         this.preload_builtin_type("is_dir", TYPE_BOOL())
-        this.preload_builtin_type("bool_to_string", TYPE_UNKNOWN())
+        this.preload_builtin_type("read_to_string", TYPE_STRING())
+        this.preload_builtin_type("write_string", TYPE_VOID())
+        this.preload_builtin_type("bool_to_string", TYPE_STRING())
         this.preload_builtin_type("int_to_bool", TYPE_BOOL())
+        this.preload_builtin_type("print", TYPE_VOID())
+        this.preload_builtin_type("len", TYPE_INT())
     }
 
     void preload_builtin_result_enum() {

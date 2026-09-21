@@ -22,7 +22,7 @@ bool run_function_signature_typeref_tests() {
     }
     var fn_stmt = typeref_program.statements[0]
     var fn_decl = stmt_to_decl(fn_stmt)
-    if fn_decl.return_type.kind != T_IDENTIFIER() || fn_decl.return_type.name != "Result" {
+    if fn_decl.return_type.kind != T_IDENTIFIER() || fn_decl.return_type.name != "Result<int,string>" {
         print("Function signature TypeRef return type mismatch.\n")
         return false
     }
@@ -42,7 +42,7 @@ bool run_function_signature_typeref_tests() {
         print("Function signature TypeRef param #3 mismatch.\n")
         return false
     }
-    if fn_decl.param_types[3].kind != T_IDENTIFIER() || fn_decl.param_types[3].name != "Boxed" {
+    if fn_decl.param_types[3].kind != T_IDENTIFIER() || fn_decl.param_types[3].name != "Boxed<int>" {
         print("Function signature TypeRef param #4 mismatch.\n")
         return false
     }

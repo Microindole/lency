@@ -7,6 +7,17 @@ import lencyc.syntax.token
 import lencyc.sema.resolver
 
 impl Resolver {
+    string signature_base_type_name(string type_name) {
+        var i = 0
+        while i < len(type_name) {
+            if type_name[i] == 60 {
+                return substr(type_name, 0, i)
+            }
+            i = i + 1
+        }
+        return type_name
+    }
+
     string resolve_signature_type_name(TypeRef type_ref) {
         return type_ref.name
     }
@@ -27,6 +38,10 @@ impl Resolver {
             return true
         }
         if left_name == right_name {
+            return true
+        }
+        if (left_name == "Vec" && starts_with(right_name, "Vec<")) ||
+           (right_name == "Vec" && starts_with(left_name, "Vec<")) {
             return true
         }
         if left_name == "null" {
@@ -191,7 +206,7 @@ impl Resolver {
                 this.error("empty custom type name in signature")
                 return TYPE_UNKNOWN()
             }
-            if !this.table.resolve(type_name) {
+            if !this.table.resolve(this.signature_base_type_name(type_name)) {
                 this.error("unknown type in signature: " + type_name)
             }
             if nullable_suffix {

@@ -77,6 +77,7 @@ struct Resolver {
     Vec<EnumVariantSignature> enum_variant_signatures
     Vec<EnumValueSymbol> enum_value_symbols
     Vec<StructFieldSignature> struct_field_signatures
+    Vec<string> imported_module_paths
     bool in_function
     bool require_value_return
     int current_function_return_type
@@ -175,6 +176,7 @@ Resolver make_resolver() {
         enum_variant_signatures: vec![],
         enum_value_symbols: vec![],
         struct_field_signatures: vec![],
+        imported_module_paths: vec![],
         in_function: false,
         require_value_return: false,
         current_function_return_type: TYPE_UNKNOWN(),

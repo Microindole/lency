@@ -29,6 +29,55 @@ impl LirBuilder {
             }
             return ctor_dst
         }
+        var callee_expr = expr.children[0]
+        if callee_expr.kind == EXPR_GET() && callee_expr.children.len() > 0 {
+            var object_expr = callee_expr.children[0]
+            var object_type = this.infer_expr_type_name(object_expr)
+            var member_name = callee_expr.literal_value.lexeme
+            if member_name == "index" {
+                var index_runtime_name = "lency_vec_get"
+                if object_type == "string" {
+                    index_runtime_name = "lency_string_index"
+                }
+                var indexed_object = this.emit_expr(object_expr)
+                var index_value = "0"
+                if expr.children.len() > 1 {
+                    index_value = this.emit_expr(expr.children[1])
+                }
+                var index_dst = this.new_temp()
+                this.emit_line("  " + index_dst + " = call %" + index_runtime_name + "(" + indexed_object + ", " + index_value + ")")
+                return index_dst
+            }
+            if member_name == "push" || member_name == "pop" || member_name == "get" || member_name == "set" || (member_name == "len" && object_type != "string") {
+                var vec_runtime_name = "lency_vec_get"
+                if member_name == "len" { vec_runtime_name = "lency_vec_len" }
+                if member_name == "push" { vec_runtime_name = "lency_vec_push" }
+                if member_name == "pop" { vec_runtime_name = "lency_vec_pop" }
+                if member_name == "set" { vec_runtime_name = "lency_vec_set" }
+                var vec_object = this.emit_expr(object_expr)
+                var vec_args = vec![vec_object]
+                var vec_arg_id = 1
+                while vec_arg_id < expr.children.len() {
+                    vec_args.push(this.emit_expr(expr.children[vec_arg_id]))
+                    vec_arg_id = vec_arg_id + 1
+                }
+                var vec_dst = this.new_temp()
+                this.emit_line("  " + vec_dst + " = call %" + vec_runtime_name + "(" + this.join_args(vec_args) + ")")
+                return vec_dst
+            }
+            if object_type != "" && !this.is_vec_type_name(object_type) && object_type != "string" {
+                var object_value = this.emit_expr(object_expr)
+                var member_args = vec![object_value]
+                var member_arg_id = 1
+                while member_arg_id < expr.children.len() {
+                    member_args.push(this.emit_expr(expr.children[member_arg_id]))
+                    member_arg_id = member_arg_id + 1
+                }
+                var member_dst = this.new_temp()
+                this.emit_line("  " + member_dst + " = call %" + object_type + "__" + member_name + "(" + this.join_args(member_args) + ")")
+                return member_dst
+            }
+        }
         var callee = this.emit_expr(expr.children[0])
         var args = vec![]
         var i = 1

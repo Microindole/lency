@@ -6,7 +6,4 @@
 
 var argc = arg_count()
 var argv0 = arg_at(0)
-if argv0 == 0 {
-    return 125
-}
-return argc - 1
+return argc - 1 + len(argv0) - len(argv0)
