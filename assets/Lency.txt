@@ -1,1 +1,0 @@
-Lency 的设计原则已迁移到 docs/design.md。
