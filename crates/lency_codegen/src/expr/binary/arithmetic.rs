@@ -135,13 +135,65 @@ pub fn gen_div<'ctx>(
     ctx: &CodegenContext<'ctx>,
     lhs: BasicValueEnum<'ctx>,
     rhs: BasicValueEnum<'ctx>,
+    line: u32,
 ) -> CodegenResult<BasicValueEnum<'ctx>> {
     match (lhs, rhs) {
-        (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => ctx
-            .builder
-            .build_int_signed_div(l, r, "divtmp")
-            .map(Into::into)
-            .map_err(|e| CodegenError::LLVMBuildError(e.to_string())),
+        (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => {
+            let panic_func = ctx.panic_func.ok_or_else(|| {
+                CodegenError::LLVMBuildError("panic runtime is not initialized".to_string())
+            })?;
+            let int_type = r.get_type();
+            let is_zero = ctx
+                .builder
+                .build_int_compare(
+                    inkwell::IntPredicate::EQ,
+                    r,
+                    int_type.const_zero(),
+                    "div_by_zero",
+                )
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            crate::runtime::gen_panic_if(
+                ctx.context,
+                &ctx.builder,
+                panic_func,
+                is_zero,
+                "Integer Division by Zero",
+                line,
+            );
+
+            let min_value = int_type.const_int(1_u64 << (int_type.get_bit_width() - 1), false);
+            let minus_one = int_type.const_all_ones();
+            let lhs_is_min = ctx
+                .builder
+                .build_int_compare(inkwell::IntPredicate::EQ, l, min_value, "div_lhs_is_min")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            let rhs_is_minus_one = ctx
+                .builder
+                .build_int_compare(
+                    inkwell::IntPredicate::EQ,
+                    r,
+                    minus_one,
+                    "div_rhs_is_minus_one",
+                )
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            let overflows = ctx
+                .builder
+                .build_and(lhs_is_min, rhs_is_minus_one, "div_overflow")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            crate::runtime::gen_panic_if(
+                ctx.context,
+                &ctx.builder,
+                panic_func,
+                overflows,
+                "Integer Division Overflow",
+                line,
+            );
+
+            ctx.builder
+                .build_int_signed_div(l, r, "divtmp")
+                .map(Into::into)
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))
+        }
         (BasicValueEnum::FloatValue(l), BasicValueEnum::FloatValue(r)) => ctx
             .builder
             .build_float_div(l, r, "divtmp")
@@ -176,13 +228,35 @@ pub fn gen_mod<'ctx>(
     ctx: &CodegenContext<'ctx>,
     lhs: BasicValueEnum<'ctx>,
     rhs: BasicValueEnum<'ctx>,
+    line: u32,
 ) -> CodegenResult<BasicValueEnum<'ctx>> {
     match (lhs, rhs) {
-        (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => ctx
-            .builder
-            .build_int_signed_rem(l, r, "modtmp")
-            .map(Into::into)
-            .map_err(|e| CodegenError::LLVMBuildError(e.to_string())),
+        (BasicValueEnum::IntValue(l), BasicValueEnum::IntValue(r)) => {
+            let panic_func = ctx.panic_func.ok_or_else(|| {
+                CodegenError::LLVMBuildError("panic runtime is not initialized".to_string())
+            })?;
+            let is_zero = ctx
+                .builder
+                .build_int_compare(
+                    inkwell::IntPredicate::EQ,
+                    r,
+                    r.get_type().const_zero(),
+                    "rem_by_zero",
+                )
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            crate::runtime::gen_panic_if(
+                ctx.context,
+                &ctx.builder,
+                panic_func,
+                is_zero,
+                "Integer Remainder by Zero",
+                line,
+            );
+            ctx.builder
+                .build_int_signed_rem(l, r, "modtmp")
+                .map(Into::into)
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))
+        }
         _ => Err(CodegenError::TypeMismatch),
     }
 }

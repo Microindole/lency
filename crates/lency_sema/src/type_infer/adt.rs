@@ -115,18 +115,6 @@ impl<'a> TypeInferer<'a> {
                 })
             }
             // Result 相关表达式
-            ExprKind::Try(inner) => {
-                // expr? 解包 Result，返回 ok_type
-                let inner_ty = self.infer(inner)?;
-                match inner_ty {
-                    Type::Result { ok_type, .. } => Ok(*ok_type),
-                    _ => Err(SemanticError::TypeMismatch {
-                        expected: "Result<T, E>".to_string(),
-                        found: inner_ty.to_string(),
-                        span: expr.span.clone(),
-                    }),
-                }
-            }
             ExprKind::Ok(inner) => {
                 // Ok(x) 的类型是 Result<typeof(x), Error>
                 let inner_ty = self.infer(inner)?;

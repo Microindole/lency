@@ -69,7 +69,6 @@ pub fn specialize(spec: &Specializer, expr: &Expr) -> Expr {
             default: default.as_ref().map(|e| Box::new(spec.specialize_expr(e))),
         },
         // Result 相关表达式
-        ExprKind::Try(inner) => ExprKind::Try(Box::new(spec.specialize_expr(inner))),
         ExprKind::Ok(inner) => ExprKind::Ok(Box::new(spec.specialize_expr(inner))),
         ExprKind::Err(inner) => ExprKind::Err(Box::new(spec.specialize_expr(inner))),
         // 闭包

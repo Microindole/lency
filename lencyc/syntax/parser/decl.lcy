@@ -50,9 +50,6 @@ impl Parser {
             if this.match_token(T_QUESTION()) {
                 name = name + "?"
             }
-            if this.match_token(T_BANG()) {
-                name = name + "!"
-            }
             return make_type_ref(kind, name)
         }
         this.error("Expect type in signature.")
@@ -299,11 +296,19 @@ impl Parser {
         }
 
         if this.match_token(T_VAR()) {
-            return this.var_declaration(false)
+            var stmt = this.var_declaration(false)
+            if this.match_token(T_SEMICOLON()) {
+                // Optional C-style statement terminator.
+            }
+            return stmt
         }
 
         if this.match_token(T_CONST()) {
-            return this.var_declaration(true)
+            var stmt = this.var_declaration(true)
+            if this.match_token(T_SEMICOLON()) {
+                // Optional C-style statement terminator.
+            }
+            return stmt
         }
         
         if this.match_token(T_IF()) {

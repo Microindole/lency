@@ -64,10 +64,10 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
         // 组合
         let type_without_suffix = choice((vec_type, array_type, basic, ident_or_generic));
 
-        // 后缀类型修饰符: T? (可空) 或 T! (Result)
+        // 后缀类型修饰符: T? (可空)
         type_without_suffix
             .clone()
-            .then(just(Token::Question).or(just(Token::Bang)).or_not())
+            .then(just(Token::Question).or_not())
             .then(
                 // 函数类型后缀: int(int, int)
                 // 如果后面跟着括号，解析为函数类型
@@ -80,10 +80,6 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
             .map(|((t, suffix), func_params)| {
                 let base = match suffix {
                     Some(Token::Question) => Type::Nullable(Box::new(t)),
-                    Some(Token::Bang) => Type::Result {
-                        ok_type: Box::new(t),
-                        err_type: Box::new(Type::Struct("Error".to_string())),
-                    },
                     _ => t,
                 };
                 // 如果有函数参数列表，则是函数类型

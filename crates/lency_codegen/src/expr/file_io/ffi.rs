@@ -14,21 +14,17 @@ pub fn get_or_declare_open<'ctx>(
     ctx.module.add_function("lency_file_open", fn_type, None)
 }
 
-pub fn get_or_declare_read_all<'ctx>(
+pub fn get_or_declare_read_string<'ctx>(
     ctx: &CodegenContext<'ctx>,
 ) -> inkwell::values::FunctionValue<'ctx> {
-    if let Some(func) = ctx.module.get_function("lency_file_read_all") {
+    if let Some(func) = ctx.module.get_function("lency_file_read_string") {
         return func;
     }
 
     let i8_ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-    let i64_type = ctx.context.i64_type();
-    let fn_type = i64_type.fn_type(
-        &[i8_ptr_type.into(), i8_ptr_type.into(), i64_type.into()],
-        false,
-    );
+    let fn_type = i8_ptr_type.fn_type(&[i8_ptr_type.into()], false);
     ctx.module
-        .add_function("lency_file_read_all", fn_type, None)
+        .add_function("lency_file_read_string", fn_type, None)
 }
 
 pub fn get_or_declare_write<'ctx>(
@@ -57,10 +53,4 @@ pub fn get_or_declare_close<'ctx>(
         .void_type()
         .fn_type(&[i8_ptr_type.into()], false);
     ctx.module.add_function("lency_file_close", fn_type, None)
-}
-
-pub fn get_or_declare_malloc<'ctx>(
-    ctx: &CodegenContext<'ctx>,
-) -> Option<inkwell::values::FunctionValue<'ctx>> {
-    ctx.module.get_function("malloc")
 }

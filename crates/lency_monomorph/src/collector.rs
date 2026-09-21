@@ -229,7 +229,6 @@ impl Collector {
                     self.collect_type(arg);
                 }
             }
-            ExprKind::Try(inner) => self.collect_expr(inner),
             ExprKind::Ok(inner) => self.collect_expr(inner),
             ExprKind::Err(inner) => self.collect_expr(inner),
             ExprKind::Closure { params, body } => {

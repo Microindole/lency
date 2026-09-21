@@ -181,6 +181,52 @@ mod tests {
     }
 
     #[test]
+    fn test_integer_division_emits_panic_guards() {
+        let program = Program {
+            decls: vec![Decl::Function {
+                span: 0..50,
+                name: "divide".to_string(),
+                generic_params: vec![],
+                params: vec![
+                    Param {
+                        name: "left".to_string(),
+                        ty: Type::Int,
+                    },
+                    Param {
+                        name: "right".to_string(),
+                        ty: Type::Int,
+                    },
+                ],
+                return_type: Type::Int,
+                body: vec![Stmt::Return {
+                    span: 30..49,
+                    value: Some(Expr {
+                        kind: ExprKind::Binary(
+                            Box::new(Expr {
+                                kind: ExprKind::Variable("left".to_string()),
+                                span: 37..41,
+                            }),
+                            BinaryOp::Div,
+                            Box::new(Expr {
+                                kind: ExprKind::Variable("right".to_string()),
+                                span: 44..49,
+                            }),
+                        ),
+                        span: 37..49,
+                    }),
+                }],
+            }],
+        };
+
+        let ir = compile_to_ir(&program, "test_divide", None).expect("division must compile");
+
+        assert!(ir.contains("div_by_zero"));
+        assert!(ir.contains("div_overflow"));
+        assert!(ir.contains("call void @__lency_panic"));
+        assert!(ir.contains("sdiv i64"));
+    }
+
+    #[test]
     fn test_compile_with_variable() {
         // int test() { var x = 10; return x; }
         let program = Program {

@@ -76,9 +76,6 @@ pub enum ExprKind {
     // Vec 字面量: vec![1, 2, 3]
     VecLiteral(Vec<Expr>),
 
-    // Try 运算符: expr? (如果 err 则提前返回)
-    Try(Box<Expr>),
-
     // Ok 构造器: Ok(value)
     Ok(Box<Expr>),
 
@@ -92,9 +89,9 @@ pub enum ExprKind {
     },
 
     // 文件 I/O 内置函数 (Sprint 12)
-    // read_file("path") -> string!
+    // read_file("path") -> string，I/O 失败时 panic
     ReadFile(Box<Expr>),
-    // write_file("path", "content") -> void!
+    // write_file("path", "content") -> void，I/O 失败时 panic
     WriteFile(Box<Expr>, Box<Expr>),
 
     // 字符串内置函数 (Sprint 12)

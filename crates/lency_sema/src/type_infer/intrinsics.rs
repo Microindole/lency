@@ -16,11 +16,7 @@ impl<'a> TypeInferer<'a> {
                         span: path.span.clone(),
                     });
                 }
-                // 返回 string! (Result<string, Error>)
-                Ok(Type::Result {
-                    ok_type: Box::new(Type::String),
-                    err_type: Box::new(Type::Struct("Error".to_string())),
-                })
+                Ok(Type::String)
             }
             ExprKind::WriteFile(path, content) => {
                 // 验证 path 和 content 都是 string
@@ -40,11 +36,7 @@ impl<'a> TypeInferer<'a> {
                         span: content.span.clone(),
                     });
                 }
-                // 返回 void! (Result<void, Error>)
-                Ok(Type::Result {
-                    ok_type: Box::new(Type::Void),
-                    err_type: Box::new(Type::Struct("Error".to_string())),
-                })
+                Ok(Type::Void)
             }
             // 字符串内置函数 (Sprint 12)
             ExprKind::Len(arg) => {

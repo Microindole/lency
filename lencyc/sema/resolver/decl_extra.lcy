@@ -149,12 +149,8 @@ impl Resolver {
             this.error("import module file not found: " + this.import_path_join(decl.params, "."))
             return
         }
-        var source_res = read_to_string(module_path)
-        if source_res.is_err() {
-            this.error("import module read failed: " + module_path)
-            return
-        }
-        var parser = make_parser(source_res.unwrap())
+        var source = read_to_string(module_path)
+        var parser = make_parser(source)
         var program = parser.parse_program()
         if parser.has_error {
             this.error("import module parse failed: " + module_path)

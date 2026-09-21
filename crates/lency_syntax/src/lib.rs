@@ -32,6 +32,24 @@ mod tests {
         assert!(tokens.contains(&Token::Ident("b".to_string())));
     }
 
+    #[test]
+    fn rejects_result_type_suffix() {
+        let code = "int! divide(int left, int right) { return left / right }";
+        assert!(
+            crate::parser::parse(code).is_err(),
+            "T! must not remain part of the public type syntax"
+        );
+    }
+
+    #[test]
+    fn rejects_postfix_error_propagation() {
+        let code = "int main() { var value = read()? return 0 }";
+        assert!(
+            crate::parser::parse(code).is_err(),
+            "postfix ? must not remain part of the public expression syntax"
+        );
+    }
+
     // 注意：此测试在某些配置下可能栈溢出
     // 功能已通过 examples/test_parser.rs 验证
     // 如需运行，请确保 .cargo/config.toml 中设置了足够的栈大小

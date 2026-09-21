@@ -4,8 +4,19 @@ mod selfhost;
 
 use anyhow::{bail, Result};
 use std::env;
+use std::process::ExitCode;
 
-fn main() -> Result<()> {
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            helpers::print_error(&error);
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn run() -> Result<()> {
     let mut args = env::args().skip(1);
     let Some(cmd) = args.next() else {
         print_usage();

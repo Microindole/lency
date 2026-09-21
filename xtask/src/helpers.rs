@@ -1,16 +1,45 @@
 use anyhow::{bail, Context, Result};
 use std::fs;
+use std::io::{self, IsTerminal};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+
+const RESET: &str = "\x1b[0m";
+
+fn color_enabled() -> bool {
+    io::stdout().is_terminal()
+        && std::env::var_os("NO_COLOR").is_none()
+        && std::env::var("TERM").map_or(true, |term| term != "dumb")
+}
+
+fn paint(code: &str, text: impl AsRef<str>) -> String {
+    let text = text.as_ref();
+    if color_enabled() {
+        format!("\x1b[{code}m{text}{RESET}")
+    } else {
+        text.to_string()
+    }
+}
+
+pub(crate) fn print_error(error: &anyhow::Error) {
+    eprintln!("{}", paint("1;31", format!("[xtask] ERROR: {error:#}")));
+}
 
 pub(crate) fn step<F>(name: &str, action: F) -> Result<()>
 where
     F: FnOnce() -> Result<()>,
 {
-    println!("\n==> {name}");
-    action()?;
-    println!("[ok] {name}");
-    Ok(())
+    println!("\n{}", paint("1;36", format!("[xtask] ==> {name}")));
+    match action() {
+        Ok(()) => {
+            println!("{}", paint("1;32", format!("[xtask] OK  {name}")));
+            Ok(())
+        }
+        Err(error) => {
+            eprintln!("{}", paint("1;31", format!("[xtask] FAIL {name}")));
+            Err(error)
+        }
+    }
 }
 
 pub(crate) fn run_cmd<P: AsRef<Path>>(
@@ -21,6 +50,9 @@ pub(crate) fn run_cmd<P: AsRef<Path>>(
     accept_codes: &[i32],
 ) -> Result<()> {
     let program = program.as_ref();
+    if !quiet {
+        print_command_source(program, args);
+    }
     let mut cmd = Command::new(program);
     prepare_command(&mut cmd, args, envs);
     if quiet {
@@ -44,6 +76,32 @@ pub(crate) fn run_cmd<P: AsRef<Path>>(
         );
     }
     Ok(())
+}
+
+fn print_command_source(program: &Path, args: &[&str]) {
+    let name = program
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let (label, color) = if name == "cargo" || name == "cargo.exe" {
+        ("rust/cargo", "1;34")
+    } else if name.starts_with("lencyc_") {
+        ("lency/selfhost", "1;35")
+    } else if name == "lencyc" || name == "lencyc.exe" {
+        ("lency/rust-host", "1;35")
+    } else if name.starts_with("python") || name == "py" || name == "py.exe" {
+        ("tool/python", "1;33")
+    } else {
+        ("tool/exec", "1;33")
+    };
+    println!(
+        "{}",
+        paint(
+            color,
+            format!("[{label}] {} {}", program.display(), args.join(" "))
+        )
+    );
 }
 
 pub(crate) fn run_cmd_exit_code<P: AsRef<Path>>(

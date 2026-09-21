@@ -2,7 +2,7 @@
 //!
 //! 提供 Lency 语言的文件 I/O 运行时支持
 
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::raw::c_char;
@@ -64,6 +64,29 @@ pub unsafe extern "C" fn lency_file_open(path: *const c_char, mode: i64) -> *mut
 
     match file_result {
         Ok(f) => Box::into_raw(LencyFile::new(f)),
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// 将整个文件读取为新分配的 C 字符串；失败或内容包含 NUL 时返回 NULL。
+///
+/// # Safety
+/// `path` must be a valid null-terminated C string.
+#[no_mangle]
+pub unsafe extern "C" fn lency_file_read_string(path: *const c_char) -> *mut c_char {
+    if path.is_null() {
+        return std::ptr::null_mut();
+    }
+    let path = match unsafe { CStr::from_ptr(path) }.to_str() {
+        Ok(path) => path,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    let bytes = match std::fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(_) => return std::ptr::null_mut(),
+    };
+    match CString::new(bytes) {
+        Ok(content) => content.into_raw(),
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -228,6 +251,24 @@ mod tests {
         assert!(read_bytes > 0);
 
         unsafe { lency_file_close(read_handle) };
+
+        let _ = std::fs::remove_file(test_file);
+    }
+
+    #[test]
+    fn test_read_string_is_not_limited_to_fixed_buffer() {
+        let test_file = std::env::temp_dir().join("lency_large_read_test.txt");
+        let content = "x".repeat(16 * 1024);
+        std::fs::write(&test_file, &content).unwrap();
+        let path = CString::new(test_file.to_string_lossy().as_bytes()).unwrap();
+
+        let result = unsafe { lency_file_read_string(path.as_ptr()) };
+        assert!(!result.is_null());
+        assert_eq!(
+            unsafe { CStr::from_ptr(result) }.to_bytes(),
+            content.as_bytes()
+        );
+        unsafe { drop(CString::from_raw(result)) };
 
         let _ = std::fs::remove_file(test_file);
     }
