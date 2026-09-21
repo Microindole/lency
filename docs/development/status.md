@@ -34,6 +34,7 @@
 
 ## 当前缺口
 
+- FIXME: Windows 下 `bootstrap-check` 在 stage1 处理含非 ASCII 内容的源码时会进入 `lency_string_substr`；当前 `len` 的字节长度语义与 Rust UTF-8 `str` 切片不一致，可能在非字符边界索引上 panic。这是当前自举主线的首要阻塞。
 - selfhost codegen/runtime 仍不足以承载完整标准库和真实程序。
 - selfhost emitter 对部分未知节点仍存在占位输出；这些路径应逐步改为显式失败或真实 lowering，避免产生“成功但错误”的结果。
 - generic struct、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
