@@ -148,6 +148,7 @@ impl LirBuilder {
 
     string emit_expr_match(Expr expr) {
         if expr.children.len() == 0 || expr.arm_patterns.len() == 0 {
+            this.error("match expression has no target or arms")
             return "0"
         }
         var target_expr = expr.children[0]
@@ -159,6 +160,7 @@ impl LirBuilder {
         var i = 0
         while i < expr.arm_patterns.len() {
             if i + 1 >= expr.children.len() {
+                this.error("match arm has no value at index " + int_to_string(i))
                 i = i + 1
                 continue
             }
@@ -174,6 +176,8 @@ impl LirBuilder {
                 } else {
                     if this.is_lowerable_literal_pattern(pattern) {
                         cond = this.emit_match_literal_compare(target, pattern)
+                    } else {
+                        this.error("unsupported match pattern: " + pattern.tag.lexeme)
                     }
                 }
                 this.emit_line("  br " + cond + ", " + arm_value_label + ", " + next_label)

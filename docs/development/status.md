@@ -1,6 +1,6 @@
 # 自举状态
 
-更新：2026-09-21
+更新：2026-09-22
 
 ## 当前结论
 
@@ -27,6 +27,7 @@
 - non-generic struct 字面量、字段读写和跨函数传递的最小链路。
 - literal、wildcard、guard 和递归 enum payload 的 match lowering。
 - enum runtime ABI，以及若干字符串、文件系统和转换 builtin。
+- LIR emitter 使用结构化结果报告 lowering 错误；未知表达式、语句和运算符不再生成 `expr_unknown` 等伪成功占位，过渡 Rust LIR backend 同样拒绝该占位。
 - Rust LIR backend 负责当前 `.lir -> LLVM -> executable` 过渡链路。
 
 当前的 stage2/stage3 是混合自举：Lency 编译器负责处理自身并发射 LIR，Rust 母体仍负责把 LIR 构建和链接为下一阶段可执行文件。这证明了 LIR 层的自处理与收敛，但不等于已经完成独立自举。
@@ -36,7 +37,7 @@
 ## 当前缺口
 
 - selfhost codegen/runtime 仍不足以承载完整标准库和真实程序。
-- selfhost emitter 对部分未知节点仍存在占位输出；这些路径应逐步改为显式失败或真实 lowering，避免产生“成功但错误”的结果。
+- selfhost emitter 的未知节点占位已改为显式失败；下一步应继续收紧未知 ABI 类型和兼容性类型推断等宽松回退。
 - 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。

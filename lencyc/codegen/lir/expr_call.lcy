@@ -9,9 +9,8 @@ import lencyc.codegen.lir
 impl LirBuilder {
     string emit_expr_call(Expr expr) {
         if expr.children.len() == 0 {
-            var dst0 = this.new_temp()
-            this.emit_line("  " + dst0 + " = call ?()")
-            return dst0
+            this.error("call expression has no callee")
+            return "0"
         }
         var enum_ctor_name = this.expr_callee_name(expr.children[0])
         var enum_ctor_owner = this.lookup_enum_name_by_variant(enum_ctor_name)
