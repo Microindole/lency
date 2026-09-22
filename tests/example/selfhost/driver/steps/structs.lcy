@@ -8,6 +8,7 @@ import tests.example.selfhost.driver.test_support
 import lencyc.syntax.parser
 import lencyc.syntax.ast
 import lencyc.syntax.token
+import lencyc.codegen.lir
 
 bool run_struct_field_declaration_tests() {
     print("Step 25: Struct field declaration parsing and semantic tests...\n")
@@ -75,6 +76,32 @@ bool run_struct_field_declaration_tests() {
         return false
     }
     if !expect_shared_resolve_error(src_resolver_struct_field_assign_type_bad(), "struct field assignment type mismatch negative") {
+        return false
+    }
+    var empty_struct_parser = make_parser("struct Marker<T> {\n}\nMarker<int>? keep(Marker<int>? value) {\n  return value\n}\nreturn 0")
+    var empty_struct_program = empty_struct_parser.parse_program()
+    if empty_struct_parser.has_error {
+        print("Empty struct ABI regression case failed to parse.\n")
+        return false
+    }
+    var empty_struct_emit = emit_lir_program(empty_struct_program.statements)
+    if empty_struct_emit.has_error || !contains(empty_struct_emit.text, "func keep(%value: ptr) -> ptr {") {
+        print("Declared generic nullable empty struct did not lower to pointer ABI.\n")
+        return false
+    }
+    var unknown_abi_parser = make_parser("Mystery keep(Mystery value) {\n  return value\n}\nreturn 0")
+    var unknown_abi_program = unknown_abi_parser.parse_program()
+    if unknown_abi_parser.has_error {
+        print("Unknown ABI regression case failed to parse.\n")
+        return false
+    }
+    var unknown_abi_emit = emit_lir_program(unknown_abi_program.statements)
+    if !unknown_abi_emit.has_error || unknown_abi_emit.error_count != 2 {
+        print("Unknown function ABI types did not report both parameter and return errors.\n")
+        return false
+    }
+    if unknown_abi_emit.text != "" {
+        print("Unknown function ABI types returned partial LIR output.\n")
         return false
     }
     return true

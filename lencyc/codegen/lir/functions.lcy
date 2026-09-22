@@ -18,39 +18,61 @@ impl LirBuilder {
         this.current_function_name = ""
     }
 
+    bool is_nullable_abi_type_name(string type_name) {
+        if len(type_name) == 0 {
+            return false
+        }
+        return type_name[len(type_name) - 1] == 63
+    }
+
+    string strip_nullable_abi_suffix(string type_name) {
+        if this.is_nullable_abi_type_name(type_name) {
+            return substr(type_name, 0, len(type_name) - 1)
+        }
+        return type_name
+    }
+
     string abi_type_name(string type_name) {
-        if type_name == "void" {
+        var concrete_name = this.strip_nullable_abi_suffix(type_name)
+        if concrete_name == "void" && !this.is_nullable_abi_type_name(type_name) {
             return "void"
         }
-        if type_name == "string" {
+        if this.is_nullable_abi_type_name(type_name) {
+            if concrete_name == "int" || concrete_name == "float" || concrete_name == "bool" || concrete_name == "string" ||
+               concrete_name == "char" || this.is_vec_type_name(concrete_name) ||
+               this.is_enum_type_name(concrete_name) || this.has_struct_type(concrete_name) {
+                return "ptr"
+            }
+            this.error("unknown nullable ABI type: " + type_name)
+            return ""
+        }
+        if concrete_name == "string" || this.is_vec_type_name(concrete_name) {
             return "ptr"
         }
-        if type_name == "bool" {
+        if concrete_name == "bool" {
             return "i1"
         }
-        if type_name == "null" {
+        if concrete_name == "null" {
             return "ptr"
         }
-        if type_name == "int" || type_name == "float" || type_name == "char" {
+        if concrete_name == "int" || concrete_name == "float" || concrete_name == "char" {
             return "i64"
         }
-        if this.is_enum_type_name(type_name) {
+        if this.is_enum_type_name(concrete_name) {
             return "ptr"
         }
-        if this.has_struct_type(type_name) {
+        if this.has_struct_type(concrete_name) {
             return "ptr"
         }
-        // FIXME: 未知用户类型暂按指针 ABI 处理，后续应接入统一 lowered type table。
-        if type_name != "" {
-            return "ptr"
-        }
-        return "i64"
+        this.error("unknown ABI type: " + type_name)
+        return ""
     }
 
     bool has_struct_type(string struct_name) {
-        var i = this.struct_field_struct_names.len() - 1
+        var i = this.declared_struct_type_names.len() - 1
         while i >= 0 {
-            if this.struct_field_struct_names[i] == struct_name {
+            var declared_name = this.declared_struct_type_names[i]
+            if declared_name == struct_name || starts_with(struct_name, declared_name + "<") {
                 return true
             }
             i = i - 1
