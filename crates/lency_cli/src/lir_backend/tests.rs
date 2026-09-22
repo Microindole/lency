@@ -415,3 +415,19 @@ entry:
     let ir = compile_lir_to_llvm_ir(src).expect("string commas must not split LIR operands");
     assert!(ir.contains("define i8* @message()"));
 }
+
+#[test]
+fn test_compile_lir_rejects_expr_unknown_placeholder() {
+    let src = r#"
+; lencyc-lir v0
+func broken() -> i64 {
+entry:
+  %t0 = expr_unknown
+  ret %t0
+}
+"#;
+    let error = compile_lir_to_llvm_ir(src).expect_err("expr_unknown must be rejected");
+    let message = error.to_string();
+    assert!(message.contains("expr_unknown placeholder"));
+    assert!(message.contains("function 'broken'"));
+}

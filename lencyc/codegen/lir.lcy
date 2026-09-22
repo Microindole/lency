@@ -11,6 +11,8 @@ import lencyc.codegen.lir.match_expr
 
 struct LirBuilder {
     string out
+    bool has_error
+    int error_count
     int temp_counter
     int label_counter
     bool current_function_returns
@@ -40,9 +42,17 @@ struct LirBuilder {
     Vec<string> function_param_type_names
 }
 
+struct LirEmitResult {
+    string text
+    bool has_error
+    int error_count
+}
+
 LirBuilder make_lir_builder() {
     return LirBuilder {
         out: "",
+        has_error: false,
+        error_count: 0,
         temp_counter: 0,
         label_counter: 0,
         current_function_returns: false,
@@ -72,7 +82,7 @@ LirBuilder make_lir_builder() {
         function_param_type_names: vec![]
     }
 }
-string emit_lir_program(Vec<Stmt> statements) {
+LirEmitResult emit_lir_program(Vec<Stmt> statements) {
     var builder = make_lir_builder()
     builder.preload_enum_metadata(statements)
     builder.preload_struct_metadata(statements)
@@ -80,10 +90,28 @@ string emit_lir_program(Vec<Stmt> statements) {
     builder.emit_line("; lencyc-lir v0")
     builder.emit_main_function(statements)
     builder.emit_user_functions(statements)
-    return builder.out
+    var emitted_text = builder.out
+    if builder.has_error {
+        emitted_text = ""
+    }
+    return LirEmitResult {
+        text: emitted_text,
+        has_error: builder.has_error,
+        error_count: builder.error_count
+    }
 }
 
 impl LirBuilder {
+    void error(string message) {
+        this.has_error = true
+        this.error_count = this.error_count + 1
+        var location = ""
+        if this.current_function_name != "" {
+            location = " in " + this.current_function_name
+        }
+        print("[lencyc/lir] Error" + location + ": " + message + "\n")
+    }
+
     void emit_line(string line) {
         this.out = this.out + line + "\n"
     }
@@ -139,7 +167,8 @@ impl LirBuilder {
         if op == ">=" { return "cmp_ge" }
         if op == "&&" { return "and" }
         if op == "||" { return "or" }
-        return "op_unknown"
+        this.error("unsupported binary operator: " + op)
+        return ""
     }
 
     string binary_opcode_for_expr(Expr expr) {
@@ -179,7 +208,8 @@ impl LirBuilder {
     string unary_opcode(string op) {
         if op == "-" { return "neg" }
         if op == "!" { return "not" }
-        return "uop_unknown"
+        this.error("unsupported unary operator: " + op)
+        return ""
     }
 
     string join_args(Vec<string> args) {
@@ -275,7 +305,7 @@ impl LirBuilder {
         if stmt.kind == STMT_BREAK() {
             var break_label = this.current_break_target()
             if break_label == "" {
-                this.emit_line("  ; invalid break (no loop context)")
+                this.error("break has no loop target")
             } else {
                 this.emit_line("  jmp " + break_label)
             }
@@ -284,7 +314,7 @@ impl LirBuilder {
         if stmt.kind == STMT_CONTINUE() {
             var continue_label = this.current_continue_target()
             if continue_label == "" {
-                this.emit_line("  ; invalid continue (no loop context)")
+                this.error("continue has no loop target")
             } else {
                 this.emit_line("  jmp " + continue_label)
             }
@@ -293,7 +323,7 @@ impl LirBuilder {
         if stmt.kind == STMT_STRUCT() || stmt.kind == STMT_FUNCTION() || stmt.kind == STMT_IMPL() || stmt.kind == STMT_IMPORT() || stmt.kind == STMT_EXTERN() || stmt.kind == STMT_ENUM() {
             return
         }
-        this.emit_line("  ; unsupported stmt kind " + int_to_string(stmt.kind))
+        this.error("unsupported statement kind: " + int_to_string(stmt.kind))
     }
     string emit_expr(Expr expr) {
         if expr.kind == EXPR_LITERAL() {
@@ -348,8 +378,12 @@ impl LirBuilder {
             if expr.children.len() > 0 {
                 rhs = this.emit_expr(expr.children[0])
             }
+            var opcode = this.unary_opcode(expr.operator.lexeme)
+            if opcode == "" {
+                return "0"
+            }
             var dst = this.new_temp()
-            this.emit_line("  " + dst + " = " + this.unary_opcode(expr.operator.lexeme) + " " + rhs)
+            this.emit_line("  " + dst + " = " + opcode + " " + rhs)
             return dst
         }
         if expr.kind == EXPR_BINARY() || expr.kind == EXPR_LOGICAL() {
@@ -361,8 +395,12 @@ impl LirBuilder {
             if expr.children.len() > 1 {
                 rhs = this.emit_expr(expr.children[1])
             }
+            var opcode = this.binary_opcode_for_expr(expr)
+            if opcode == "" {
+                return "0"
+            }
             var dst = this.new_temp()
-            this.emit_line("  " + dst + " = " + this.binary_opcode_for_expr(expr) + " " + lhs + ", " + rhs)
+            this.emit_line("  " + dst + " = " + opcode + " " + lhs + ", " + rhs)
             return dst
         }
         if expr.kind == EXPR_GET() {
@@ -413,8 +451,7 @@ impl LirBuilder {
         if expr.kind == EXPR_MATCH() {
             return this.emit_expr_match(expr)
         }
-        var fallback = this.new_temp()
-        this.emit_line("  " + fallback + " = expr_unknown")
-        return fallback
+        this.error("unsupported expression kind: " + int_to_string(expr.kind))
+        return "0"
     }
 }

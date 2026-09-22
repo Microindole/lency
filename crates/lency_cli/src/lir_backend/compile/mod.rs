@@ -189,9 +189,11 @@ fn compile_function(
                 .ok_or_else(|| anyhow!("invalid assignment: {}", line))?;
             let dst = dst.trim();
             if rhs == "expr_unknown" {
-                emitter.push(format!("  {} = add i64 0, 0", dst));
-                emitter.mark_temp(dst, ValueType::I64);
-                continue;
+                bail!(
+                    "unsupported expr_unknown placeholder in function '{}': {}",
+                    func.name,
+                    line
+                );
             }
 
             if let Some(rest) = rhs.strip_prefix("call ") {

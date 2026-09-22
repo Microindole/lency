@@ -140,7 +140,12 @@ int main() {
     var emit_text = ""
     if args.emit_lir {
         var compilation_statements = load_compilation_statements(args.input_file, vec![])
-        emit_text = emit_lir_program(compilation_statements)
+        var emit_result = emit_lir_program(compilation_statements)
+        if emit_result.has_error {
+            print("LIR emit failed with " + int_to_string(emit_result.error_count) + " errors.\n")
+            return 1
+        }
+        emit_text = emit_result.text
     } else {
         // Bootstrap emit target: stable AST text output for regression and debugging.
         emit_text = render_ast_program(statements)
