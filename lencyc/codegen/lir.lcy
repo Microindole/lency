@@ -31,6 +31,8 @@ struct LirBuilder {
     Vec<string> enum_var_types
     Vec<string> typed_var_names
     Vec<string> typed_var_types
+    Vec<string> declared_struct_type_names
+    Vec<string> declared_enum_type_names
     Vec<string> struct_field_struct_names
     Vec<string> struct_field_names
     Vec<int> struct_field_indices
@@ -71,6 +73,8 @@ LirBuilder make_lir_builder() {
         enum_var_types: vec![],
         typed_var_names: vec![],
         typed_var_types: vec![],
+        declared_struct_type_names: vec![],
+        declared_enum_type_names: vec![],
         struct_field_struct_names: vec![],
         struct_field_names: vec![],
         struct_field_indices: vec![],

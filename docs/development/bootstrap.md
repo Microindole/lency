@@ -28,7 +28,7 @@ stage2 与 stage3 的 LIR 完全一致，表示当前输入和工具链下达到
 
 因此，当前已经验证的是“Lency 前端、语义子集和 LIR emitter 可以处理自身，且输出能够收敛”。尚未验证的是“Lency 编译器拥有独立的 LLVM/机器码后端并能完全脱离 Rust 母体”。
 
-另外，收敛只说明两次输出一致，不自动证明所有输入都被正确处理。selfhost emitter 已禁止用 `expr_unknown` 等占位值伪造成功：无法 lowering 的表达式、语句或运算符会产生显式诊断，Rust LIR backend 也会拒绝遗留的 `expr_unknown`。后续仍应逐步收紧未知 ABI 类型等宽松回退。
+另外，收敛只说明两次输出一致，不自动证明所有输入都被正确处理。selfhost emitter 已禁止用 `expr_unknown` 等占位值伪造成功：无法 lowering 的表达式、语句或运算符会产生显式诊断，Rust LIR backend 也会拒绝遗留的 `expr_unknown`。函数签名只接受基础类型、`Vec`、nullable 类型和当前编译单元中已声明的 struct/enum；未知 ABI 类型会终止 LIR 生成，不再默认降级为指针。
 
 ## 当前最小流水线
 

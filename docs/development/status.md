@@ -37,7 +37,7 @@
 ## 当前缺口
 
 - selfhost codegen/runtime 仍不足以承载完整标准库和真实程序。
-- selfhost emitter 的未知节点占位已改为显式失败；下一步应继续收紧未知 ABI 类型和兼容性类型推断等宽松回退。
+- selfhost emitter 的未知节点占位和未知函数 ABI 类型均已改为显式失败；下一步应继续收紧兼容性类型推断等宽松回退。
 - 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
