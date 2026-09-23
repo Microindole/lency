@@ -1,6 +1,6 @@
 // Vec Test: Print
 // Tests that print() works for vectors
 void main() {
-    var v = vec![10, 20, 30];
+    var v = vec[10, 20, 30];
     print(v);
 }

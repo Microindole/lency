@@ -3,7 +3,7 @@
 void main() {
     print("Testing Vectors...");
 
-    var v = vec![1, 2, 3];
+    var v = vec[1, 2, 3];
     print(v.len()); // 3
 
     v.push(4);

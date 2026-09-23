@@ -7,7 +7,7 @@ struct User {
 void main() {
     print("Testing Flow Analysis...");
 
-    var u: User? = User { name: "Safe" };
+    User? u = User { name: "Safe" };
 
     // Standard check
     if (u != null) {
@@ -22,7 +22,7 @@ void main() {
     // print(u.name); // Error: PossibleNullAccess
 
     // Check with explicit null
-    var n: User? = null;
+    User? n = null;
     if (n != null) {
         print("Impossible");
     } else {

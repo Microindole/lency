@@ -1,4 +1,4 @@
-// Option methods test
+// Option is an ordinary user enum. It has no name-based compiler methods.
 
 enum Option<T> {
     Some(T),
@@ -6,28 +6,22 @@ enum Option<T> {
 }
 
 int main() {
-    var some_val = Option::<int>.Some(42);
-    var none_val = Option::<int>.None;
+    var some_val = Option<int>.Some(42);
+    var none_val = Option<int>.None;
 
-    // Test is_some / is_none
-    if !some_val.is_some() { return 1; }
-    if some_val.is_none() { return 2; }
-    
-    if none_val.is_some() { return 3; }
-    if !none_val.is_none() { return 4; }
+    var some_value = match some_val {
+        case Option.Some(value) => value,
+        case Option.None => 0
+    }
+    if some_value != 42 { return 1; }
 
-    // Test unwrap
-    if some_val.unwrap() != 42 { return 5; }
-
-    // Test unwrap_or
-    if none_val.unwrap_or(100) != 100 { return 6; }
-    if some_val.unwrap_or(100) != 42 { return 7; }
-
-    // Test nested types
-    var nested = Option::< Option<int> >.Some(Option::<int>.Some(10));
-    if nested.unwrap().unwrap() != 10 { return 8; }
+    var none_value = match none_val {
+        case Option.Some(value) => value,
+        case Option.None => 100
+    }
+    if none_value != 100 { return 2; }
 
     // Print success
-    print("All Option tests passed!\n");
+    print("Ordinary Option enum test passed!\n");
     return 0;
 }

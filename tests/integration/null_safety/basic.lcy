@@ -8,19 +8,19 @@ void main() {
     print("Testing Null Safety Syntax...");
 
     // 1. Elvis Operator
-    var s: string? = null;
+    string? s = null;
     print(s ?? "default"); // Expected: "default"
 
     // 2. Safe Navigation
-    var u: User? = null;
+    User? u = null;
     // print(u?.name); // Lency Runtime print(null) support might be shaky?
     // Let's assume print handles it or check flow.
     
     // 3. Safe Navigation with property access
-    var name: string? = u?.name;
+    string? name = u?.name;
     
     // 4. Chaining / Non-null
-    var u_safe: User = User { name: "Safe" };
-    var u2: User? = u_safe;
+    User u_safe = User { name: "Safe" };
+    User? u2 = u_safe;
     print(u2?.name ?? "No Name"); // Expected: "Safe"
 }

@@ -32,7 +32,7 @@ impl Display for MyInt {
 
 void main() {
     var i = MyInt { val: 42 };
-    print_it::<MyInt>(i);
+    print_it<MyInt>(i);
     
     var w = Wrapper<MyInt> { value: i };
     w.display();

@@ -12,7 +12,7 @@ int main() {
     print("\n")
 
     // 2. vec_sum
-    var nums = vec![1, 2, 3, 4, 5]
+    var nums = vec[1, 2, 3, 4, 5]
     print("vec_sum([1..5]) = ")
     print(vec_sum(nums)) // 15
     print("\n")
@@ -36,7 +36,7 @@ int main() {
     print("\n")
 
     // 5. vec_contains_string
-    var words = vec!["hello", "world"]
+    var words = vec["hello", "world"]
     print("contains(hello) = ")
     if vec_contains_string(words, "hello") { print("true") } else { print("false") }
     print("\n")
