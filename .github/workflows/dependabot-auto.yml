@@ -16,7 +16,7 @@ concurrency:
 jobs:
   auto-review:
     name: Auto Approve And Auto Squash
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
       - name: Dependabot metadata

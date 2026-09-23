@@ -2,12 +2,12 @@ name: Editor extension
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main", "dev"]
     paths:
       - 'editors/**'
       - '.github/workflows/editor.yml'
   pull_request:
-    branches: [ "main" ]
+    branches: ["main", "dev"]
     paths:
       - 'editors/**'
       - '.github/workflows/editor.yml'
@@ -26,10 +26,13 @@ concurrency:
   group: editor-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   check-extension-linux:
     name: Editor Checks (Linux)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
 
@@ -63,8 +66,8 @@ jobs:
 
   check-extension-windows:
     name: Editor Checks (Windows)
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_windows == 'true')
-    runs-on: windows-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.run_windows == 'true'
+    runs-on: windows-2025
 
     steps:
     - uses: actions/checkout@v6

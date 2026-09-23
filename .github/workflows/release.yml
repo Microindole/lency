@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - "v*"
+  pull_request:
+    branches: ["main", "dev"]
+    paths:
+      - "crates/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".cargo/**"
+      - "tests/example/lir/**"
+      - "scripts/**"
+      - ".github/actions/**"
+      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
       tag:
@@ -12,60 +23,215 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
-  LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
+  RUST_MIN_STACK: 8388608
+
+concurrency:
+  group: release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  linux-release:
-    name: Build Linux Release
-    runs-on: ubuntu-latest
+  metadata:
+    name: Resolve release metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      publish: ${{ steps.resolve.outputs.publish }}
     steps:
-      - uses: actions/checkout@v6
-
-      - name: Resolve release tag
-        id: resolve_tag
+      - id: resolve
+        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ inputs.tag }}"
-          else
+            PUBLISH=true
+          elif [ "${{ github.event_name }}" = "push" ]; then
             TAG="${GITHUB_REF_NAME}"
+            PUBLISH=true
+          else
+            TAG="pr-${{ github.event.pull_request.number }}"
+            PUBLISH=false
           fi
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "Release tag: ${TAG}"
 
+          if [ "$PUBLISH" = true ] && [[ ! "$TAG" =~ ^v[0-9] ]]; then
+            echo "invalid release tag: $TAG" >&2
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
+  linux:
+    name: Package Linux ${{ matrix.arch }}
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    env:
+      LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
+    steps:
+      - uses: actions/checkout@v6
       - name: Install LLVM 15
         run: |
           sudo apt-get update
           sudo apt-get install -y llvm-15-dev libpolly-15-dev libz-dev
-
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-
-      - name: Build binaries
+      - name: Build release binaries
         run: cargo build --release -p lency_cli -p lency_runtime
-
-      - name: Prepare release bundle
+      - name: Package release bundle
+        shell: bash
         run: |
-          TAG="${{ steps.resolve_tag.outputs.tag }}"
-          BUNDLE_DIR="dist/lency-linux-x86_64"
-          mkdir -p "$BUNDLE_DIR"
+          TAG='${{ needs.metadata.outputs.tag }}'
+          BUNDLE_NAME="lency-linux-${{ matrix.arch }}"
+          BUNDLE_DIR="dist/${BUNDLE_NAME}"
+          ARCHIVE="dist/${BUNDLE_NAME}-${TAG}.tar.gz"
 
+          mkdir -p "$BUNDLE_DIR"
           cp target/release/lencyc "$BUNDLE_DIR/"
           cp target/release/liblency_runtime.so "$BUNDLE_DIR/"
-
           chmod +x "$BUNDLE_DIR/lencyc"
 
-          tar -C dist -czf "dist/lency-linux-x86_64-${TAG}.tar.gz" "lency-linux-x86_64"
-          (cd dist && sha256sum "lency-linux-x86_64-${TAG}.tar.gz" > "lency-linux-x86_64-${TAG}.sha256")
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+          tar -C dist -czf "$ARCHIVE" "$BUNDLE_NAME"
+          (cd dist && sha256sum "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256")
+      - name: Smoke-test unpacked release bundle
+        shell: bash
+        run: |
+          TAG='${{ needs.metadata.outputs.tag }}'
+          ARCHIVE="$GITHUB_WORKSPACE/dist/lency-linux-${{ matrix.arch }}-${TAG}.tar.gz"
+          SMOKE_ROOT="$RUNNER_TEMP/lency-release-smoke"
+          mkdir -p "$SMOKE_ROOT"
+          tar -C "$SMOKE_ROOT" -xzf "$ARCHIVE"
+          BUNDLE="$SMOKE_ROOT/lency-linux-${{ matrix.arch }}"
+          "$BUNDLE/lencyc" build "$GITHUB_WORKSPACE/tests/example/lir/lencyc_lir_exit0.lcy" -o release-smoke --out-dir "$BUNDLE"
+          "$BUNDLE/release-smoke"
+      - uses: actions/upload-artifact@v7
         with:
-          tag_name: ${{ steps.resolve_tag.outputs.tag }}
+          name: release-linux-${{ matrix.arch }}
+          path: |
+            dist/lency-linux-${{ matrix.arch }}-${{ needs.metadata.outputs.tag }}.tar.gz
+            dist/lency-linux-${{ matrix.arch }}-${{ needs.metadata.outputs.tag }}.tar.gz.sha256
+
+  macos:
+    name: Package macOS arm64
+    needs: metadata
+    runs-on: macos-15
+    env:
+      RUSTFLAGS: -C symbol-mangling-version=v0
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install LLVM 15
+        run: |
+          brew install llvm@15
+          LLVM_PREFIX="$(brew --prefix llvm@15)"
+          echo "LLVM_SYS_150_PREFIX=${LLVM_PREFIX}" >> "$GITHUB_ENV"
+          echo "${LLVM_PREFIX}/bin" >> "$GITHUB_PATH"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release binaries
+        run: cargo build --release -p lency_cli -p lency_runtime
+      - name: Package release bundle
+        shell: bash
+        run: |
+          TAG='${{ needs.metadata.outputs.tag }}'
+          BUNDLE_NAME="lency-macos-arm64"
+          BUNDLE_DIR="dist/${BUNDLE_NAME}"
+          ARCHIVE="dist/${BUNDLE_NAME}-${TAG}.tar.gz"
+
+          mkdir -p "$BUNDLE_DIR"
+          cp target/release/lencyc "$BUNDLE_DIR/"
+          cp target/release/liblency_runtime.dylib "$BUNDLE_DIR/"
+          chmod +x "$BUNDLE_DIR/lencyc"
+
+          tar -C dist -czf "$ARCHIVE" "$BUNDLE_NAME"
+          (cd dist && shasum -a 256 "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256")
+      - name: Smoke-test unpacked release bundle
+        shell: bash
+        run: |
+          TAG='${{ needs.metadata.outputs.tag }}'
+          ARCHIVE="$GITHUB_WORKSPACE/dist/lency-macos-arm64-${TAG}.tar.gz"
+          SMOKE_ROOT="$RUNNER_TEMP/lency-release-smoke"
+          mkdir -p "$SMOKE_ROOT"
+          tar -C "$SMOKE_ROOT" -xzf "$ARCHIVE"
+          BUNDLE="$SMOKE_ROOT/lency-macos-arm64"
+          "$BUNDLE/lencyc" build "$GITHUB_WORKSPACE/tests/example/lir/lencyc_lir_exit0.lcy" -o release-smoke --out-dir "$BUNDLE"
+          "$BUNDLE/release-smoke"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-macos-arm64
+          path: |
+            dist/lency-macos-arm64-${{ needs.metadata.outputs.tag }}.tar.gz
+            dist/lency-macos-arm64-${{ needs.metadata.outputs.tag }}.tar.gz.sha256
+
+  windows:
+    name: Package Windows x64
+    needs: metadata
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-llvm-15-windows
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release binaries
+        shell: pwsh
+        run: cargo build --release -p lency_cli -p lency_runtime
+      - name: Package release bundle
+        shell: pwsh
+        run: |
+          $tag = '${{ needs.metadata.outputs.tag }}'
+          $bundleName = 'lency-windows-x64'
+          $bundleDir = Join-Path 'dist' $bundleName
+          $archive = Join-Path 'dist' "$bundleName-$tag.zip"
+
+          New-Item -ItemType Directory -Path $bundleDir -Force | Out-Null
+          Copy-Item -LiteralPath 'target\release\lencyc.exe' -Destination $bundleDir
+          Copy-Item -LiteralPath 'target\release\lency_runtime.dll' -Destination $bundleDir
+          Copy-Item -LiteralPath 'target\release\lency_runtime.dll.lib' -Destination $bundleDir
+          Compress-Archive -Path $bundleDir -DestinationPath $archive -Force
+
+          $hash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path -Leaf $archive)" | Out-File -FilePath "$archive.sha256" -Encoding ascii
+      - name: Smoke-test unpacked release bundle
+        shell: pwsh
+        run: |
+          $tag = '${{ needs.metadata.outputs.tag }}'
+          $archive = Join-Path $env:GITHUB_WORKSPACE "dist\lency-windows-x64-$tag.zip"
+          $smokeRoot = Join-Path $env:RUNNER_TEMP 'lency-release-smoke'
+          Expand-Archive -LiteralPath $archive -DestinationPath $smokeRoot -Force
+          $bundle = Join-Path $smokeRoot 'lency-windows-x64'
+          $input = Join-Path $env:GITHUB_WORKSPACE 'tests\example\lir\lencyc_lir_exit0.lcy'
+          & (Join-Path $bundle 'lencyc.exe') build $input -o release-smoke --out-dir $bundle
+          & (Join-Path $bundle 'release-smoke.exe')
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-windows-x64
+          path: |
+            dist/lency-windows-x64-${{ needs.metadata.outputs.tag }}.zip
+            dist/lency-windows-x64-${{ needs.metadata.outputs.tag }}.zip.sha256
+
+  publish:
+    name: Publish GitHub release
+    needs: [metadata, linux, macos, windows]
+    if: needs.metadata.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.metadata.outputs.tag }}
           generate_release_notes: true
-          files: |
-            dist/lency-linux-x86_64-${{ steps.resolve_tag.outputs.tag }}.tar.gz
-            dist/lency-linux-x86_64-${{ steps.resolve_tag.outputs.tag }}.sha256
+          files: dist/*
