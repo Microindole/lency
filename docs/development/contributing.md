@@ -51,3 +51,11 @@ cargo run -p xtask -- bootstrap-check
 - 工具命令只写入 `docs/tools/scripts.md`。
 - 已完成的逐提交流水账由 Git 历史承担，不再维护 walkthrough 或 Sprint 完成项长清单。
 - 文档中的“支持”必须注明是 Rust 母体、selfhost 前端，还是 selfhost 端到端支持。
+
+### 源码目录 README
+
+- `crates/` 与 `lencyc/` 中，每个具有独立职责、入口或设计约束的逻辑模块至少维护一份就近的 `README.md`。
+- README 说明模块职责、主要入口、文件和子目录分工、上下游数据流、关键边界与检查方式。
+- 只为控制文件体积而拆出的目录不重复建 README，由最近的父模块文档统一说明。
+- README 是源码地图，不复制 `docs/` 中的语言规范，也不记录逐提交完成日志。
+- 新增、移动或删除模块和关键入口时，必须同步更新最近的 README。
