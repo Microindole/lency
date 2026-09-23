@@ -8,7 +8,6 @@ use chumsky::prelude::*;
 
 mod atom;
 mod binary;
-pub mod intrinsics;
 pub mod literal;
 mod postfix;
 mod unary;

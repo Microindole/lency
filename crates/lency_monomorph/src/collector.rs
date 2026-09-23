@@ -193,7 +193,6 @@ impl Collector {
                 self.collect_expr(array);
                 self.collect_expr(index);
             }
-            ExprKind::Print(e) => self.collect_expr(e),
             ExprKind::StructLiteral { type_, fields } => {
                 self.collect_type(type_);
                 for (_, e) in fields {
@@ -228,34 +227,6 @@ impl Collector {
                 for arg in args {
                     self.collect_type(arg);
                 }
-            }
-            // File I/O intrinsics
-            ExprKind::ReadFile(path) => self.collect_expr(path),
-            ExprKind::WriteFile(path, content) => {
-                self.collect_expr(path);
-                self.collect_expr(content);
-            }
-            // 字符串内置函数 (Sprint 12)
-            ExprKind::Len(arg) => self.collect_expr(arg),
-            ExprKind::Trim(arg) => self.collect_expr(arg),
-            ExprKind::Split(str_arg, delim) => {
-                self.collect_expr(str_arg);
-                self.collect_expr(delim);
-            }
-            ExprKind::Join(vec_arg, sep) => {
-                self.collect_expr(vec_arg);
-                self.collect_expr(sep);
-            }
-            ExprKind::Substr(str_arg, start, len) => {
-                self.collect_expr(str_arg);
-                self.collect_expr(start);
-                self.collect_expr(len);
-            }
-            ExprKind::CharToString(arg) => self.collect_expr(arg),
-            ExprKind::Panic(arg) => self.collect_expr(arg),
-            ExprKind::Format(template, args) => {
-                self.collect_expr(template);
-                self.collect_expr(args);
             }
         }
     }

@@ -56,6 +56,22 @@ impl ScopeStack {
     pub fn define(&mut self, symbol: Symbol) -> Result<SymbolId, SemanticError> {
         let name = symbol.name().to_string();
 
+        // Built-in symbols use the synthetic 0..0 span. They are ordinary
+        // symbols for lookup and type checking, but lowering cannot safely
+        // reinterpret a shadowing local as a runtime intrinsic.
+        if self.current != 0 {
+            if let Some(prev_id) = self.scopes[0].lookup_local(&name) {
+                let previous = &self.symbols[prev_id];
+                if previous.span() == &(0..0) {
+                    return Err(SemanticError::DuplicateDefinition {
+                        name,
+                        span: symbol.span().clone(),
+                        previous_span: previous.span().clone(),
+                    });
+                }
+            }
+        }
+
         // 检查当前作用域是否已经有同名符号
         if let Some(prev_id) = self.scopes[self.current].lookup_local(&name) {
             let prev_span = self.symbols[prev_id].span().clone();

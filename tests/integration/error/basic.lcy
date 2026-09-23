@@ -1,7 +1,19 @@
 import std.core
 
+enum DivideOutcome {
+    Value(int),
+    DivisionByZero
+}
+
 int divide(int left, int right) {
     return left / right
+}
+
+DivideOutcome try_divide(int left, int right) {
+    if right == 0 {
+        return DivideOutcome.DivisionByZero
+    }
+    return DivideOutcome.Value(left / right)
 }
 
 int main() {
@@ -9,6 +21,16 @@ int main() {
     if value != 5 {
         print("FAIL: divide(10, 2) should return 5\n")
         return 1
+    }
+
+    var outcome = try_divide(10, 0)
+    var handled = match outcome {
+        case DivideOutcome.Value(result) => result,
+        case DivideOutcome.DivisionByZero => -1
+    }
+    if handled != -1 {
+        print("FAIL: recoverable failure must remain ordinary enum data\n")
+        return 2
     }
     print("Plain function signature test passed\n")
     return 0

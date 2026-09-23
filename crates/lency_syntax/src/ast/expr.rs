@@ -52,9 +52,6 @@ pub enum ExprKind {
         default: Option<Box<Expr>>, // Derived from `_ => ...`
     },
 
-    // Intrinsic Print
-    Print(Box<Expr>),
-
     // 数组索引: arr[i]
     Index {
         array: Box<Expr>,
@@ -75,30 +72,6 @@ pub enum ExprKind {
 
     // Vec 字面量: vec[1, 2, 3]
     VecLiteral(Vec<Expr>),
-
-    // 文件 I/O 内置函数 (Sprint 12)
-    // read_file("path") -> string，I/O 失败时 panic
-    ReadFile(Box<Expr>),
-    // write_file("path", "content") -> void，I/O 失败时 panic
-    WriteFile(Box<Expr>, Box<Expr>),
-
-    // 字符串内置函数 (Sprint 12)
-    // len("hello") -> 5
-    Len(Box<Expr>),
-    // trim("  hi  ") -> "hi"
-    Trim(Box<Expr>),
-    // split("a,b", ",") -> Vec<string>
-    Split(Box<Expr>, Box<Expr>),
-    // join(vec, ",") -> "a,b"
-    Join(Box<Expr>, Box<Expr>),
-    // substr("hello", 0, 2) -> "he"
-    Substr(Box<Expr>, Box<Expr>, Box<Expr>),
-    // char_to_string(65) -> "A"
-    CharToString(Box<Expr>),
-    // panic("error message")
-    Panic(Box<Expr>),
-    // format("template {}", args_vec) -> string
-    Format(Box<Expr>, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq)]

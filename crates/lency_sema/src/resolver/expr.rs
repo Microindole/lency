@@ -75,9 +75,6 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
                 resolver.resolve_expr(default_expr);
             }
         }
-        ExprKind::Print(expr) => {
-            resolver.resolve_expr(expr);
-        }
         ExprKind::Index { array, index } => {
             resolver.resolve_expr(array);
             resolver.resolve_expr(index);
@@ -91,44 +88,6 @@ pub fn resolve_expr(resolver: &mut Resolver, expr: &mut Expr) {
             for (_, value) in fields {
                 resolver.resolve_expr(value);
             }
-        }
-        // File I/O intrinsics (Sprint 12)
-        ExprKind::ReadFile(path) => {
-            resolver.resolve_expr(path);
-        }
-        ExprKind::WriteFile(path, content) => {
-            resolver.resolve_expr(path);
-            resolver.resolve_expr(content);
-        }
-        // 字符串内置函数 (Sprint 12)
-        ExprKind::Len(arg) => {
-            resolver.resolve_expr(arg);
-        }
-        ExprKind::Trim(arg) => {
-            resolver.resolve_expr(arg);
-        }
-        ExprKind::Split(str_arg, delim) => {
-            resolver.resolve_expr(str_arg);
-            resolver.resolve_expr(delim);
-        }
-        ExprKind::Join(vec_arg, sep) => {
-            resolver.resolve_expr(vec_arg);
-            resolver.resolve_expr(sep);
-        }
-        ExprKind::Substr(str_arg, start, len) => {
-            resolver.resolve_expr(str_arg);
-            resolver.resolve_expr(start);
-            resolver.resolve_expr(len);
-        }
-        ExprKind::CharToString(arg) => {
-            resolver.resolve_expr(arg);
-        }
-        ExprKind::Panic(arg) => {
-            resolver.resolve_expr(arg);
-        }
-        ExprKind::Format(template, args) => {
-            resolver.resolve_expr(template);
-            resolver.resolve_expr(args);
         }
     }
 }

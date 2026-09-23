@@ -1,5 +1,4 @@
 use super::super::helpers::{ident_parser, type_parser};
-use super::intrinsics;
 use super::literal;
 use crate::ast::*;
 use crate::lexer::Token;
@@ -46,9 +45,6 @@ pub fn parser(
             },
             span,
         });
-
-    // 内置函数
-    let intrinsic_expr = intrinsics::intrinsic_parsers(expr.clone());
 
     // Array literal: [1, 2, 3]
     let array_literal = expr
@@ -100,7 +96,6 @@ pub fn parser(
     // let atom = val.or(call).or(ident).or(paren);
     // Integrate match_expr. Should be high precedence.
     match_expr
-        .or(intrinsic_expr)
         .or(vec_literal)
         .or(array_literal)
         .or(struct_literal)

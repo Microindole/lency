@@ -60,6 +60,12 @@ pub fn check_call(
             // 普通函数调用
             match checker.scopes.lookup(name) {
                 Some(Symbol::Function(f)) => (f.clone(), false, HashMap::new()),
+                Some(Symbol::Variable(variable)) => {
+                    function_value_symbol(name, &variable.ty, &variable.span, span)?
+                }
+                Some(Symbol::Parameter(parameter)) => {
+                    function_value_symbol(name, &parameter.ty, &parameter.span, span)?
+                }
                 Some(Symbol::Struct(s)) => {
                     // 构造函数
                     let func_sym = FunctionSymbol {
@@ -85,6 +91,60 @@ pub fn check_call(
             }
         }
         ExprKind::Get { object, name } => {
+            // Enum variants are ordinary callable members. Validate payloads
+            // through the same path as normal function parameters.
+            let enum_access = match &object.kind {
+                ExprKind::Variable(enum_name) => Some((enum_name.clone(), Vec::new())),
+                ExprKind::GenericInstantiation {
+                    base,
+                    args: type_args,
+                } => match &base.kind {
+                    ExprKind::Variable(enum_name) => Some((enum_name.clone(), type_args.clone())),
+                    _ => None,
+                },
+                _ => None,
+            };
+
+            if let Some((enum_name, type_args)) = enum_access {
+                if let Some(Symbol::Enum(enum_symbol)) = checker.scopes.lookup(&enum_name) {
+                    if let Some(payload_types) = enum_symbol.get_variant(name) {
+                        if enum_symbol.generic_params.len() != type_args.len() {
+                            return Err(SemanticError::GenericArityMismatch {
+                                name: enum_name,
+                                expected: enum_symbol.generic_params.len(),
+                                found: type_args.len(),
+                                span: span.clone(),
+                            });
+                        }
+
+                        let subst_map = enum_symbol
+                            .generic_params
+                            .iter()
+                            .zip(type_args.iter())
+                            .map(|(param, arg)| (param.name.clone(), arg.clone()))
+                            .collect();
+                        let return_type = if type_args.is_empty() {
+                            Type::Struct(enum_name.clone())
+                        } else {
+                            Type::Generic(enum_name.clone(), type_args)
+                        };
+                        let func = FunctionSymbol {
+                            name: format!("{enum_name}.{name}"),
+                            params: payload_types
+                                .iter()
+                                .enumerate()
+                                .map(|(index, ty)| (format!("payload{index}"), ty.clone()))
+                                .collect(),
+                            return_type,
+                            generic_params: Vec::new(),
+                            span: enum_symbol.span.clone(),
+                            is_public: true,
+                        };
+                        return validate_call(checker, func, false, subst_map, args, span);
+                    }
+                }
+            }
+
             // 方法调用处理
             let obj_type = checker.infer_type(object)?;
 
@@ -363,7 +423,7 @@ pub fn check_call(
         let expected_ty = substitute_type(param_ty, &subst_map);
 
         if !is_compatible(&expected_ty, &arg_ty) {
-            checker.errors.push(SemanticError::TypeMismatch {
+            return Err(SemanticError::TypeMismatch {
                 expected: expected_ty.to_string(),
                 found: arg_ty.to_string(),
                 span: arg.span.clone(), // Use arg.span
@@ -372,5 +432,80 @@ pub fn check_call(
     }
 
     // 返回类型的泛型替换
+    Ok(substitute_type(&func.return_type, &subst_map))
+}
+
+fn function_value_symbol(
+    name: &str,
+    ty: &Type,
+    definition_span: &std::ops::Range<usize>,
+    call_span: &std::ops::Range<usize>,
+) -> Result<(FunctionSymbol, bool, HashMap<String, Type>), SemanticError> {
+    let Type::Function {
+        param_types,
+        return_type,
+    } = ty
+    else {
+        return Err(SemanticError::NotCallable {
+            ty: ty.to_string(),
+            span: call_span.clone(),
+        });
+    };
+
+    Ok((
+        FunctionSymbol {
+            name: name.to_string(),
+            params: param_types
+                .iter()
+                .enumerate()
+                .map(|(index, ty)| (format!("arg{index}"), ty.clone()))
+                .collect(),
+            return_type: *return_type.clone(),
+            generic_params: Vec::new(),
+            span: definition_span.clone(),
+            is_public: false,
+        },
+        false,
+        HashMap::new(),
+    ))
+}
+
+fn validate_call(
+    checker: &mut TypeChecker,
+    func: FunctionSymbol,
+    is_method: bool,
+    subst_map: HashMap<String, Type>,
+    args: &mut [Expr],
+    span: &std::ops::Range<usize>,
+) -> Result<Type, SemanticError> {
+    let expected_args = if is_method {
+        func.params.len() - 1
+    } else {
+        func.params.len()
+    };
+    if args.len() != expected_args {
+        return Err(SemanticError::ArgumentCountMismatch {
+            name: func.name.clone(),
+            expected: expected_args,
+            found: args.len(),
+            span: span.clone(),
+        });
+    }
+
+    for (arg, (_, param_ty)) in args
+        .iter_mut()
+        .zip(func.params.iter().skip(is_method as usize))
+    {
+        let arg_ty = checker.infer_type(arg)?;
+        let expected_ty = substitute_type(param_ty, &subst_map);
+        if !is_compatible(&expected_ty, &arg_ty) {
+            return Err(SemanticError::TypeMismatch {
+                expected: expected_ty.to_string(),
+                found: arg_ty.to_string(),
+                span: arg.span.clone(),
+            });
+        }
+    }
+
     Ok(substitute_type(&func.return_type, &subst_map))
 }

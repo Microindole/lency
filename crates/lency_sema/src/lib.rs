@@ -254,4 +254,41 @@ mod tests {
             |error| matches!(error, SemanticError::UndefinedType { name, .. } if name == "Result")
         ));
     }
+
+    #[test]
+    fn intrinsic_calls_use_normal_symbol_type_checking() {
+        let parsed = lency_syntax::parser::parse("int main() { return len(1) }");
+        assert!(
+            parsed.is_ok(),
+            "intrinsic call must use ordinary call syntax"
+        );
+        let Ok(mut program) = parsed else { return };
+
+        let errors = analyze(&mut program).expect_err("len(int) must be rejected");
+        assert!(errors.iter().any(|error| {
+            matches!(
+                error,
+                SemanticError::TypeMismatch { expected, found, .. }
+                    if expected == "string" && found == "int"
+            )
+        }));
+    }
+
+    #[test]
+    fn runtime_intrinsics_cannot_be_shadowed() {
+        let parsed = lency_syntax::parser::parse("int main() { int len = 1 return len }");
+        assert!(
+            parsed.is_ok(),
+            "shadowing is a semantic error, not a syntax error"
+        );
+        let Ok(mut program) = parsed else { return };
+
+        let errors = analyze(&mut program).expect_err("intrinsic shadowing must be rejected");
+        assert!(errors.iter().any(|error| {
+            matches!(
+                error,
+                SemanticError::DuplicateDefinition { name, .. } if name == "len"
+            )
+        }));
+    }
 }

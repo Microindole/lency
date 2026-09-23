@@ -33,8 +33,6 @@ pub fn specialize(spec: &Specializer, expr: &Expr) -> Expr {
             array: Box::new(spec.specialize_expr(array)),
             index: Box::new(spec.specialize_expr(index)),
         },
-        ExprKind::Print(e) => ExprKind::Print(Box::new(spec.specialize_expr(e))),
-
         ExprKind::StructLiteral { type_, fields } => ExprKind::StructLiteral {
             type_: spec.specialize_type(type_),
             fields: fields
@@ -68,34 +66,6 @@ pub fn specialize(spec: &Specializer, expr: &Expr) -> Expr {
                 .collect(),
             default: default.as_ref().map(|e| Box::new(spec.specialize_expr(e))),
         },
-        // File I/O intrinsics
-        ExprKind::ReadFile(path) => ExprKind::ReadFile(Box::new(spec.specialize_expr(path))),
-        ExprKind::WriteFile(path, content) => ExprKind::WriteFile(
-            Box::new(spec.specialize_expr(path)),
-            Box::new(spec.specialize_expr(content)),
-        ),
-        // 字符串内置函数 (Sprint 12)
-        ExprKind::Len(arg) => ExprKind::Len(Box::new(spec.specialize_expr(arg))),
-        ExprKind::Trim(arg) => ExprKind::Trim(Box::new(spec.specialize_expr(arg))),
-        ExprKind::Split(str_arg, delim) => ExprKind::Split(
-            Box::new(spec.specialize_expr(str_arg)),
-            Box::new(spec.specialize_expr(delim)),
-        ),
-        ExprKind::Join(vec_arg, sep) => ExprKind::Join(
-            Box::new(spec.specialize_expr(vec_arg)),
-            Box::new(spec.specialize_expr(sep)),
-        ),
-        ExprKind::Substr(str_arg, start, len) => ExprKind::Substr(
-            Box::new(spec.specialize_expr(str_arg)),
-            Box::new(spec.specialize_expr(start)),
-            Box::new(spec.specialize_expr(len)),
-        ),
-        ExprKind::CharToString(arg) => ExprKind::CharToString(Box::new(spec.specialize_expr(arg))),
-        ExprKind::Panic(arg) => ExprKind::Panic(Box::new(spec.specialize_expr(arg))),
-        ExprKind::Format(template, args) => ExprKind::Format(
-            Box::new(spec.specialize_expr(template)),
-            Box::new(spec.specialize_expr(args)),
-        ),
     };
 
     Expr {
