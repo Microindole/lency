@@ -63,8 +63,8 @@ impl Resolver {
                         continue
                     }
                     this.table.define(variant.name)
-                    var payload_tys = vec[]
-                    var payload_ty_names = vec[]
+                    Vec<int> payload_tys = vec[]
+                    Vec<string> payload_ty_names = vec[]
                     var p = 0
                     while p < variant.payload_types.len() {
                         payload_tys.push(this.resolve_signature_type_or_error(variant.payload_types[p]))
@@ -87,8 +87,8 @@ impl Resolver {
                 } else {
                     this.table.define(decl.name.lexeme)
                     this.preload_builtin_arity(decl.name.lexeme, decl.params.len())
-                    var param_tys = vec[]
-                    var param_ty_names = vec[]
+                    Vec<int> param_tys = vec[]
+                    Vec<string> param_ty_names = vec[]
                     var k = 0
                     while k < decl.param_types.len() {
                         param_tys.push(this.resolve_signature_type_or_error(decl.param_types[k]))

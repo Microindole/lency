@@ -18,7 +18,7 @@ impl Resolver {
     }
 
     void preload_std_all_modules_auto() {
-        var visited = vec[]
+        Vec<string> visited = vec[]
         this.preload_std_module_from_segments(vec["std", "core"], visited)
         this.preload_std_module_from_segments(vec["std", "io"], visited)
         this.preload_std_module_from_segments(vec["std", "fs"], visited)
@@ -27,7 +27,6 @@ impl Resolver {
         this.preload_std_module_from_segments(vec["std", "char"], visited)
         this.preload_std_module_from_segments(vec["std", "math"], visited)
         this.preload_std_module_from_segments(vec["std", "assert"], visited)
-        this.preload_std_module_from_segments(vec["std", "result"], visited)
         this.preload_std_module_from_segments(vec["std", "option"], visited)
         this.preload_std_module_from_segments(vec["std", "iterator"], visited)
         this.preload_std_module_from_segments(vec["std", "convert"], visited)

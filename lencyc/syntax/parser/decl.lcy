@@ -45,7 +45,7 @@ impl Parser {
     }
 
     Vec<string> clone_segments(Vec<string> source) {
-        var copied = vec[]
+        Vec<string> copied = vec[]
         var i = 0
         while i < source.len() {
             copied.push(source[i])
@@ -99,8 +99,8 @@ impl Parser {
     }
 
     ParsedParamList parse_signature_param_list() {
-        var params = vec[]
-        var param_types = vec[]
+        Vec<string> params = vec[]
+        Vec<TypeRef> param_types = vec[]
         if !this.check(T_RIGHT_PAREN()) {
             while true {
                 param_types.push(this.parse_signature_type_ref())
@@ -120,6 +120,10 @@ impl Parser {
     Stmt function_declaration(TypeRef return_type) {
         this.consume(T_IDENTIFIER(), "Expect function name.")
         var name = this.previous
+        return this.function_declaration_after_name(return_type, name)
+    }
+
+    Stmt function_declaration_after_name(TypeRef return_type, Token name) {
         this.skip_generic_type_arguments_if_any()
         this.consume(T_LEFT_PAREN(), "Expect '(' after function name.")
         var parsed_params = this.parse_signature_param_list()
@@ -145,7 +149,7 @@ impl Parser {
         var name = this.previous
         this.skip_generic_type_arguments_if_any()
         this.consume(T_LEFT_BRACE(), "Expect '{' after type name.")
-        var fields = vec[]
+        Vec<StructField> fields = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.is_signature_type_token(this.current.kind) {
                 var field_type = this.parse_signature_type_ref()
@@ -173,7 +177,7 @@ impl Parser {
             name = make_token(target_type.kind, target_type.name, this.previous.line, this.previous.column)
         }
         this.consume(T_LEFT_BRACE(), "Expect '{' after impl target.")
-        var members = vec[]
+        Vec<Stmt> members = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.is_function_return_type_start() {
                 var member_return_type = this.parse_signature_type_ref()
@@ -188,7 +192,7 @@ impl Parser {
     }
 
     Stmt import_declaration() {
-        var path_segments = vec[]
+        Vec<string> path_segments = vec[]
         this.consume(T_IDENTIFIER(), "Expect module path after 'import'.")
         path_segments.push(this.previous.lexeme)
         while this.match_token(T_DOT()) {
@@ -196,7 +200,7 @@ impl Parser {
                 this.consume(T_IDENTIFIER(), "Expect identifier in grouped import.")
                 var first_segments = this.clone_segments(path_segments)
                 first_segments.push(this.previous.lexeme)
-                var tail_names = vec[]
+                Vec<string> tail_names = vec[]
                 while this.match_token(T_COMMA()) {
                     this.consume(T_IDENTIFIER(), "Expect identifier in grouped import.")
                     tail_names.push(this.previous.lexeme)
@@ -248,13 +252,13 @@ impl Parser {
         var name = this.previous
         this.skip_generic_type_arguments_if_any()
         this.consume(T_LEFT_BRACE(), "Expect '{' after EnumName.")
-        var variants = vec[]
-        var enum_variants = vec[]
+        Vec<string> variants = vec[]
+        Vec<EnumVariant> enum_variants = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             this.consume(T_IDENTIFIER(), "Expect EnumVariant name.")
             var variant_name = this.previous.lexeme
             variants.push(variant_name)
-            var payload_types = vec[]
+            Vec<TypeRef> payload_types = vec[]
             if this.match_token(T_LEFT_PAREN()) {
                 if !this.check(T_RIGHT_PAREN()) {
                     while true {
@@ -301,6 +305,12 @@ impl Parser {
         return make_stmt_var_decl(name, initializer, is_const)
     }
 
+    Stmt typed_var_declaration_after_name(TypeRef declared_type, Token name, bool is_const) {
+        this.consume(T_EQUAL(), "Expect '=' after variable name.")
+        var initializer = this.expression()
+        return make_stmt_typed_var_decl(name, declared_type, initializer, is_const)
+    }
+
     Stmt declaration() {
         if this.match_token(T_IMPORT()) {
             return this.import_declaration()
@@ -322,8 +332,17 @@ impl Parser {
         }
 
         if this.is_function_return_type_start() {
-            var return_type = this.parse_signature_type_ref()
-            return this.function_declaration(return_type)
+            var declared_type = this.parse_signature_type_ref()
+            this.consume(T_IDENTIFIER(), "Expect function or variable name after type.")
+            var name = this.previous
+            if this.check(T_LEFT_PAREN()) || this.check(T_LESS()) {
+                return this.function_declaration_after_name(declared_type, name)
+            }
+            var stmt = this.typed_var_declaration_after_name(declared_type, name, false)
+            if this.match_token(T_SEMICOLON()) {
+                // Optional C-style statement terminator.
+            }
+            return stmt
         }
 
         if this.match_token(T_VAR()) {

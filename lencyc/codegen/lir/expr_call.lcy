@@ -78,7 +78,7 @@ impl LirBuilder {
             }
         }
         var callee = this.emit_expr(expr.children[0])
-        var args = vec[]
+        Vec<string> args = vec[]
         var i = 1
         while i < expr.children.len() {
             args.push(this.emit_expr(expr.children[i]))

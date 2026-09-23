@@ -9,8 +9,8 @@ import lencyc.sema.resolver
 impl Resolver {
     void resolve_decl(Decl decl) {
         if decl.kind == DECL_FUNCTION() {
-            var fn_param_tys = vec[]
-            var fn_param_ty_names = vec[]
+            Vec<int> fn_param_tys = vec[]
+            Vec<string> fn_param_ty_names = vec[]
             var i = 0
             while i < decl.param_types.len() {
                 fn_param_tys.push(this.resolve_signature_type_or_error(decl.param_types[i]))
@@ -29,7 +29,7 @@ impl Resolver {
             return
         }
         if decl.kind == DECL_STRUCT() {
-            var field_names = vec[]
+            Vec<string> field_names = vec[]
             var i = 0
             while i < decl.struct_fields.len() {
                 var field = decl.struct_fields[i]
@@ -48,7 +48,7 @@ impl Resolver {
             if !this.table.resolve(decl.name.lexeme) {
                 this.error("unknown type in impl target: " + decl.name.lexeme)
             }
-            var method_names = vec[]
+            Vec<string> method_names = vec[]
             var i = 0
             while i < decl.body.len() {
                 var member_stmt = decl.body[i]
@@ -64,8 +64,8 @@ impl Resolver {
                     continue
                 }
                 method_names.push(member.name.lexeme)
-                var fn_param_tys = vec[]
-                var fn_param_ty_names = vec[]
+                Vec<int> fn_param_tys = vec[]
+                Vec<string> fn_param_ty_names = vec[]
                 var j = 0
                 while j < member.param_types.len() {
                     fn_param_tys.push(this.resolve_signature_type_or_error(member.param_types[j]))

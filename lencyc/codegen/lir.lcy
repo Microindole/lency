@@ -242,6 +242,9 @@ impl LirBuilder {
             this.emit_line("  var %" + stmt.name.lexeme + " = " + init_val)
             var enum_name = this.infer_expr_enum_name(stmt.expr)
             var type_name = this.infer_expr_type_name(stmt.expr)
+            if stmt.has_declared_type {
+                type_name = stmt.declared_type.name
+            }
             if enum_name != "" {
                 this.track_enum_variable(stmt.name.lexeme, enum_name)
             } else {

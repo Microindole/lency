@@ -41,8 +41,8 @@ impl Resolver {
         var target_enum_name = this.infer_expr_enum_name(expr.children[0])
         var result_ty = TYPE_UNKNOWN()
         var result_ty_name = ""
-        var seen_variants = vec[]
-        var seen_patterns = vec[]
+        Vec<string> seen_variants = vec[]
+        Vec<string> seen_patterns = vec[]
         var has_wildcard = false
         var wildcard_closes_match = false
         var i = 0
@@ -139,7 +139,7 @@ impl Resolver {
             var arm_ty = TYPE_UNKNOWN()
             if target_enum_name != "" && pattern.tag.kind == T_IDENTIFIER() && !this.is_wildcard_pattern(pattern) {
                 this.begin_scope()
-                var seen_binders = vec[]
+                Vec<string> seen_binders = vec[]
                 if (pattern.children.len() > 0 || pattern.has_group) && this.is_enum_variant(target_enum_name, pattern.tag.lexeme) {
                     this.bind_match_pattern_nested_enum(target_enum_name, pattern, seen_binders)
                 }
