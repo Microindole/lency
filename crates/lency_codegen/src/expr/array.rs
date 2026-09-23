@@ -2,6 +2,7 @@ use crate::context::CodegenContext;
 use crate::error::{CodegenError, CodegenResult};
 use crate::expr::{generate_expr, CodegenValue};
 use inkwell::types::BasicType;
+use inkwell::AddressSpace;
 use lency_syntax::ast::{Expr, Type};
 use std::collections::HashMap;
 
@@ -120,10 +121,39 @@ pub fn gen_index_access<'ctx>(
 
     if array_wrapper.ty == Type::String {
         // String Indexing: s[i] -> int (byte)
-        // Assume s is i8*
         let str_ptr = array_val.into_pointer_value();
 
-        // TODO: Bounds check? Need strlen. Skip for now.
+        let i64_type = ctx.context.i64_type();
+        let i8_ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
+        let string_len_fn = ctx
+            .module
+            .get_function("lency_string_len")
+            .unwrap_or_else(|| {
+                let fn_type = i64_type.fn_type(&[i8_ptr_type.into()], false);
+                ctx.module.add_function("lency_string_len", fn_type, None)
+            });
+        let len = ctx
+            .builder
+            .build_call(string_len_fn, &[str_ptr.into()], "str_index_len")
+            .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?
+            .try_as_basic_value()
+            .left()
+            .ok_or_else(|| {
+                CodegenError::LLVMBuildError("lency_string_len returned void".to_string())
+            })?
+            .into_int_value();
+
+        let panic_func = ctx.panic_func.ok_or_else(|| {
+            CodegenError::LLVMBuildError("panic runtime is not initialized".to_string())
+        })?;
+        crate::runtime::gen_bounds_check(
+            ctx.context,
+            &ctx.builder,
+            panic_func,
+            index_int,
+            len,
+            line,
+        );
 
         // GEP i8* s, index
         let char_ptr = unsafe {

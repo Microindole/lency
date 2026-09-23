@@ -25,6 +25,51 @@ pub fn register_builtins(scopes: &mut ScopeStack) {
         scopes.define(sym).ok();
     };
 
+    // Language/runtime intrinsics are ordinary global function symbols. The
+    // parser does not recognize these names specially; only lowering is
+    // intrinsic. Type::Error is the deliberate "any printable value" slot.
+    define_extern_fn("print", vec![("value", Type::Error)], Type::Void);
+    define_extern_fn("read_file", vec![("path", Type::String)], Type::String);
+    define_extern_fn(
+        "write_file",
+        vec![("path", Type::String), ("content", Type::String)],
+        Type::Void,
+    );
+    define_extern_fn("len", vec![("value", Type::String)], Type::Int);
+    define_extern_fn("trim", vec![("value", Type::String)], Type::String);
+    define_extern_fn(
+        "split",
+        vec![("value", Type::String), ("delimiter", Type::String)],
+        Type::Vec(Box::new(Type::String)),
+    );
+    define_extern_fn(
+        "join",
+        vec![
+            ("values", Type::Vec(Box::new(Type::String))),
+            ("separator", Type::String),
+        ],
+        Type::String,
+    );
+    define_extern_fn(
+        "substr",
+        vec![
+            ("value", Type::String),
+            ("start", Type::Int),
+            ("length", Type::Int),
+        ],
+        Type::String,
+    );
+    define_extern_fn("char_to_string", vec![("value", Type::Int)], Type::String);
+    define_extern_fn("panic", vec![("message", Type::String)], Type::Void);
+    define_extern_fn(
+        "format",
+        vec![
+            ("template", Type::String),
+            ("arguments", Type::Vec(Box::new(Type::String))),
+        ],
+        Type::String,
+    );
+
     // HashMap FFI functions
     define_extern_fn("hashmap_int_new", vec![], Type::Int);
     define_extern_fn(

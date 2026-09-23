@@ -292,8 +292,6 @@ impl Rewriter {
                 array: Box::new(self.rewrite_expr(*array)),
                 index: Box::new(self.rewrite_expr(*index)),
             },
-            ExprKind::Print(e) => ExprKind::Print(Box::new(self.rewrite_expr(*e))),
-
             ExprKind::StructLiteral { type_, fields } => ExprKind::StructLiteral {
                 type_: self.rewrite_type(&type_),
                 fields: fields

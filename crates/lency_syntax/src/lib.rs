@@ -79,6 +79,32 @@ mod tests {
     }
 
     #[test]
+    fn intrinsic_calls_use_the_ordinary_call_ast() {
+        use crate::ast::{Decl, ExprKind, Stmt};
+
+        let parsed = crate::parser::parse("int main() { print(1) return 0 }");
+        assert!(parsed.is_ok(), "ordinary intrinsic call must parse");
+        let Ok(program) = parsed else { return };
+        assert!(matches!(program.decls.first(), Some(Decl::Function { .. })));
+        let Some(Decl::Function { body, .. }) = program.decls.first() else {
+            return;
+        };
+        assert!(matches!(body.first(), Some(Stmt::Expression(_))));
+        let Some(Stmt::Expression(expr)) = body.first() else {
+            return;
+        };
+        assert!(matches!(expr.kind, ExprKind::Call { .. }));
+        let ExprKind::Call { callee, args } = &expr.kind else {
+            return;
+        };
+        assert_eq!(args.len(), 1);
+        assert!(matches!(
+            &callee.kind,
+            ExprKind::Variable(name) if name == "print"
+        ));
+    }
+
+    #[test]
     fn user_enum_may_define_ok_and_err_variants() {
         let code = r#"
             enum Outcome {

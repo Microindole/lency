@@ -26,6 +26,40 @@ pub(super) fn gen_call<'ctx>(
         _ => return Err(CodegenError::UnsupportedExpression),
     };
 
+    // Intrinsics keep ordinary Call AST nodes. Their names are registered as
+    // global function symbols by sema; only this lowering boundary is special.
+    match (func_name.as_str(), args) {
+        ("print", [arg]) => return super::intrinsic::gen_print(ctx, locals, arg),
+        ("read_file", [path]) => return super::intrinsic::gen_read_file(ctx, locals, path),
+        ("write_file", [path, content]) => {
+            return super::intrinsic::gen_write_file(ctx, locals, path, content)
+        }
+        ("len", [arg]) => return super::string_ops::gen_len(ctx, locals, arg),
+        ("trim", [arg]) => return super::string_ops::gen_trim(ctx, locals, arg),
+        ("split", [value, delimiter]) => {
+            return super::string_ops::gen_split(ctx, locals, value, delimiter)
+        }
+        ("join", [values, separator]) => {
+            return super::string_ops::gen_join(ctx, locals, values, separator)
+        }
+        ("substr", [value, start, len]) => {
+            return super::string_ops::gen_substr(ctx, locals, value, start, len)
+        }
+        ("char_to_string", [arg]) => {
+            return super::string_ops::gen_char_to_string(ctx, locals, arg)
+        }
+        ("format", [template, values]) => {
+            return super::string_ops::gen_format(ctx, locals, template, values)
+        }
+        ("panic", [message]) => return super::intrinsic::gen_panic(ctx, locals, message),
+        (name, _) if is_intrinsic_name(name) => {
+            return Err(CodegenError::UnsupportedFeature(format!(
+                "invalid argument count for intrinsic {name}"
+            )))
+        }
+        _ => {}
+    }
+
     // 检查是否为 hashmap extern 函数
     if super::hashmap::is_hashmap_extern(func_name) {
         return super::hashmap::gen_hashmap_extern_call(ctx, locals, func_name, args);
@@ -43,7 +77,7 @@ pub(super) fn gen_call<'ctx>(
         arg_values.push(val_wrapper.value.into());
     }
 
-    // 检查是否为函数指针变量 (闭包)
+    // 检查是否为函数指针变量。冻结语法不提供闭包字面量，但保留函数类型调用。
     if let Some((ptr, var_ty)) = locals.get(func_name) {
         if let Type::Function {
             param_types,
@@ -77,7 +111,7 @@ pub(super) fn gen_call<'ctx>(
             // 间接调用
             let call_site = ctx
                 .builder
-                .build_indirect_call(fn_type, fn_ptr, &arg_values, "closure_call")
+                .build_indirect_call(fn_type, fn_ptr, &arg_values, "function_pointer_call")
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
             let val = call_site.try_as_basic_value().left();
@@ -130,4 +164,21 @@ pub(super) fn gen_call<'ctx>(
             ty: Type::Void,
         })
     }
+}
+
+fn is_intrinsic_name(name: &str) -> bool {
+    matches!(
+        name,
+        "print"
+            | "read_file"
+            | "write_file"
+            | "len"
+            | "trim"
+            | "split"
+            | "join"
+            | "substr"
+            | "char_to_string"
+            | "format"
+            | "panic"
+    )
 }

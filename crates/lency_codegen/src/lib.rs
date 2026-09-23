@@ -227,6 +227,43 @@ mod tests {
     }
 
     #[test]
+    fn test_string_index_emits_bounds_guard() {
+        let program = Program {
+            decls: vec![Decl::Function {
+                span: 0..40,
+                name: "first_byte".to_string(),
+                generic_params: vec![],
+                params: vec![],
+                return_type: Type::Int,
+                body: vec![Stmt::Return {
+                    span: 10..39,
+                    value: Some(Expr {
+                        kind: ExprKind::Index {
+                            array: Box::new(Expr {
+                                kind: ExprKind::Literal(Literal::String("abc".to_string())),
+                                span: 17..22,
+                            }),
+                            index: Box::new(Expr {
+                                kind: ExprKind::Literal(Literal::Int(0)),
+                                span: 23..24,
+                            }),
+                        },
+                        span: 17..25,
+                    }),
+                }],
+            }],
+        };
+
+        let compiled = compile_to_ir(&program, "test_string_index", None);
+        assert!(compiled.is_ok(), "string indexing must compile");
+        let Ok(ir) = compiled else { return };
+
+        assert!(ir.contains("call i64 @lency_string_len"));
+        assert!(ir.contains("is_out_of_bounds"));
+        assert!(ir.contains("call void @__lency_panic"));
+    }
+
+    #[test]
     fn test_compile_with_variable() {
         // int test() { var x = 10; return x; }
         let program = Program {

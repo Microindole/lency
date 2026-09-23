@@ -93,7 +93,6 @@ fn generate_expr<'ctx>(
             cases,
             default,
         } => match_expr::gen_match(ctx, locals, value, cases, default.as_deref()),
-        ExprKind::Print(arg) => intrinsic::gen_print(ctx, locals, arg),
         ExprKind::Array(elements) => array::gen_array_literal(ctx, locals, elements),
         ExprKind::Index { array, index } => {
             let line = ctx.get_line(expr.span.start);
@@ -124,20 +123,6 @@ fn generate_expr<'ctx>(
         ExprKind::GenericInstantiation { .. } => {
             unreachable!("GenericInstantiation (turbo-fish) should be monomorphized before codegen")
         }
-        // File I/O intrinsics (Sprint 12)
-        ExprKind::ReadFile(path) => intrinsic::gen_read_file(ctx, locals, path),
-        ExprKind::WriteFile(path, content) => intrinsic::gen_write_file(ctx, locals, path, content),
-        // 字符串内置函数 (Sprint 12)
-        ExprKind::Len(arg) => string_ops::gen_len(ctx, locals, arg),
-        ExprKind::Trim(arg) => string_ops::gen_trim(ctx, locals, arg),
-        ExprKind::Split(str_arg, delim) => string_ops::gen_split(ctx, locals, str_arg, delim),
-        ExprKind::Join(vec_arg, sep) => string_ops::gen_join(ctx, locals, vec_arg, sep),
-        ExprKind::Substr(str_arg, start, len) => {
-            string_ops::gen_substr(ctx, locals, str_arg, start, len)
-        }
-        ExprKind::CharToString(arg) => string_ops::gen_char_to_string(ctx, locals, arg),
-        ExprKind::Format(template, args) => string_ops::gen_format(ctx, locals, template, args),
-        ExprKind::Panic(arg) => intrinsic::gen_panic(ctx, locals, arg),
     }
 }
 

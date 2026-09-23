@@ -9,7 +9,6 @@ mod access;
 mod adt;
 mod call;
 mod control;
-mod intrinsics;
 mod literal;
 mod operators;
 
@@ -95,27 +94,10 @@ impl<'a> TypeInferer<'a> {
                 default,
             } => self.infer_match(value, cases, default.as_deref_mut(), &expr.span),
 
-            ExprKind::Print(print_expr) => {
-                self.infer(print_expr)?;
-                Ok(Type::Void)
-            }
-
             // ADT (Structs, Enums, Vec) -> adt.rs
             ExprKind::StructLiteral { .. }
             | ExprKind::VecLiteral(_)
             | ExprKind::GenericInstantiation { .. } => self.infer_adt(expr),
-
-            // Intrinsics -> intrinsics.rs
-            ExprKind::ReadFile(_)
-            | ExprKind::WriteFile(_, _)
-            | ExprKind::Len(_)
-            | ExprKind::Trim(_)
-            | ExprKind::Split(_, _)
-            | ExprKind::Join(_, _)
-            | ExprKind::Substr(_, _, _)
-            | ExprKind::CharToString(_)
-            | ExprKind::Panic(_)
-            | ExprKind::Format(_, _) => self.infer_intrinsic(expr),
         }
     }
 }

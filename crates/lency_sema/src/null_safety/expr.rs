@@ -79,10 +79,6 @@ pub fn check_expr(checker: &mut NullSafetyChecker, expr: &mut Expr) {
                 checker.check_expr(def);
             }
         }
-        ExprKind::Print(expr) => {
-            checker.check_expr(expr);
-        }
-
         ExprKind::StructLiteral { fields, .. } => {
             // Check all field value expressions
             for (_, value) in fields {
