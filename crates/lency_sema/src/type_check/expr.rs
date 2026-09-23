@@ -18,7 +18,7 @@ pub fn check_call(
             base,
             args: type_args,
         } => {
-            // 泛型函数调用: func::<T>(...)
+            // 泛型函数调用: func<T>(...)
             match &mut base.kind {
                 ExprKind::Variable(name) => {
                     match checker.scopes.lookup(name) {

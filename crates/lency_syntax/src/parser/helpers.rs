@@ -45,24 +45,28 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
             });
 
         // Vec<Type>
-        let vec_type = just(Token::Vec)
+        let vec_type = select! { Token::Ident(name) if name == "Vec" => () }
             .ignore_then(just(Token::Lt))
             .ignore_then(ty.clone())
             .then_ignore(just(Token::Gt))
             .map(|inner| Type::Vec(Box::new(inner)));
 
-        // [N]Type
-        let array_type = just(Token::LBracket)
+        // Type[N]
+        let array_size = just(Token::LBracket)
             .ignore_then(select! { Token::Int(n) => n as usize })
-            .then_ignore(just(Token::RBracket))
-            .then(ty.clone())
-            .map(|(size, element_type)| Type::Array {
-                element_type: Box::new(element_type),
-                size,
-            });
+            .then_ignore(just(Token::RBracket));
 
         // 组合
-        let type_without_suffix = choice((vec_type, array_type, basic, ident_or_generic));
+        let type_without_suffix = choice((vec_type, basic, ident_or_generic))
+            .then(array_size.repeated())
+            .map(|(base, sizes)| {
+                sizes
+                    .into_iter()
+                    .fold(base, |element_type, size| Type::Array {
+                        element_type: Box::new(element_type),
+                        size,
+                    })
+            });
 
         // 后缀类型修饰符: T? (可空)
         type_without_suffix

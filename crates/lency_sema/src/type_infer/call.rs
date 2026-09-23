@@ -103,11 +103,7 @@ impl<'a> TypeInferer<'a> {
 
                 if let Some((enum_name, args)) = enum_access {
                     if let Some(Symbol::Enum(enum_sym)) = self.lookup(&enum_name) {
-                        // Sprint 15: Special handling for Result.Ok and Result.Err
-                        let is_result_builtin =
-                            enum_name == "Result" && (name == "Ok" || name == "Err");
-
-                        if enum_sym.get_variant(name).is_some() || is_result_builtin {
+                        if enum_sym.get_variant(name).is_some() {
                             // Check Generic Arity
                             if !args.is_empty() {
                                 if enum_sym.generic_params.len() != args.len() {
@@ -143,45 +139,6 @@ impl<'a> TypeInferer<'a> {
                     Type::Bool => Some("bool".to_string()),
                     Type::String => Some("string".to_string()),
                     Type::Float => Some("float".to_string()),
-                    // Sprint 15: Support Result<T,E> method calls
-                    // 内置方法: is_ok, is_err, unwrap_or
-                    Type::Result { ok_type, .. } => {
-                        // 检查是否为内置方法
-                        match name.as_str() {
-                            "is_ok" | "is_err" => return Ok(Type::Bool),
-                            "unwrap" | "expect" | "unwrap_or" => return Ok((**ok_type).clone()),
-                            _ => Some("Result".to_string()),
-                        }
-                    }
-                    // Sprint 15: Support Option<T> method calls
-                    // 内置方法: is_some, is_none, unwrap, unwrap_or
-                    Type::Generic(base_name, args) if base_name == "Option" => {
-                        match name.as_str() {
-                            "is_some" | "is_none" => return Ok(Type::Bool),
-                            "unwrap" | "unwrap_or" => {
-                                if args.len() == 1 {
-                                    return Ok(args[0].clone());
-                                } else {
-                                    return Ok(Type::Error);
-                                }
-                            }
-                            _ => Some(base_name.clone()),
-                        }
-                    }
-                    // Sprint 15: Support Result<T, E> method calls (Generic)
-                    Type::Generic(base_name, args) if base_name == "Result" => {
-                        match name.as_str() {
-                            "is_ok" | "is_err" => return Ok(Type::Bool),
-                            "unwrap" | "expect" | "unwrap_or" => {
-                                if args.len() == 2 {
-                                    return Ok(args[0].clone()); // Return T
-                                } else {
-                                    return Ok(Type::Error);
-                                }
-                            }
-                            _ => Some(base_name.clone()),
-                        }
-                    }
                     // 泛型实例化类型：使用基础名称查找方法
                     Type::Generic(base_name, _) => Some(base_name.clone()),
                     _ => None,
@@ -213,18 +170,9 @@ impl<'a> TypeInferer<'a> {
                                 })
                             }
                         }
-                        // Sprint 15: Support method calls on Enum types (e.g., Result<T,E>)
                         Some(Symbol::Enum(enum_sym)) => {
                             if let Some(method) = enum_sym.methods.get(name) {
-                                // 对于泛型Result<T,E>，替换返回类型中的泛型参数
-                                let return_type = if let Type::Result { ok_type, err_type } =
-                                    &obj_ty
-                                {
-                                    let mut map = std::collections::HashMap::new();
-                                    map.insert("T".to_string(), (**ok_type).clone());
-                                    map.insert("E".to_string(), (**err_type).clone());
-                                    crate::type_infer::substitute_type(&method.return_type, &map)
-                                } else if let Type::Generic(_, type_args) = &obj_ty {
+                                let return_type = if let Type::Generic(_, type_args) = &obj_ty {
                                     let mut map = std::collections::HashMap::new();
                                     for (param, arg_ty) in
                                         enum_sym.generic_params.iter().zip(type_args.iter())

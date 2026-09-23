@@ -61,7 +61,7 @@ pub enum ExprKind {
         index: Box<Expr>,
     },
 
-    // 泛型实例化: func::<int>
+    // 泛型实例化: func<int>
     GenericInstantiation {
         base: Box<Expr>,
         args: Vec<crate::ast::Type>,
@@ -73,20 +73,8 @@ pub enum ExprKind {
         fields: Vec<(String, Expr)>, // (field_name, value)
     },
 
-    // Vec 字面量: vec![1, 2, 3]
+    // Vec 字面量: vec[1, 2, 3]
     VecLiteral(Vec<Expr>),
-
-    // Ok 构造器: Ok(value)
-    Ok(Box<Expr>),
-
-    // Err 构造器: Err(message)
-    Err(Box<Expr>),
-
-    // 闭包: |int a, int b| => a + b
-    Closure {
-        params: Vec<crate::ast::Param>,
-        body: Box<Expr>,
-    },
 
     // 文件 I/O 内置函数 (Sprint 12)
     // read_file("path") -> string，I/O 失败时 panic

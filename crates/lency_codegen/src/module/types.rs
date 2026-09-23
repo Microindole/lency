@@ -3,83 +3,9 @@ use crate::error::CodegenResult;
 use crate::types::ToLLVMType;
 use inkwell::targets::TargetData;
 use inkwell::types::BasicType;
-use lency_syntax::ast::{Decl, EnumVariant, Program, Type};
+use lency_syntax::ast::{Decl, EnumVariant, Program};
 
 impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
-    /// 注册 Result<T, E> 类型到 struct_types
-    pub(crate) fn register_result_type(&mut self, result_ty: &Type) -> CodegenResult<()> {
-        if let Type::Result { ok_type, err_type } = result_ty {
-            let mangled_name = lency_monomorph::mangling::mangle_type(result_ty);
-
-            // 如果已注册，直接返回
-            if self.ctx.struct_types.contains_key(&mangled_name) {
-                return Ok(());
-            }
-
-            // 检查 err_type 是否已注册（如果是 Struct 类型）
-            if let Type::Struct(err_name) = &**err_type {
-                if !self.ctx.struct_types.contains_key(err_name) {
-                    // Error struct 不存在，跳过注册（可能是单元测试）
-                    return Ok(());
-                }
-            }
-
-            // 创建字段类型
-            let mut field_types = vec![
-                self.ctx.context.bool_type().into(), // is_ok flag
-            ];
-
-            if !matches!(**ok_type, Type::Void) {
-                field_types.push(ok_type.to_llvm_type(&*self.ctx)?);
-            }
-            if !matches!(**err_type, Type::Void) {
-                field_types.push(err_type.to_llvm_type(&*self.ctx)?);
-            }
-
-            // 创建并注册结构体
-            let struct_type = self.ctx.context.opaque_struct_type(&mangled_name);
-            struct_type.set_body(&field_types, false);
-            self.ctx
-                .struct_types
-                .insert(mangled_name.clone(), struct_type);
-
-            // Sprint 15: 同时注册 Result<void, E> 类型（用于 Err 构造）
-            if !matches!(**ok_type, Type::Void) {
-                let void_result_ty = Type::Result {
-                    ok_type: Box::new(Type::Void),
-                    err_type: err_type.clone(),
-                };
-                let void_mangled = lency_monomorph::mangling::mangle_type(&void_result_ty);
-
-                if !self.ctx.struct_types.contains_key(&void_mangled) {
-                    let void_field_types = vec![
-                        self.ctx.context.bool_type().into(),
-                        err_type.to_llvm_type(&*self.ctx)?,
-                    ];
-
-                    let void_struct = self.ctx.context.opaque_struct_type(&void_mangled);
-                    void_struct.set_body(&void_field_types, false);
-                    self.ctx
-                        .struct_types
-                        .insert(void_mangled.clone(), void_struct);
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    /// 递归检查并注册类型中的 Result 类型
-    pub(crate) fn register_result_type_if_needed(&mut self, ty: &Type) -> CodegenResult<()> {
-        match ty {
-            Type::Result { .. } => self.register_result_type(ty),
-            Type::Nullable(inner) => self.register_result_type_if_needed(inner),
-            Type::Array { element_type, .. } => self.register_result_type_if_needed(element_type),
-            Type::Vec(inner) => self.register_result_type_if_needed(inner),
-            _ => Ok(()),
-        }
-    }
-
     /// 第零遍：注册类型 (opaque) - 跳过泛型定义
     pub(crate) fn register_opaque_types(&mut self, program: &Program) -> CodegenResult<()> {
         for decl in &program.decls {

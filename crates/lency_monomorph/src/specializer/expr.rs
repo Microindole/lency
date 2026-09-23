@@ -1,5 +1,5 @@
 use super::Specializer;
-use lency_syntax::ast::{Expr, ExprKind, MatchCase, Param};
+use lency_syntax::ast::{Expr, ExprKind, MatchCase};
 
 pub fn specialize(spec: &Specializer, expr: &Expr) -> Expr {
     let new_kind = match &expr.kind {
@@ -67,20 +67,6 @@ pub fn specialize(spec: &Specializer, expr: &Expr) -> Expr {
                 })
                 .collect(),
             default: default.as_ref().map(|e| Box::new(spec.specialize_expr(e))),
-        },
-        // Result 相关表达式
-        ExprKind::Ok(inner) => ExprKind::Ok(Box::new(spec.specialize_expr(inner))),
-        ExprKind::Err(inner) => ExprKind::Err(Box::new(spec.specialize_expr(inner))),
-        // 闭包
-        ExprKind::Closure { params, body } => ExprKind::Closure {
-            params: params
-                .iter()
-                .map(|p| Param {
-                    name: p.name.clone(),
-                    ty: spec.specialize_type(&p.ty),
-                })
-                .collect(),
-            body: Box::new(spec.specialize_expr(body)),
         },
         // File I/O intrinsics
         ExprKind::ReadFile(path) => ExprKind::ReadFile(Box::new(spec.specialize_expr(path))),

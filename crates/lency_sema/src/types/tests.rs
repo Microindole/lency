@@ -77,7 +77,7 @@ fn test_array_display_name() {
         element_type: Box::new(Type::Int),
         size: 5,
     };
-    assert_eq!(arr.display_name(), "[5]int");
+    assert_eq!(arr.display_name(), "int[5]");
 }
 
 #[test]

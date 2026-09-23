@@ -85,7 +85,7 @@ impl Symbol {
 
 /// 变量符号
 ///
-/// 对应 `var x: int = 10` 或 `const PI = 3.14`
+/// 对应 `int x = 10` 或 `const PI = 3.14`
 #[derive(Debug, Clone)]
 pub struct VariableSymbol {
     pub name: String,

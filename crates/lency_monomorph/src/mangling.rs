@@ -65,11 +65,6 @@ fn mangle_type_internal(ty: &Type) -> String {
         // GenericParam T -> T (应该已经被替换了，如果在 mangling 时遇到，说明是在特化过程中)
         Type::GenericParam(name) => name.clone(),
 
-        // Result<T, E> -> Result__T__E
-        Type::Result { ok_type, err_type } => {
-            format!("Result__{}_{}", mangle_type(ok_type), mangle_type(err_type))
-        }
-
         // Function int(int, int) -> Fn__int__int_int
         Type::Function {
             param_types,

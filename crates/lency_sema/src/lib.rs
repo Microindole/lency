@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_type_mismatch_error() {
-        // int main() { var x: int = "hello"; return x; }
+        // int main() { int x = "hello"; return x; }
         let mut program = Program {
             decls: vec![Decl::Function {
                 span: 0..50,
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn test_null_safety_error() {
-        // void test() { var s: string = null; }  -- null 赋给非空类型
+        // void test() { string s = null; }  -- null 赋给非空类型
         let mut program = Program {
             decls: vec![Decl::Function {
                 span: 0..50,
@@ -236,5 +236,22 @@ mod tests {
         assert!(errors
             .iter()
             .any(|e| matches!(e, SemanticError::NullAssignmentToNonNullable { .. })));
+    }
+
+    #[test]
+    fn result_is_not_a_builtin_type() {
+        let parsed = lency_syntax::parser::parse("Result<int, string> load() { return null }");
+        assert!(
+            parsed.is_ok(),
+            "generic user types should remain valid syntax"
+        );
+        let Ok(mut program) = parsed else {
+            return;
+        };
+
+        let errors = analyze(&mut program).expect_err("undeclared Result must be rejected");
+        assert!(errors.iter().any(
+            |error| matches!(error, SemanticError::UndefinedType { name, .. } if name == "Result")
+        ));
     }
 }

@@ -229,14 +229,6 @@ impl Collector {
                     self.collect_type(arg);
                 }
             }
-            ExprKind::Ok(inner) => self.collect_expr(inner),
-            ExprKind::Err(inner) => self.collect_expr(inner),
-            ExprKind::Closure { params, body } => {
-                for param in params {
-                    self.collect_type(&param.ty);
-                }
-                self.collect_expr(body);
-            }
             // File I/O intrinsics
             ExprKind::ReadFile(path) => self.collect_expr(path),
             ExprKind::WriteFile(path, content) => {

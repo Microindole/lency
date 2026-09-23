@@ -5,7 +5,6 @@
 mod array;
 mod binary;
 mod call;
-mod closure;
 pub mod conversion;
 mod file_io;
 pub mod hashmap;
@@ -13,8 +12,6 @@ mod intrinsic;
 mod literal;
 mod match_expr;
 mod method_call;
-pub mod option;
-mod result;
 mod string_ops;
 mod struct_access;
 mod struct_init;
@@ -127,9 +124,6 @@ fn generate_expr<'ctx>(
         ExprKind::GenericInstantiation { .. } => {
             unreachable!("GenericInstantiation (turbo-fish) should be monomorphized before codegen")
         }
-        ExprKind::Ok(inner) => result::gen_ok(ctx, locals, inner),
-        ExprKind::Err(inner) => result::gen_err(ctx, locals, inner),
-        ExprKind::Closure { params, body } => closure::gen_closure(ctx, locals, params, body),
         // File I/O intrinsics (Sprint 12)
         ExprKind::ReadFile(path) => intrinsic::gen_read_file(ctx, locals, path),
         ExprKind::WriteFile(path, content) => intrinsic::gen_write_file(ctx, locals, path, content),

@@ -38,14 +38,6 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         continue;
                     }
 
-                    // Sprint 15: 预注册函数返回值中的 Result 类型
-                    self.register_result_type_if_needed(return_type)?;
-
-                    // 预注册参数中的 Result 类型
-                    for param in params {
-                        self.register_result_type_if_needed(&param.ty)?;
-                    }
-
                     self.ctx
                         .function_signatures
                         .insert(name.clone(), return_type.clone());
@@ -78,17 +70,6 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                 Decl::Impl {
                     type_name, methods, ..
                 } => {
-                    // Sprint 15: For Result<T,E> impl, register struct type first
-                    if let lency_syntax::ast::Type::Generic(name, args) = type_name {
-                        if name == "Result" && args.len() == 2 {
-                            let result_ty = lency_syntax::ast::Type::Result {
-                                ok_type: Box::new(args[0].clone()),
-                                err_type: Box::new(args[1].clone()),
-                            };
-                            self.register_result_type(&result_ty)?;
-                        }
-                    }
-
                     // 声明所有方法（添加隐式 this 参数）
                     for method in methods {
                         if let Decl::Function {
@@ -103,20 +84,9 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                             let mangled_name = format!("{}_{}", type_str, name);
 
                             // 构建带 this 指针的参数列表
-                            let this_type = match type_name {
-                                lency_syntax::ast::Type::Generic(name, args)
-                                    if name == "Result" && args.len() == 2 =>
-                                {
-                                    lency_syntax::ast::Type::Result {
-                                        ok_type: Box::new(args[0].clone()),
-                                        err_type: Box::new(args[1].clone()),
-                                    }
-                                }
-                                _ => type_name.clone(),
-                            };
                             let this_param = lency_syntax::ast::Param {
                                 name: "this".to_string(),
-                                ty: this_type,
+                                ty: type_name.clone(),
                             };
 
                             let mut method_params = vec![this_param];

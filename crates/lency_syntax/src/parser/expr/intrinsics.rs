@@ -8,6 +8,10 @@ use chumsky::prelude::*;
 
 use super::ParserError;
 
+fn intrinsic_name(expected: &'static str) -> impl Parser<Token, (), Error = ParserError> + Clone {
+    select! { Token::Ident(name) if name == expected => () }
+}
+
 /// 创建所有内置函数解析器的组合
 /// 返回一个能解析任何内置函数调用的 Parser
 pub fn intrinsic_parsers<P>(expr: P) -> impl Parser<Token, Expr, Error = ParserError> + Clone
@@ -15,7 +19,7 @@ where
     P: Parser<Token, Expr, Error = ParserError> + Clone,
 {
     // print(expr)
-    let print_expr = just(Token::Print)
+    let print_expr = intrinsic_name("print")
         .ignore_then(
             expr.clone()
                 .delimited_by(just(Token::LParen), just(Token::RParen)),
@@ -26,7 +30,7 @@ where
         });
 
     // read_file("path") -> string，I/O 失败时 panic
-    let read_file_expr = just(Token::ReadFile)
+    let read_file_expr = intrinsic_name("read_file")
         .ignore_then(
             expr.clone()
                 .delimited_by(just(Token::LParen), just(Token::RParen)),
@@ -37,7 +41,7 @@ where
         });
 
     // write_file("path", "content") -> void，I/O 失败时 panic
-    let write_file_expr = just(Token::WriteFile)
+    let write_file_expr = intrinsic_name("write_file")
         .ignore_then(
             expr.clone()
                 .then_ignore(just(Token::Comma))
@@ -50,7 +54,7 @@ where
         });
 
     // len("hello") -> int
-    let len_expr = just(Token::Len)
+    let len_expr = intrinsic_name("len")
         .ignore_then(
             expr.clone()
                 .delimited_by(just(Token::LParen), just(Token::RParen)),
@@ -61,7 +65,7 @@ where
         });
 
     // trim("  hi  ") -> string
-    let trim_expr = just(Token::Trim)
+    let trim_expr = intrinsic_name("trim")
         .ignore_then(
             expr.clone()
                 .delimited_by(just(Token::LParen), just(Token::RParen)),
@@ -72,7 +76,7 @@ where
         });
 
     // split("a,b", ",") -> Vec<string>
-    let split_expr = just(Token::Split)
+    let split_expr = intrinsic_name("split")
         .ignore_then(
             expr.clone()
                 .then_ignore(just(Token::Comma))
@@ -85,7 +89,7 @@ where
         });
 
     // join(vec, ",") -> string
-    let join_expr = just(Token::Join)
+    let join_expr = intrinsic_name("join")
         .ignore_then(
             expr.clone()
                 .then_ignore(just(Token::Comma))
@@ -98,7 +102,7 @@ where
         });
 
     // substr("hello", 0, 2) -> string
-    let substr_expr = just(Token::Substr)
+    let substr_expr = intrinsic_name("substr")
         .ignore_then(
             expr.clone()
                 .then_ignore(just(Token::Comma))
@@ -113,7 +117,7 @@ where
         });
 
     // char_to_string(65) -> "A"
-    let char_to_string_expr = just(Token::CharToString)
+    let char_to_string_expr = intrinsic_name("char_to_string")
         .ignore_then(
             expr.clone()
                 .delimited_by(just(Token::LParen), just(Token::RParen)),
@@ -124,7 +128,7 @@ where
         });
 
     // panic("error message")
-    let panic_expr = just(Token::Panic)
+    let panic_expr = intrinsic_name("panic")
         .ignore_then(
             expr.clone()
                 .delimited_by(just(Token::LParen), just(Token::RParen)),
@@ -135,7 +139,7 @@ where
         });
 
     // format("template {}", args_vec) -> string
-    let format_expr = just(Token::Format)
+    let format_expr = intrinsic_name("format")
         .ignore_then(
             expr.clone()
                 .then_ignore(just(Token::Comma))

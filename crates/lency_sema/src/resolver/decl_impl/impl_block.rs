@@ -22,7 +22,6 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
             Type::Bool => "bool".to_string(),
             Type::String => "string".to_string(),
             Type::Float => "float".to_string(),
-            Type::Result { .. } => "Result".to_string(), // Sprint 15: 支持为Result<T,E>定义impl
             _ => "unknown".to_string(),
         };
 

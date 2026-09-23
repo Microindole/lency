@@ -2,10 +2,10 @@
 //!
 //! 模块代码生成器，负责生成整个程序
 //! 逻辑分布：
-//! - types.rs: 负责类型注册（Struct/Enum/Result）和 Struct/Enum Body 生成
+//! - types.rs: 负责类型注册和 Struct/Enum Body 生成
 //! - functions.rs: 负责函数声明、Globals 和函数体生成
 
-use lency_syntax::ast::{Program, Type};
+use lency_syntax::ast::Program;
 
 use crate::context::CodegenContext;
 use crate::error::CodegenResult;
@@ -35,45 +35,16 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
         // 3. 第0.5遍：定义 Struct Body
         self.define_struct_bodies(program)?;
 
-        // 4. Sprint 15: 预注册 intrinsic 函数使用的 Result 类型 (read_file 依赖 Error struct)
-        // 此时 Error struct 已经注册完成
-        // 预注册常见的 Result 类型变体
-        let error_struct = Type::Struct("Error".to_string());
-
-        // Result<string, Error> - 用于 read_file
-        self.register_result_type(&Type::Result {
-            ok_type: Box::new(Type::String),
-            err_type: Box::new(error_struct.clone()),
-        })?;
-
-        // Result<int, Error> - 用于可能失败的 int 操作
-        self.register_result_type(&Type::Result {
-            ok_type: Box::new(Type::Int),
-            err_type: Box::new(error_struct.clone()),
-        })?;
-
-        // Result<float, Error> - 用于可能失败的 float 操作
-        self.register_result_type(&Type::Result {
-            ok_type: Box::new(Type::Float),
-            err_type: Box::new(error_struct.clone()),
-        })?;
-
-        // Result<bool, Error> - 用于可能失败的 bool 操作
-        self.register_result_type(&Type::Result {
-            ok_type: Box::new(Type::Bool),
-            err_type: Box::new(error_struct.clone()),
-        })?;
-
-        // 5. 第0.6遍：定义 Enum Body (必须在 Struct Body 之后，以便计算大小)
+        // 4. 定义 Enum Body (必须在 Struct Body 之后，以便计算大小)
         self.define_enum_bodies(program)?;
 
-        // 6. 第一遍：声明所有函数（支持前向引用）和 Globals
+        // 5. 第一遍：声明所有函数（支持前向引用）和 Globals
         self.declare_functions(program)?;
 
-        // 7. 第二遍：生成函数体
+        // 6. 第二遍：生成函数体
         self.generate_function_bodies(program)?;
 
-        // 8. Generate main wrapper (entry point)
+        // 7. Generate main wrapper (entry point)
         self.generate_main_wrapper()?;
 
         Ok(())

@@ -244,7 +244,7 @@ mod tests {
     fn test_compile_type_mismatch_error() {
         let source = r#"
             int main() {
-                var x: int = "hello";
+                int x = "hello";
                 return x;
             }
         "#;

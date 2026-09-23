@@ -30,10 +30,6 @@ pub fn normalize_type(resolver: &mut Resolver, ty: &mut Type) {
         Type::Array { element_type, .. } => {
             normalize_type(resolver, element_type);
         }
-        Type::Result { ok_type, err_type } => {
-            normalize_type(resolver, ok_type);
-            normalize_type(resolver, err_type);
-        }
         Type::Struct(name) => {
             if let Some(Symbol::GenericParam(_)) = resolver.scopes.lookup(name) {
                 *ty = Type::GenericParam(name.clone());
@@ -73,10 +69,6 @@ pub fn normalize_type_with_generics(
         }
         Type::Array { element_type, .. } => {
             normalize_type_with_generics(resolver, element_type, generics);
-        }
-        Type::Result { ok_type, err_type } => {
-            normalize_type_with_generics(resolver, ok_type, generics);
-            normalize_type_with_generics(resolver, err_type, generics);
         }
         Type::Struct(name) => {
             if generics.iter().any(|gp| &gp.name == name) {
@@ -141,10 +133,6 @@ pub fn resolve_type(resolver: &mut Resolver, ty: &Type, span: &Span) {
             for arg in args {
                 resolve_type(resolver, arg, span);
             }
-        }
-        Type::Result { ok_type, err_type } => {
-            resolve_type(resolver, ok_type, span);
-            resolve_type(resolver, err_type, span);
         }
         Type::Struct(name) => match resolver.scopes.lookup(name) {
             Some(Symbol::Struct(s)) => {

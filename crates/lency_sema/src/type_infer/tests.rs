@@ -127,7 +127,7 @@ fn test_infer_index_compile_time_bounds_check_negative() {
     let mut scopes = create_test_scopes();
     let mut inferer = TypeInferer::new(&mut scopes);
 
-    // arr: [3]int
+    // arr: int[3]
     let mut array_expr = make_expr(ExprKind::Array(vec![
         make_expr(ExprKind::Literal(Literal::Int(1))),
         make_expr(ExprKind::Literal(Literal::Int(2))),
@@ -154,7 +154,7 @@ fn test_infer_index_compile_time_bounds_check_overflow() {
     let mut scopes = create_test_scopes();
     let mut inferer = TypeInferer::new(&mut scopes);
 
-    // arr: [3]int
+    // arr: int[3]
     let mut array_expr = make_expr(ExprKind::Array(vec![
         make_expr(ExprKind::Literal(Literal::Int(1))),
         make_expr(ExprKind::Literal(Literal::Int(2))),
@@ -181,7 +181,7 @@ fn test_infer_index_non_int_index_error() {
     let mut scopes = create_test_scopes();
     let mut inferer = TypeInferer::new(&mut scopes);
 
-    // arr: [3]int
+    // arr: int[3]
     let mut array_expr = make_expr(ExprKind::Array(vec![
         make_expr(ExprKind::Literal(Literal::Int(1))),
         make_expr(ExprKind::Literal(Literal::Int(2))),
