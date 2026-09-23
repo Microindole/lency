@@ -58,7 +58,7 @@ pub fn parser(
         });
 
     // Vec 字面量: vec[1, 2, 3]
-    let vec_literal = select! { Token::Ident(name) if name == "vec" => () }
+    let vec_literal = filter(|token: &Token| matches!(token, Token::Ident(name) if name == "vec"))
         .ignore_then(
             expr.clone()
                 .separated_by(just(Token::Comma))
