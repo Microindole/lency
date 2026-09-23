@@ -11,7 +11,7 @@ struct SymbolTable {
 
 SymbolTable make_symbol_table() {
     return SymbolTable {
-        symbols: vec![],
+        symbols: vec[],
         current_depth: 0
     }
 }

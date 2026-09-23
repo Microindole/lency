@@ -62,8 +62,8 @@ impl Resolver {
         if !this.table.resolve("Err") {
             this.table.define("Err")
         }
-        this.preload_enum_variant_signature("Result", "Ok", vec![TYPE_UNKNOWN()], vec!["unknown"])
-        this.preload_enum_variant_signature("Result", "Err", vec![TYPE_UNKNOWN()], vec!["unknown"])
+        this.preload_enum_variant_signature("Result", "Ok", vec[TYPE_UNKNOWN()], vec["unknown"])
+        this.preload_enum_variant_signature("Result", "Err", vec[TYPE_UNKNOWN()], vec["unknown"])
     }
 
     int lookup_builtin_type(string name) {

@@ -150,7 +150,7 @@ impl Resolver {
             this.error("unknown struct-literal type: " + struct_name)
             return TYPE_UNKNOWN()
         }
-        var seen_fields = vec![]
+        var seen_fields = vec[]
         var i = 0
         while i < expr.field_names.len() && i < expr.children.len() {
             var field_name = expr.field_names[i]

@@ -8,12 +8,12 @@ import lencyc.syntax.parser
 
 impl Parser {
     Vec<Stmt> rewrite_continue_for_increment(Vec<Stmt> statements, Expr increment) {
-        var rewritten = vec![]
+        var rewritten = vec[]
         var i = 0
         while i < statements.len() {
             var stmt = statements[i]
             if stmt.kind == STMT_CONTINUE() {
-                var with_increment = vec![make_stmt_expr(increment), make_stmt_continue()]
+                var with_increment = vec[make_stmt_expr(increment), make_stmt_continue()]
                 rewritten.push(make_stmt_block(with_increment))
             } else {
                 if stmt.kind == STMT_BLOCK() {
@@ -39,11 +39,11 @@ impl Parser {
         body = this.rewrite_continue_for_increment(body, increment)
         body.push(make_stmt_expr(increment))
         var while_stmt = make_stmt_while(condition, body)
-        return make_stmt_block(vec![initializer, while_stmt])
+        return make_stmt_block(vec[initializer, while_stmt])
     }
 
     Vec<Stmt> block() {
-        var statements = vec![]
+        var statements = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.match_token(T_SEMICOLON()) {
                 continue
@@ -62,7 +62,7 @@ impl Parser {
         this.consume(T_LEFT_BRACE(), "Expect '{' before then block.")
         var then_branch = this.block()
         
-        var else_branch: Vec<Stmt> = vec![]
+        Vec<Stmt> else_branch = vec[]
         if this.match_token(T_ELSE()) {
             if this.match_token(T_LEFT_BRACE()) {
                 else_branch = this.block()
@@ -92,7 +92,7 @@ impl Parser {
 
     Stmt for_statement() {
         // 支持 C 风格 for 的三种初始化：`var` / `const` 声明或表达式初始化。
-        var initializer = make_stmt_block(vec![])
+        var initializer = make_stmt_block(vec[])
         if this.match_token(T_VAR()) {
             initializer = this.var_declaration(false)
         } else {

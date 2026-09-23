@@ -33,7 +33,7 @@ Parser make_parser(string source) {
         loop_depth: 0,
         signature_only: false,
         suppress_error_output: false,
-        queued_import_paths: vec![]
+        queued_import_paths: vec[]
     }
 }
 
@@ -186,8 +186,8 @@ impl Parser {
     }
 
     Program parse_program() {
-        var statements = vec![]
-        var decls = vec![]
+        var statements = vec[]
+        var decls = vec[]
         this.advance() // 启动 parser
         
         while !this.is_at_end() {
@@ -195,7 +195,7 @@ impl Parser {
                 continue
             }
             var before_error_count = this.error_count
-            var stmt = make_stmt_block(vec![])
+            var stmt = make_stmt_block(vec[])
             if this.queued_import_paths.len() > 0 {
                 stmt = make_stmt_import(this.queued_import_paths.pop())
             } else {
