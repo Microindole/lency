@@ -50,7 +50,6 @@ impl Resolver {
         this.preload_prelude_symbol("string")
         this.preload_prelude_symbol("float")
         this.preload_prelude_symbol("Vec")
-        this.preload_prelude_symbol("Result")
         this.preload_prelude_symbol("int_to_string")
         this.preload_prelude_symbol("float_to_string")
         this.preload_prelude_symbol("parse_int")

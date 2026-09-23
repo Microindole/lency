@@ -34,13 +34,13 @@ bool run_resolver_preload_defensive_tests() {
     }
     print("Decl payload mismatch defensive test passed.\n")
     var sig_resolver = make_resolver()
-    sig_resolver.preload_enum_variant_signature("Result", "Ok", vec[TYPE_UNKNOWN()], vec["unknown"])
-    sig_resolver.preload_enum_variant_signature("Result", "Ok", vec[TYPE_INT()], vec["int"])
-    if sig_resolver.lookup_enum_constructor_param_type("Ok", 0) != TYPE_INT() {
+    sig_resolver.preload_enum_variant_signature("Outcome", "Value", vec[TYPE_UNKNOWN()], vec["unknown"])
+    sig_resolver.preload_enum_variant_signature("Outcome", "Value", vec[TYPE_INT()], vec["int"])
+    if sig_resolver.lookup_enum_constructor_param_type("Value", 0) != TYPE_INT() {
         print("Signature precedence test failed: latest enum payload type should win.\n")
         return false
     }
-    if sig_resolver.lookup_enum_constructor_param_type_name("Ok", 0) != "int" {
+    if sig_resolver.lookup_enum_constructor_param_type_name("Value", 0) != "int" {
         print("Signature precedence test failed: latest enum payload type-name should win.\n")
         return false
     }

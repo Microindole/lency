@@ -37,7 +37,7 @@ Lency 仓库包含一个参考实现和一个正在自举的实现。讨论“�
 | struct | 可用 | 声明、字段与基础语义 | 仅 non-generic 字段读写、参数和返回 |
 | enum / match | 可用 | payload、嵌套模式、guard 等已有检查 | 现有递归 payload/runtime 用例可运行 |
 | import / std 签名 | 可用 | 已有源码签名导入 | 仅自举所需路径经过验证 |
-| nullable / 普通 enum 结果 | nullable 与 enum 可用；无内建 Result | selfhost 仍有旧 Result 兼容语义 | 仅已有用例覆盖的路径 |
+| nullable / 普通 enum 结果 | nullable 与 enum 可用；无内建 Result | 已对齐；同名类型也只按普通用户 enum 处理 | 仅已有用例覆盖的路径 |
 | 泛型 | 有单态化与集成测试 | 有语法入口 | 尚非稳定子集 |
 | trait / 完整 impl method | 有集成测试 | 不完整 | 尚非稳定子集 |
 | 闭包 | 不属于冻结语法 | 不应实现 | 不应实现 |

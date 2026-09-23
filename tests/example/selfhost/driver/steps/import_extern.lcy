@@ -82,7 +82,10 @@ bool run_import_extern_declaration_tests() {
     if !expect_shared_resolve_error(src_resolver_import_module_missing_bad(), "import module missing negative") {
         return false
     }
-    if !expect_shared_resolve_success(src_resolver_std_core_result_match_ok(), "std.core Result import positive") {
+    if !expect_shared_resolve_success(src_resolver_user_result_enum_ok(), "user-declared Result enum positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_std_core_result_missing_bad(), "std.core does not inject Result negative") {
         return false
     }
     if !expect_shared_resolve_success(src_resolver_std_str_contains_ok(), "std.str contains import positive") {

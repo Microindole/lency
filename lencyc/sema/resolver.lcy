@@ -187,7 +187,6 @@ Resolver make_resolver() {
     resolver.preload_prelude_symbols()
     resolver.preload_builtin_arities()
     resolver.preload_builtin_types()
-    resolver.preload_builtin_result_enum()
     return resolver
 }
 ResolveResult resolve_program(Program program) {
