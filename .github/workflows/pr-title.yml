@@ -9,10 +9,13 @@ concurrency:
   group: pr-title-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   validate-pr-title:
     name: Validate PR Title
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check PR title (Conventional Commit style)
         shell: bash

@@ -13,8 +13,6 @@ pub fn compile_to_llvm_ir(input: &str) -> Result<String> {
 }
 
 pub fn find_runtime_dir() -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok()?;
-    let dirs = ["target/release", "target/debug"];
     let libs = [
         "liblency_runtime.so",
         "liblency_runtime.dylib",
@@ -24,11 +22,11 @@ pub fn find_runtime_dir() -> Option<PathBuf> {
         "lency_runtime.dll",
     ];
 
-    for dir in dirs {
+    for dir in runtime_search_dirs() {
         for lib in libs {
-            let path = cwd.join(dir).join(lib);
+            let path = dir.join(lib);
             if path.exists() {
-                return Some(cwd.join(dir));
+                return Some(dir);
             }
         }
     }
@@ -89,8 +87,6 @@ fn find_tool(candidates: &[&str]) -> Option<PathBuf> {
 }
 
 pub fn find_runtime_library() -> Option<PathBuf> {
-    let cwd = std::env::current_dir().ok()?;
-    let dirs = ["target/release", "target/debug"];
     let libs: &[&str] = if cfg!(windows) {
         &[
             "lency_runtime.dll.lib",
@@ -103,15 +99,34 @@ pub fn find_runtime_library() -> Option<PathBuf> {
         &["liblency_runtime.so", "liblency_runtime.a"]
     };
 
-    for dir in dirs {
+    for dir in runtime_search_dirs() {
         for lib in libs {
-            let path = cwd.join(dir).join(lib);
+            let path = dir.join(lib);
             if path.exists() {
                 return Some(path);
             }
         }
     }
     None
+}
+
+fn runtime_search_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+
+    if let Ok(executable) = std::env::current_exe() {
+        if let Some(parent) = executable.parent() {
+            dirs.push(parent.to_path_buf());
+            dirs.push(parent.join("lib"));
+        }
+    }
+
+    if let Ok(cwd) = std::env::current_dir() {
+        dirs.push(cwd.join("target/release"));
+        dirs.push(cwd.join("target/debug"));
+    }
+
+    dirs.dedup();
+    dirs
 }
 
 fn with_platform_names(candidates: &[&str]) -> Vec<String> {

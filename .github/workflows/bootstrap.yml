@@ -12,17 +12,49 @@ on:
           - "false"
           - "true"
   push:
+    branches: ["main", "dev"]
     tags:
       - "bootstrap-check/**"
+    paths:
+      - "crates/**"
+      - "xtask/**"
+      - "lencyc/**"
+      - "lib/**"
+      - "tests/example/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".cargo/**"
+      - "scripts/**"
+      - ".github/workflows/bootstrap.yml"
+  pull_request:
+    branches: ["main", "dev"]
+    paths:
+      - "crates/**"
+      - "xtask/**"
+      - "lencyc/**"
+      - "lib/**"
+      - "tests/example/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".cargo/**"
+      - "scripts/**"
+      - ".github/workflows/bootstrap.yml"
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
   LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
 
+concurrency:
+  group: bootstrap-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   bootstrap-check:
     name: Stage Bootstrap Convergence
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - name: Install LLVM

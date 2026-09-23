@@ -13,6 +13,7 @@ on:
       - 'editors/**'
       - 'docs/**'
       - '**.md'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -29,7 +30,7 @@ concurrency:
 jobs:
   changes:
     name: Detect Changed Scope
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       rust: ${{ steps.filter.outputs.rust }}
     steps:
@@ -42,9 +43,13 @@ jobs:
           filters: |
             rust:
               - 'crates/**'
+              - 'xtask/**'
               - 'tests/integration/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
+              - '.cargo/**'
+              - 'scripts/**'
+              - '.github/actions/**'
               - '.github/workflows/lints.yml'
       - name: Scope Summary
         run: |
@@ -59,7 +64,7 @@ jobs:
     name: Auto Format (PR)
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true' && github.actor != 'github-actions[bot]' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     outputs:
@@ -91,8 +96,8 @@ jobs:
   static-checks:
     name: Static Checks & Quality
     needs: [changes, auto-fmt-pr]
-    if: needs.changes.outputs.rust == 'true' && (github.event_name != 'pull_request' || needs.auto-fmt-pr.outputs.changed != 'true')
-    runs-on: ubuntu-latest
+    if: always() && (needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch') && (github.event_name != 'pull_request' || needs.auto-fmt-pr.outputs.changed != 'true')
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - name: Install LLVM
@@ -117,8 +122,8 @@ jobs:
   doc-check:
     name: Documentation
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
-    runs-on: ubuntu-latest
+    if: needs.changes.outputs.rust == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - name: Install LLVM

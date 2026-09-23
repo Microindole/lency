@@ -1,0 +1,62 @@
+name: Workflow and Script Lints
+
+on:
+  push:
+    branches: ["main", "dev"]
+    paths:
+      - ".github/**"
+      - ".cargo/**"
+      - "scripts/**/*.sh"
+      - "scripts/**/*.ps1"
+  pull_request:
+    branches: ["main", "dev"]
+    paths:
+      - ".github/**"
+      - ".cargo/**"
+      - "scripts/**/*.sh"
+      - "scripts/**/*.ps1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflow-lint-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: GitHub Actions and shell scripts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Lint workflow files
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
+      - name: Lint shell scripts
+        run: find scripts -type f -name '*.sh' -print0 | xargs -0 shellcheck
+
+  powershell-syntax:
+    name: PowerShell syntax
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Path scripts -Filter '*.ps1' -Recurse | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            foreach ($error in $errors) {
+              Write-Error "$($_.FullName): $($error.Message)"
+              $failed = $true
+            }
+          }
+          if ($failed) {
+            throw 'PowerShell syntax checks failed.'
+          }

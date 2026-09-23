@@ -17,6 +17,7 @@ Lency 是一门强调简洁、显式和静态类型的编译语言。仓库同�
 - [当前状态](./development/status.md)
 - [贡献与维护规则](./development/contributing.md)
 - [工具与脚本](./tools/scripts.md)
+- [持续集成](./development/ci.md)
 
 ### 语言
 

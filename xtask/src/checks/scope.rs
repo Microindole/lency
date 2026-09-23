@@ -14,7 +14,10 @@ enum CheckScope {
 
 fn is_rust_change(path: &str) -> bool {
     path.starts_with("crates/")
+        || path.starts_with("xtask/")
         || path.starts_with("tests/integration/")
+        || path.starts_with(".cargo/")
+        || path.starts_with("scripts/check_")
         || path == "Cargo.toml"
         || path == "Cargo.lock"
         || path == "scripts/linux/run_checks.sh"
@@ -24,7 +27,8 @@ fn is_rust_change(path: &str) -> bool {
 }
 
 fn is_lency_change(path: &str) -> bool {
-    path.starts_with("lencyc/")
+    path.starts_with("crates/")
+        || path.starts_with("lencyc/")
         || path.starts_with("tests/example/")
         || path.starts_with("lib/")
         || path.starts_with("xtask/")
@@ -34,6 +38,7 @@ fn is_lency_change(path: &str) -> bool {
         || path == "scripts/linux/lency_selfhost_run.sh"
         || path == "scripts/win/lency_selfhost_build.ps1"
         || path == "scripts/win/lency_selfhost_run.ps1"
+        || path.starts_with("scripts/check_")
 }
 
 fn is_docs_change(path: &str) -> bool {
@@ -144,5 +149,17 @@ mod tests {
     fn scope_both_when_rust_and_lency() {
         let status = " M crates/lency_cli/src/main.rs\n M lencyc/sema/resolver.lcy\n";
         assert_eq!(detect_check_scope_from_status(status), CheckScope::Both);
+    }
+
+    #[test]
+    fn scope_both_for_host_or_xtask_changes() {
+        assert_eq!(
+            detect_check_scope_from_status(" M crates/lency_codegen/src/lib.rs\n"),
+            CheckScope::Both
+        );
+        assert_eq!(
+            detect_check_scope_from_status(" M xtask/src/main.rs\n"),
+            CheckScope::Both
+        );
     }
 }
