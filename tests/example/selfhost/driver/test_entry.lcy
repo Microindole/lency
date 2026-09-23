@@ -100,7 +100,7 @@ int main() {
     }
 
     print("Step 14: Function-like scope resolution tests...\n")
-    var fn_params = vec!["p"]
+    var fn_params = vec["p"]
     if !expect_shared_function_body_resolve_success(fn_params, src_resolver_function_body_ok(), "function-like scope resolution") {
         return 1
     }

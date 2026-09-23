@@ -209,7 +209,7 @@ bool run_match_and_enum_payload_tests() {
     }
     var invalid_expr = make_expr_literal(make_token(T_NUMBER(), "0", 1, 1))
     invalid_expr.kind = 999
-    var invalid_emit = emit_lir_program(vec![make_stmt_expr(invalid_expr)])
+    var invalid_emit = emit_lir_program(vec[make_stmt_expr(invalid_expr)])
     if !invalid_emit.has_error || invalid_emit.error_count != 1 {
         print("Unsupported expression lowering did not report exactly one error.\n")
         return false

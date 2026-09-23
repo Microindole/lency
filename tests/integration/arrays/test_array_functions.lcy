@@ -1,5 +1,5 @@
 int fibonacci(int n) {
-    var fib: [10]int = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+    int[10] fib = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
     
     if n < 0 {
         return -1
@@ -19,7 +19,7 @@ int main() {
     print(fibonacci(9))  // 55
     
     // Test arrays in conditional logic
-    var numbers: [5]int = [10, 20, 30, 40, 50]
+    int[5] numbers = [10, 20, 30, 40, 50]
     var sum = 0
     
     for var i = 0; i < numbers.length; i = i + 1 {

@@ -1,10 +1,10 @@
 // 测试 int? 这是一个验证 Lency 能力的测试
 int main() {
-    var x: int? = null
+    int? x = null
     x = 10
     print(x == null)
     
-    var y: int = 20
+    int y = 20
     x = y // 自动装箱？
     if x != null {
         print(x)  // 智能转换后 x 是 int 类型

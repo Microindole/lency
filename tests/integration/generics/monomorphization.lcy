@@ -4,7 +4,7 @@ struct Box<T> {
 
 int main() {
     // 实例化 Box<int>
-    var b: Box<int>? = null;
+    Box<int>? b = null;
     
     // 如果单态化工作正常，这应该编译通过。
     // Monomorphizer 会生成 Box__int 结构体。

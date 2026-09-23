@@ -5,8 +5,8 @@ T identity<T>(T x) {
 }
 
 int main() {
-    var x = identity::<int>(10)
-    var y = identity::<bool>(true)
+    var x = identity<int>(10)
+    var y = identity<bool>(true)
     
     if y {
         return x

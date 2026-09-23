@@ -5,7 +5,7 @@ import std.collections
 
 // 辅助函数：求和
 int sum_vec(Vec<int> v) {
-    var iter = vec_iter::<int>(v)
+    var iter = vec_iter<int>(v)
     var sum = 0
     var item = iter.next()
     // 使用 match 表达式获取值
@@ -20,22 +20,22 @@ int main() {
     print("Testing Iterator...")
     
     // 测试1: 基础求和
-    var numbers = vec![1, 2, 3, 4, 5]
+    var numbers = vec[1, 2, 3, 4, 5]
     var total = sum_vec(numbers)
     print("Sum: ")
     print(total)  // 15
     
     // 测试2: 空 Vec
-    var empty: Vec<int> = vec![]
-    var iter2 = vec_iter::<int>(empty)
+    Vec<int> empty = vec[]
+    var iter2 = vec_iter<int>(empty)
     match iter2.next() {
         case Option.Some(v) => print(v),
         case Option.None => print("Empty iterator works")
     }
     
     // 测试3: 单个元素
-    var single = vec![42]
-    var iter3 = vec_iter::<int>(single)
+    var single = vec[42]
+    var iter3 = vec_iter<int>(single)
     match iter3.next() {
         case Option.Some(v) => print(v),
         case Option.None => print("Error")

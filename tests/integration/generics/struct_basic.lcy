@@ -8,10 +8,10 @@ int main() {
     var b = Box<int> { value: 10 }
     
     // 验证字段类型
-    var val: int = b.value
+    int val = b.value
     
     // 错误测试 (应该在语义分析阶段失败，但这里是验证正确性)
-    // var s: string = b.value
+    // string s = b.value
     
     return val
 }

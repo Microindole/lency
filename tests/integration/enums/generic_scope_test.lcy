@@ -4,7 +4,7 @@ enum Option<T> {
 }
 
 void main() {
-    var opt = Option::<int>.Some(42)
+    var opt = Option<int>.Some(42)
     // Try to use it
     var x = opt // Should work if opt is defined
 }
