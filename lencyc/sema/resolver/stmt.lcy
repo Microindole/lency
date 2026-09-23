@@ -10,15 +10,27 @@ impl Resolver {
     void resolve_stmt(Stmt stmt) {
         if stmt.kind == STMT_VAR_DECL() {
             var value_ty = this.resolve_expr(stmt.expr)
+            var value_ty_name = this.infer_expr_type_name(stmt.expr, value_ty)
+            var symbol_ty = value_ty
+            var symbol_ty_name = value_ty_name
+            if stmt.has_declared_type {
+                symbol_ty = this.resolve_signature_type_or_error(stmt.declared_type)
+                symbol_ty_name = this.resolve_signature_type_name(stmt.declared_type)
+                if !this.types_match_or_unknown_by_name(symbol_ty, symbol_ty_name, value_ty, value_ty_name) {
+                    this.error(
+                        "variable initializer type mismatch: expected " +
+                        symbol_ty_name + ", got " + value_ty_name
+                    )
+                }
+            }
             if this.table.is_defined_in_current_scope(stmt.name.lexeme) {
                 this.error("duplicate variable in same scope: " + stmt.name.lexeme)
             } else {
                 this.table.define(stmt.name.lexeme)
-                var value_ty_name = this.infer_expr_type_name(stmt.expr, value_ty)
-                this.define_typed_symbol(stmt.name.lexeme, value_ty, value_ty_name)
+                this.define_typed_symbol(stmt.name.lexeme, symbol_ty, symbol_ty_name)
                 var enum_name = this.infer_expr_enum_name(stmt.expr)
-                if enum_name == "" && this.is_enum_type_name(value_ty_name) {
-                    enum_name = value_ty_name
+                if enum_name == "" && this.is_enum_type_name(symbol_ty_name) {
+                    enum_name = symbol_ty_name
                 }
                 if enum_name != "" {
                     this.define_enum_value_symbol(stmt.name.lexeme, enum_name)

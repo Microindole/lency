@@ -51,7 +51,7 @@ string import_file_path(Stmt stmt) {
 }
 
 Vec<Stmt> load_compilation_statements(string path, Vec<string> loaded_paths) {
-    var out = vec[]
+    Vec<Stmt> out = vec[]
     if path_was_loaded(loaded_paths, path) {
         return out
     }

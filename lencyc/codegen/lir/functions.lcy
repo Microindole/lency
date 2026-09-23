@@ -200,7 +200,7 @@ impl LirBuilder {
     }
 
     Vec<string> extract_type_names(Vec<TypeRef> type_refs) {
-        var names = vec[]
+        Vec<string> names = vec[]
         var i = 0
         while i < type_refs.len() {
             names.push(type_refs[i].name)

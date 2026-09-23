@@ -8,7 +8,7 @@ import lencyc.syntax.parser
 
 impl Parser {
     Vec<Stmt> rewrite_continue_for_increment(Vec<Stmt> statements, Expr increment) {
-        var rewritten = vec[]
+        Vec<Stmt> rewritten = vec[]
         var i = 0
         while i < statements.len() {
             var stmt = statements[i]
@@ -43,7 +43,7 @@ impl Parser {
     }
 
     Vec<Stmt> block() {
-        var statements = vec[]
+        Vec<Stmt> statements = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.match_token(T_SEMICOLON()) {
                 continue

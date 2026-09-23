@@ -186,8 +186,8 @@ impl Parser {
     }
 
     Program parse_program() {
-        var statements = vec[]
-        var decls = vec[]
+        Vec<Stmt> statements = vec[]
+        Vec<Decl> decls = vec[]
         this.advance() // 启动 parser
         
         while !this.is_at_end() {

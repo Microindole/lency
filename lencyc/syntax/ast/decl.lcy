@@ -77,7 +77,7 @@ Decl make_decl_extern(Token name, TypeRef return_type, Vec<string> params, Vec<T
 }
 
 Decl make_decl_enum(Token name, Vec<string> variants) {
-    var enum_variants = vec[]
+    Vec<EnumVariant> enum_variants = vec[]
     var i = 0
     while i < variants.len() {
         enum_variants.push(make_enum_variant(variants[i], vec[]))

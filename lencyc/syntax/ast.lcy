@@ -75,6 +75,8 @@ struct Stmt {
     int kind
     Token name          // 仅用于 VarDecl 标识符
     bool is_const       // VarDecl 是否为 const（非 VarDecl 为 false）
+    TypeRef declared_type // 显式局部变量类型；has_declared_type=false 时忽略
+    bool has_declared_type
     Expr expr           // 用于 ExprStmt 与控制流条件
     bool has_expr       // expr 字段是否有效（用于 return void 等节点）
     Decl decl           // 声明语句的 payload（非声明语句为 DECL_UNKNOWN）

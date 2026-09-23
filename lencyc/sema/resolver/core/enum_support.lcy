@@ -205,7 +205,7 @@ impl Resolver {
     }
 
     Vec<string> collect_missing_enum_variants(string enum_name, Vec<string> seen_variants) {
-        var missing = vec[]
+        Vec<string> missing = vec[]
         var i = 0
         while i < this.enum_variant_signatures.len() {
             var sig = this.enum_variant_signatures[i]

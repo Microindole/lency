@@ -26,6 +26,8 @@ Stmt make_stmt_base(int kind) {
         kind: kind,
         name: make_token(0, "", 0, 0),
         is_const: false,
+        declared_type: make_type_ref(0, ""),
+        has_declared_type: false,
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
         decl: make_decl_base(DECL_UNKNOWN()),
@@ -47,6 +49,13 @@ Stmt make_stmt_var_decl(Token name, Expr initializer, bool is_const) {
     stmt.is_const = is_const
     stmt.expr = initializer
     stmt.has_expr = true
+    return stmt
+}
+
+Stmt make_stmt_typed_var_decl(Token name, TypeRef declared_type, Expr initializer, bool is_const) {
+    var stmt = make_stmt_var_decl(name, initializer, is_const)
+    stmt.declared_type = declared_type
+    stmt.has_declared_type = true
     return stmt
 }
 
@@ -134,7 +143,7 @@ Stmt make_stmt_extern(
 }
 
 Stmt make_stmt_enum(Token name, Vec<string> variants) {
-    var enum_variants = vec[]
+    Vec<EnumVariant> enum_variants = vec[]
     var i = 0
     while i < variants.len() {
         enum_variants.push(make_enum_variant(variants[i], vec[]))

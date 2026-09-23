@@ -18,7 +18,7 @@ impl Parser {
         }
         if this.match_token(T_IDENTIFIER()) || this.match_token(T_NUMBER()) || this.match_token(T_STRING_LITERAL()) || this.match_token(T_CHAR_LITERAL()) || this.match_token(T_TRUE()) || this.match_token(T_FALSE()) || this.match_token(T_NULL()) {
             var tag = this.previous
-            var children = vec[]
+            Vec<MatchPattern> children = vec[]
             var has_group = false
             if tag.kind == T_IDENTIFIER() && this.check(T_LEFT_PAREN()) {
                 has_group = true
@@ -57,10 +57,10 @@ impl Parser {
         this.consume(T_RIGHT_PAREN(), "Expect ')' after match target.")
         this.consume(T_LEFT_BRACE(), "Expect '{' before match arms.")
 
-        var patterns = vec[]
-        var arm_values = vec[]
-        var arm_guards = vec[]
-        var arm_has_guards = vec[]
+        Vec<MatchPattern> patterns = vec[]
+        Vec<Expr> arm_values = vec[]
+        Vec<Expr> arm_guards = vec[]
+        Vec<bool> arm_has_guards = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             var pattern = this.parse_match_pattern()
             var guard_expr = make_expr_literal(make_token(T_TRUE(), "true", this.current.line, this.current.column))
@@ -106,8 +106,8 @@ impl Parser {
     }
 
     Expr parse_struct_literal_after_name(Token type_name) {
-        var field_names = vec[]
-        var field_values = vec[]
+        Vec<string> field_names = vec[]
+        Vec<Expr> field_values = vec[]
         this.consume(T_LEFT_BRACE(), "Expect '{' in struct-literal.")
         if !this.check(T_RIGHT_BRACE()) {
             while true {
@@ -235,7 +235,7 @@ impl Parser {
     }
 
     Expr finish_call(Expr callee) {
-        var args = vec[]
+        Vec<Expr> args = vec[]
         if !this.check(T_RIGHT_PAREN()) {
             while true {
                 args.push(this.expression())
@@ -305,7 +305,7 @@ impl Parser {
             var name = this.previous
             if name.lexeme == "vec" && this.check(T_LEFT_BRACKET()) {
                 this.consume(T_LEFT_BRACKET(), "Expect '[' after 'vec'.")
-                var elements = vec[]
+                Vec<Expr> elements = vec[]
                 if !this.check(T_RIGHT_BRACKET()) {
                     while true {
                         elements.push(this.expression())
