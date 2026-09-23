@@ -19,7 +19,7 @@
 - 名称解析、作用域、基础类型一致性、函数签名与 return 约束。
 - enum 构造、payload、嵌套模式、guard、重复与穷尽性检查。
 - 非 `std.*` 模块加载，以及 `std.*` 源码签名导入。
-- 基础 nullable 签名和 `Result` 构造/匹配语义。
+- 基础 nullable 签名和普通 enum 构造/匹配语义。
 
 ### LIR 与运行
 
@@ -41,7 +41,7 @@
 - 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
-- Rust 母体已停止接受公开的 `T!` 返回类型糖和后缀 `?` 错误传播，并已移除 `Result`、`Ok`、`Err` 的专用 token、AST、类型推导和 codegen。它们现在只能是普通用户类型或 enum 项。selfhost 中仍有旧的 Result 兼容路径，下一阶段按该冻结契约迁移。
+- Rust 母体和 selfhost 均不再预置 `Result`、`Ok`、`Err`。它们只能来自普通用户类型或 enum 项；导入 `std.core` 不会隐式注入这些名称。
 - Rust 母体的冻结语法已改为类型在前的显式局部变量、C 风格泛型调用、`vec[...]` 字面量和 `int[3]` 固定数组；`=>` 仅保留给 match。旧的 `var x: T`、`::<T>`、`vec![]` 与 Rust 风格闭包已退出公开语法。
 - Rust 母体的 runtime intrinsic 已统一解析为普通 `Call` AST，并通过全局函数符号完成名称与类型检查；专用处理只保留在集中 lowering 边界。字符串动态索引也已补齐越界 panic，不再静默读取越界内存。
 - 普通调用现在统一执行参数数量和参数类型检查，嵌套调用也不再绕过强静态约束。由此暴露出的 selfhost 无类型空 Vec 已全部改为 `Vec<T> name = vec[]`，selfhost parser/AST/resolver/LIR 同步保留显式局部变量类型，stage2/stage3 继续收敛。

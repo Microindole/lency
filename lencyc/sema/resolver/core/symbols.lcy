@@ -51,21 +51,6 @@ impl Resolver {
         this.preload_builtin_type("len", TYPE_INT())
     }
 
-    void preload_builtin_result_enum() {
-        if !this.table.resolve("Result") {
-            this.table.define("Result")
-        }
-        this.preload_enum_type_name("Result")
-        if !this.table.resolve("Ok") {
-            this.table.define("Ok")
-        }
-        if !this.table.resolve("Err") {
-            this.table.define("Err")
-        }
-        this.preload_enum_variant_signature("Result", "Ok", vec[TYPE_UNKNOWN()], vec["unknown"])
-        this.preload_enum_variant_signature("Result", "Err", vec[TYPE_UNKNOWN()], vec["unknown"])
-    }
-
     int lookup_builtin_type(string name) {
         var i = 0
         while i < this.builtin_types.len() {

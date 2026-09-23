@@ -22,7 +22,7 @@ bool run_function_signature_typeref_tests() {
     }
     var fn_stmt = typeref_program.statements[0]
     var fn_decl = stmt_to_decl(fn_stmt)
-    if fn_decl.return_type.kind != T_IDENTIFIER() || fn_decl.return_type.name != "Result<int,string>" {
+    if fn_decl.return_type.kind != T_IDENTIFIER() || fn_decl.return_type.name != "Outcome<int,string>" {
         print("Function signature TypeRef return type mismatch.\n")
         return false
     }
