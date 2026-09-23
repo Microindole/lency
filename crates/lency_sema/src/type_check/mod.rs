@@ -97,11 +97,7 @@ impl<'a> TypeChecker<'a> {
                         }
                     }
                 }
-                Stmt::Block(inner) => {
-                    if Self::has_return_impl(inner) {
-                        return true;
-                    }
-                }
+                Stmt::Block(inner) if Self::has_return_impl(inner) => return true,
                 _ => {}
             }
         }

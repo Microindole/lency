@@ -59,16 +59,12 @@ impl<'a> TypeInferer<'a> {
                         // Comparable -> <, >, <=, >=
                         use lency_syntax::ast::BinaryOp::*;
                         match op {
-                            Eq | Neq => {
-                                if tit_name == "Eq" || tit_name == "Comparable" {
-                                    // Comparable usually implies Eq
-                                    return Ok(Type::Bool);
-                                }
+                            Eq | Neq if tit_name == "Eq" || tit_name == "Comparable" => {
+                                // Comparable usually implies Eq
+                                return Ok(Type::Bool);
                             }
-                            Lt | Leq | Gt | Geq => {
-                                if tit_name == "Comparable" {
-                                    return Ok(Type::Bool);
-                                }
+                            Lt | Leq | Gt | Geq if tit_name == "Comparable" => {
+                                return Ok(Type::Bool);
                             }
                             _ => {}
                         }
