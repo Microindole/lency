@@ -204,28 +204,15 @@ pub(crate) fn gen_pattern_check<'ctx>(
             let enum_name = match subject_type {
                 Type::Struct(n) => n,
                 Type::Generic(n, _) => n, // Generic Enum
-                // Sprint 15: Treat Result<T, E> as enum "Result"
-                Type::Result { .. } => "Result",
                 _ => return Err(CodegenError::TypeMismatch),
             };
 
             // Look up variants info to find index
-            // Sprint 15: Special handling for Result<T,E>
-            let variants_info = if enum_name == "Result" {
-                // Result.Ok and Result.Err are compiler built-ins
-                // Ok has index 0 with one field of type T (GenericParam)
-                // Err has index 1 with one field of type E (GenericParam)
-                // We need to provide the variant info dynamically
-                vec![
-                    ("Ok".to_string(), vec![Type::GenericParam("T".to_string())]),
-                    ("Err".to_string(), vec![Type::GenericParam("E".to_string())]),
-                ]
-            } else {
-                ctx.enum_variants
-                    .get(enum_name)
-                    .ok_or(CodegenError::UndefinedStructType(enum_name.to_string()))?
-                    .clone()
-            };
+            let variants_info = ctx
+                .enum_variants
+                .get(enum_name)
+                .ok_or(CodegenError::UndefinedStructType(enum_name.to_string()))?
+                .clone();
 
             let (tag_idx, (_, field_types_ast)) = variants_info
                 .iter()
@@ -234,26 +221,10 @@ pub(crate) fn gen_pattern_check<'ctx>(
                 .ok_or(CodegenError::TypeMismatch)?; // Variant not found?
 
             // GEP Tag (element 0)
-            // Sprint 15: Result struct type special handling
-            let enum_struct_type = if enum_name == "Result" {
-                // Result enum type is { i64 (tag), [max_size x i8] (payload) }
-                // We need to ensure it exists in ctx.struct_types
-                if let Some(st) = ctx.struct_types.get(enum_name) {
-                    *st
-                } else {
-                    // Create Result struct type dynamically
-                    // tag: i64, payload: arbitrary size array (use i64 for simplicity)
-                    ctx.context.struct_type(
-                        &[
-                            ctx.context.i64_type().into(), // tag
-                            ctx.context.i64_type().into(), // payload (simplified)
-                        ],
-                        false,
-                    )
-                }
-            } else {
-                *ctx.struct_types.get(enum_name).unwrap()
-            };
+            let enum_struct_type = *ctx
+                .struct_types
+                .get(enum_name)
+                .ok_or(CodegenError::UndefinedStructType(enum_name.to_string()))?;
             let tag_ptr = ctx
                 .builder
                 .build_struct_gep(enum_struct_type, subject_ptr, 0, "tag_ptr")
@@ -295,26 +266,7 @@ pub(crate) fn gen_pattern_check<'ctx>(
                 // Construct Variant Body Type { field1, field2... }
                 // We need LLVM types for fields.
 
-                // Sprint 15: For Result<T,E>, substitute GenericParam with concrete types
-                let field_types_concrete = if enum_name == "Result" && !field_types_ast.is_empty() {
-                    // Extract concrete types from subject_type (Result<ok_type, err_type>)
-                    match subject_type {
-                        Type::Result { ok_type, err_type } => {
-                            // Substitute T -> ok_type, E -> err_type
-                            field_types_ast
-                                .iter()
-                                .map(|ty| match ty {
-                                    Type::GenericParam(name) if name == "T" => (**ok_type).clone(),
-                                    Type::GenericParam(name) if name == "E" => (**err_type).clone(),
-                                    _ => ty.clone(),
-                                })
-                                .collect()
-                        }
-                        _ => field_types_ast.clone(),
-                    }
-                } else {
-                    field_types_ast.clone()
-                };
+                let field_types_concrete = field_types_ast.clone();
 
                 let mut variant_llvm_types = Vec::new();
                 for ty in &field_types_concrete {

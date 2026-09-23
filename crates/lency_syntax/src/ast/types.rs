@@ -22,7 +22,7 @@ pub enum Type {
     // 只有包了一层 Nullable 的才能是 null，其他默认非空
     Nullable(Box<Type>),
 
-    // 数组类型: [int; 5]
+    // 数组类型: int[5]
     // 固定大小数组，长度是类型的一部分
     Array {
         element_type: Box<Type>,
@@ -35,14 +35,7 @@ pub enum Type {
     // 动态数组类型: Vec<T>
     Vec(Box<Type>),
 
-    // Result 过渡类型；公开错误返回契约尚未冻结。
-    Result {
-        ok_type: Box<Type>,
-        err_type: Box<Type>,
-    },
-
     // 函数类型: int(int, int) - C系风格
-    // 用于高阶函数和闭包
     Function {
         param_types: Vec<Type>,
         return_type: Box<Type>,
@@ -74,10 +67,9 @@ impl Display for Type {
                 write!(f, ">")
             }
             Type::Nullable(inner) => write!(f, "{}?", inner),
-            Type::Array { element_type, size } => write!(f, "[{}]{}", size, element_type),
+            Type::Array { element_type, size } => write!(f, "{}[{}]", element_type, size),
             Type::Struct(name) => write!(f, "{}", name),
             Type::Vec(inner) => write!(f, "Vec<{}>", inner),
-            Type::Result { ok_type, err_type } => write!(f, "Result<{}, {}>", ok_type, err_type),
             Type::Function {
                 param_types,
                 return_type,

@@ -23,22 +23,12 @@ pub fn parser(
             .delimited_by(just(Token::LBracket), just(Token::RBracket))
             .map(PostfixOp::Index)
             .or(just(Token::Dot)
-                .ignore_then(
-                    ident_parser()
-                        .or(just(Token::Len).to("len".to_string()))
-                        .map_with_span(|n, s| (n, s)),
-                )
+                .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
                 .map(|(n, s)| PostfixOp::Member(n, s)))
             .or(just(Token::QuestionDot)
-                .ignore_then(
-                    ident_parser()
-                        .or(just(Token::Len).to("len".to_string()))
-                        .map_with_span(|n, s| (n, s)),
-                )
+                .ignore_then(ident_parser().map_with_span(|n, s| (n, s)))
                 .map(|(n, s)| PostfixOp::SafeMember(n, s)))
-            .or(just(Token::Colon)
-                .then(just(Token::Colon))
-                .ignore_then(just(Token::Lt))
+            .or(just(Token::Lt)
                 .ignore_then(
                     type_parser()
                         .separated_by(just(Token::Comma))

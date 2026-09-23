@@ -132,7 +132,7 @@ pub struct TraitMethod {
 // 语句：出现在函数体内部
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    // 变量声明: var x: int = 1; 或 var x = 1;
+    // 变量声明: int x = 1; 或 var x = 1;
     VarDecl {
         span: Span,
         name: String,

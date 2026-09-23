@@ -1,7 +1,7 @@
 //! Generic Rewriter
 //!
 //! 负责遍历 AST，将 `Type::Generic`（引用）替换为单态化后的具体名称 `Type::Struct`。
-//! 例如：`var b: Box<int>` -> `var b: Box__int`。
+//! 例如：`Box<int> b` -> `Box__int b`。
 
 use crate::mangling::mangle_type;
 use lency_syntax::ast::*;
@@ -324,10 +324,10 @@ impl Rewriter {
             },
 
             ExprKind::GenericInstantiation { base, args } => {
-                // Rewriting `func::<int>` -> `func__int` (Variable)
+                // Rewriting `func<int>` -> `func__int` (Variable)
                 // Assuming base is Variable.
                 if let ExprKind::Variable(name) = base.kind {
-                    // Rewrite args first (nested generics: func::<Box<int>>)
+                    // Rewrite args first (nested generics: func<Box<int>>)
                     let new_args: Vec<Type> =
                         args.into_iter().map(|t| self.rewrite_type(&t)).collect();
                     // Use mangling logic

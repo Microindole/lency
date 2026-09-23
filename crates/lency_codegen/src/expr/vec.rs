@@ -8,7 +8,7 @@ use inkwell::AddressSpace;
 use lency_syntax::ast::{Expr, Type};
 use std::collections::HashMap;
 
-/// Generate code for vec![...] literals
+/// Generate code for vec[...] literals
 pub fn gen_vec_literal<'ctx>(
     ctx: &CodegenContext<'ctx>,
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)>,
@@ -33,14 +33,13 @@ pub fn gen_vec_literal<'ctx>(
         .left()
         .ok_or_else(|| CodegenError::LLVMBuildError("vec_new returned void".to_string()))?;
 
-    // 4. For each element, call lency_vec_push(vec, element)
     let mut inner_type = Type::Int;
 
     // 4. For each element, call lency_vec_push(vec, element)
-    for (i, elem) in elements.iter().enumerate() {
+    for (index, elem) in elements.iter().enumerate() {
         let elem_val = generate_expr(ctx, locals, elem)?;
 
-        if i == 0 {
+        if index == 0 {
             inner_type = elem_val.ty.clone();
         }
 

@@ -179,7 +179,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
         }
 
         // 生成函数体
-        let mut stmt_gen = StmtGenerator::new(self.ctx, &mut locals, return_type);
+        let mut stmt_gen = StmtGenerator::new(self.ctx, &mut locals);
         stmt_gen.generate_block(body)?;
 
         // 如果是 void 函数且没有显式 return，添加隐式 return

@@ -77,50 +77,6 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
                 "generics not yet supported".to_string(),
             )),
 
-            // Result 类型: 使用命名结构体 Result__ok_err
-            // Sprint 15: 为Result创建opaque struct type使用mangled name
-            Type::Result { ok_type, err_type } => {
-                // Use mangle_type for consistent naming
-                let result_ty = Type::Result {
-                    ok_type: ok_type.clone(),
-                    err_type: err_type.clone(),
-                };
-                let mangled_name = lency_monomorph::mangling::mangle_type(&result_ty);
-
-                // 首先检查是否已经在 context.struct_types 中注册
-                if let Some(existing_struct) = context.struct_types.get(&mangled_name) {
-                    return Ok(existing_struct
-                        .ptr_type(AddressSpace::default())
-                        .as_basic_type_enum());
-                }
-
-                // 如果未注册，动态注册这个 Result 类型
-                // 创建字段类型
-                let mut field_types: Vec<BasicTypeEnum> = Vec::new();
-
-                // 1. is_ok 标志位 (i1)
-                field_types.push(context.context.bool_type().as_basic_type_enum());
-
-                // 2. ok_value (如果不是 void)
-                if !matches!(**ok_type, Type::Void) {
-                    field_types.push(ok_type.to_llvm_type(context)?);
-                }
-
-                // 3. err_value (如果不是 void)
-                if !matches!(**err_type, Type::Void) {
-                    field_types.push(err_type.to_llvm_type(context)?);
-                }
-
-                // 创建命名结构体并注册
-                let struct_type = context.context.opaque_struct_type(&mangled_name);
-                struct_type.set_body(&field_types, false);
-
-                // Result使用指针语义传递
-                Ok(struct_type
-                    .ptr_type(AddressSpace::default())
-                    .as_basic_type_enum())
-            }
-
             // 函数类型: int(int, int) -> function pointer
             Type::Function {
                 param_types,

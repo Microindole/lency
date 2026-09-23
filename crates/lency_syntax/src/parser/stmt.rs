@@ -23,19 +23,34 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParserError> + Clone {
             .repeated()
             .delimited_by(just(Token::LBrace), just(Token::RBrace));
 
-        // 变量声明: var x: int = 1;
-        let var_decl = just(Token::Var)
+        // 推导变量声明: var x = 1
+        let inferred_var_decl = just(Token::Var)
             .ignore_then(ident.clone())
-            .then(just(Token::Colon).ignore_then(type_p.clone()).or_not())
             .then_ignore(just(Token::Eq))
             .then(expr.clone())
             .then_ignore(just(Token::Semicolon).or_not())
-            .map_with_span(|((name, ty), value), span| Stmt::VarDecl {
+            .map_with_span(|(name, value), span| Stmt::VarDecl {
                 span,
                 name,
-                ty,
+                ty: None,
                 value,
             });
+
+        // 显式变量声明: int x = 1
+        let typed_var_decl = type_p
+            .clone()
+            .then(ident.clone())
+            .then_ignore(just(Token::Eq))
+            .then(expr.clone())
+            .then_ignore(just(Token::Semicolon).or_not())
+            .map_with_span(|((ty, name), value), span| Stmt::VarDecl {
+                span,
+                name,
+                ty: Some(ty),
+                value,
+            });
+
+        let var_decl = inferred_var_decl.or(typed_var_decl);
 
         // 赋值语句: x = 10;
         // 赋值语句 & 表达式语句
@@ -106,18 +121,31 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParserError> + Clone {
                 // 2. Fallback to Classic For: for var i = 0; ...
                 .or(just(Token::Var)
                     .ignore_then(ident.clone())
-                    .then(just(Token::Colon).ignore_then(type_p.clone()).or_not())
                     .then_ignore(just(Token::Eq))
                     .then(expr.clone())
                     .then_ignore(just(Token::Semicolon))
-                    .map_with_span(|((name, ty), value), span| {
+                    .map_with_span(|(name, value), span| {
                         Some(Box::new(Stmt::VarDecl {
                             span,
                             name,
-                            ty,
+                            ty: None,
                             value,
                         }))
                     })
+                    .or(type_p
+                        .clone()
+                        .then(ident.clone())
+                        .then_ignore(just(Token::Eq))
+                        .then(expr.clone())
+                        .then_ignore(just(Token::Semicolon))
+                        .map_with_span(|((ty, name), value), span| {
+                            Some(Box::new(Stmt::VarDecl {
+                                span,
+                                name,
+                                ty: Some(ty),
+                                value,
+                            }))
+                        }))
                     .or(just(Token::Semicolon).to(None))
                     .then(
                         // Condition

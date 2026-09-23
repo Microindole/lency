@@ -80,7 +80,6 @@ impl<'a> TypeInferer<'a> {
             }
             ExprKind::VecLiteral(elements) => {
                 if elements.is_empty() {
-                    // 空向量暂定为 Vec<void>
                     return Ok(Type::Vec(Box::new(Type::Void)));
                 }
 
@@ -93,12 +92,9 @@ impl<'a> TypeInferer<'a> {
                         continue;
                     }
 
-                    // 类型提升规则
                     if common_type == Type::Int && elem_ty == Type::Float {
                         common_type = Type::Float;
-                    } else if common_type == Type::Float && elem_ty == Type::Int {
-                        // Keep Float
-                    } else {
+                    } else if common_type != Type::Float || elem_ty != Type::Int {
                         return Err(SemanticError::TypeMismatch {
                             expected: common_type.to_string(),
                             found: elem_ty.to_string(),
@@ -112,53 +108,6 @@ impl<'a> TypeInferer<'a> {
                 Err(SemanticError::NotCallable {
                     ty: "Generic function usage as value not supported".into(),
                     span: expr.span.clone(),
-                })
-            }
-            // Result 相关表达式
-            ExprKind::Ok(inner) => {
-                // Ok(x) 的类型是 Result<typeof(x), Error>
-                let inner_ty = self.infer(inner)?;
-                Ok(Type::Result {
-                    ok_type: Box::new(inner_ty),
-                    err_type: Box::new(Type::Struct("Error".to_string())),
-                })
-            }
-            ExprKind::Err(inner) => {
-                // Err(msg) 的类型需要知道 ok_type，暂时返回 Result<void, Error>
-                self.infer(inner)?;
-                Ok(Type::Result {
-                    ok_type: Box::new(Type::Void),
-                    err_type: Box::new(Type::Struct("Error".to_string())),
-                })
-            }
-            // 闭包
-            ExprKind::Closure { params, body } => {
-                // 进入闭包作用域
-                let scope_id = self.scopes.enter_scope(crate::scope::ScopeKind::Function);
-                let parent_scope = self.current_scope;
-                self.current_scope = scope_id;
-
-                // 注册参数
-                for (i, param) in params.iter().enumerate() {
-                    let param_sym = crate::symbol::ParameterSymbol::new(
-                        param.name.clone(),
-                        param.ty.clone(),
-                        expr.span.clone(),
-                        i,
-                    );
-                    let _ = self.scopes.define(Symbol::Parameter(param_sym));
-                }
-
-                // 推导闭包体类型
-                let body_ty = self.infer(body)?;
-
-                self.scopes.exit_scope();
-                self.current_scope = parent_scope;
-
-                // 返回函数类型
-                Ok(Type::Function {
-                    param_types: params.iter().map(|p| p.ty.clone()).collect(),
-                    return_type: Box::new(body_ty),
                 })
             }
             _ => unreachable!("Not an ADT expression"),

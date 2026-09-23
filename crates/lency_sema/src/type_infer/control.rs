@@ -142,18 +142,10 @@ impl<'a> TypeInferer<'a> {
                 Ok(())
             }
             MatchPattern::Variant { name, sub_patterns } => {
-                // Check if target_ty is Enum
-                // Could be Type::Struct(enum_name) or Type::Generic(enum_name, args)
-                // Sprint 15: Result<T, E> is a special case - need to create a temporary for "Result"
-                let result_str = "Result".to_string();
+                // Check if target_ty is Enum.
                 let (enum_name, generic_args) = match target_ty {
                     Type::Struct(n) => (n.as_str(), vec![]),
                     Type::Generic(n, args) => (n.as_str(), args.clone()),
-                    // Sprint 15: Treat Result<T, E> as Generic("Result", [T, E])
-                    Type::Result { ok_type, err_type } => (
-                        result_str.as_str(),
-                        vec![(**ok_type).clone(), (**err_type).clone()],
-                    ),
                     _ => {
                         return Err(SemanticError::TypeMismatch {
                             expected: "Enum type".to_string(),
@@ -166,19 +158,8 @@ impl<'a> TypeInferer<'a> {
                 // Lookup Enum and Variant Info (Clone to avoid holding borrow)
                 let (enum_generic_params, variant_field_types) =
                     if let Some(Symbol::Enum(e)) = self.lookup(enum_name) {
-                        // Sprint 15: Special handling for Result.Ok and Result.Err
                         if let Some(types) = e.get_variant(name) {
                             (e.generic_params.clone(), types.clone())
-                        } else if enum_name == "Result" && (name == "Ok" || name == "Err") {
-                            // Result.Ok and Result.Err are compiler built-ins
-                            // They each have one field of the appropriate generic type
-                            // Ok has field of type T, Err has field of type E
-                            let field_type = if name == "Ok" {
-                                Type::GenericParam("T".to_string())
-                            } else {
-                                Type::GenericParam("E".to_string())
-                            };
-                            (e.generic_params.clone(), vec![field_type])
                         } else {
                             return Err(SemanticError::UndefinedField {
                                 class: enum_name.to_string(),
@@ -232,7 +213,6 @@ impl<'a> TypeInferer<'a> {
         args: &[Type],
     ) -> Type {
         match ty {
-            // Sprint 15: Handle Type::GenericParam for Result<T,E> substitution
             Type::GenericParam(name) => {
                 // Check if name matches any param
                 for (i, param) in params.iter().enumerate() {

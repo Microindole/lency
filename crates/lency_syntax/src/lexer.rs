@@ -29,41 +29,12 @@ pub enum Token {
     Import,
     #[token("extern")]
     Extern,
-    #[token("print")]
-    Print,
-    #[token("read_file")]
-    ReadFile,
-    #[token("write_file")]
-    WriteFile,
-    // 字符串内置函数 (Sprint 12)
-    #[token("len")]
-    Len,
-    #[token("trim")]
-    Trim,
-    #[token("split")]
-    Split,
-    #[token("join")]
-    Join,
-    #[token("substr")]
-    Substr,
-    #[token("char_to_string")]
-    CharToString,
-    #[token("panic")]
-    Panic,
-    #[token("format")]
-    Format,
     #[token("struct")]
     Struct,
     #[token("impl")]
     Impl,
     #[token("trait")]
     Trait,
-    #[token("vec")]
-    Vec,
-    #[token("Ok")]
-    Ok,
-    #[token("Err")]
-    Err,
     #[token("as")]
     As,
 
@@ -123,9 +94,6 @@ pub enum Token {
     And,
     #[token("||")]
     Or,
-    #[token("|")]
-    Pipe,
-
     #[token("(")]
     LParen,
     #[token(")")]
@@ -220,23 +188,9 @@ impl fmt::Display for Token {
             Token::Return => write!(f, "return"),
             Token::Import => write!(f, "import"),
             Token::Extern => write!(f, "extern"),
-            Token::Print => write!(f, "print"),
-            Token::ReadFile => write!(f, "read_file"),
-            Token::WriteFile => write!(f, "write_file"),
-            Token::Len => write!(f, "len"),
-            Token::Trim => write!(f, "trim"),
-            Token::Split => write!(f, "split"),
-            Token::Join => write!(f, "join"),
-            Token::Substr => write!(f, "substr"),
-            Token::CharToString => write!(f, "char_to_string"),
-            Token::Panic => write!(f, "panic"),
-            Token::Format => write!(f, "format"),
             Token::Struct => write!(f, "struct"),
             Token::Impl => write!(f, "impl"),
             Token::Trait => write!(f, "trait"),
-            Token::Vec => write!(f, "vec"),
-            Token::Ok => write!(f, "Ok"),
-            Token::Err => write!(f, "Err"),
             Token::As => write!(f, "as"),
             Token::Enum => write!(f, "enum"),
             Token::Null => write!(f, "null"),
@@ -262,7 +216,6 @@ impl fmt::Display for Token {
             Token::Bang => write!(f, "!"),
             Token::And => write!(f, "&&"),
             Token::Or => write!(f, "||"),
-            Token::Pipe => write!(f, "|"),
             Token::LParen => write!(f, "("),
             Token::RParen => write!(f, ")"),
             Token::LBrace => write!(f, "{{"), // Escaped brace
