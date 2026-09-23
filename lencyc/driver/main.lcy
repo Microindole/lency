@@ -51,7 +51,7 @@ string import_file_path(Stmt stmt) {
 }
 
 Vec<Stmt> load_compilation_statements(string path, Vec<string> loaded_paths) {
-    var out = vec![]
+    var out = vec[]
     if path_was_loaded(loaded_paths, path) {
         return out
     }
@@ -139,7 +139,7 @@ int main() {
 
     var emit_text = ""
     if args.emit_lir {
-        var compilation_statements = load_compilation_statements(args.input_file, vec![])
+        var compilation_statements = load_compilation_statements(args.input_file, vec[])
         var emit_result = emit_lir_program(compilation_statements)
         if emit_result.has_error {
             print("LIR emit failed with " + int_to_string(emit_result.error_count) + " errors.\n")

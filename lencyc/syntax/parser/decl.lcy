@@ -12,7 +12,7 @@ struct ParsedParamList {
 }
 
 Vec<Stmt> empty_stmt_list() {
-    return vec![]
+    return vec[]
 }
 
 impl Parser {
@@ -45,7 +45,7 @@ impl Parser {
     }
 
     Vec<string> clone_segments(Vec<string> source) {
-        var copied = vec![]
+        var copied = vec[]
         var i = 0
         while i < source.len() {
             copied.push(source[i])
@@ -99,8 +99,8 @@ impl Parser {
     }
 
     ParsedParamList parse_signature_param_list() {
-        var params = vec![]
-        var param_types = vec![]
+        var params = vec[]
+        var param_types = vec[]
         if !this.check(T_RIGHT_PAREN()) {
             while true {
                 param_types.push(this.parse_signature_type_ref())
@@ -145,7 +145,7 @@ impl Parser {
         var name = this.previous
         this.skip_generic_type_arguments_if_any()
         this.consume(T_LEFT_BRACE(), "Expect '{' after type name.")
-        var fields = vec![]
+        var fields = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.is_signature_type_token(this.current.kind) {
                 var field_type = this.parse_signature_type_ref()
@@ -173,7 +173,7 @@ impl Parser {
             name = make_token(target_type.kind, target_type.name, this.previous.line, this.previous.column)
         }
         this.consume(T_LEFT_BRACE(), "Expect '{' after impl target.")
-        var members = vec![]
+        var members = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.is_function_return_type_start() {
                 var member_return_type = this.parse_signature_type_ref()
@@ -188,7 +188,7 @@ impl Parser {
     }
 
     Stmt import_declaration() {
-        var path_segments = vec![]
+        var path_segments = vec[]
         this.consume(T_IDENTIFIER(), "Expect module path after 'import'.")
         path_segments.push(this.previous.lexeme)
         while this.match_token(T_DOT()) {
@@ -196,7 +196,7 @@ impl Parser {
                 this.consume(T_IDENTIFIER(), "Expect identifier in grouped import.")
                 var first_segments = this.clone_segments(path_segments)
                 first_segments.push(this.previous.lexeme)
-                var tail_names = vec![]
+                var tail_names = vec[]
                 while this.match_token(T_COMMA()) {
                     this.consume(T_IDENTIFIER(), "Expect identifier in grouped import.")
                     tail_names.push(this.previous.lexeme)
@@ -248,13 +248,13 @@ impl Parser {
         var name = this.previous
         this.skip_generic_type_arguments_if_any()
         this.consume(T_LEFT_BRACE(), "Expect '{' after EnumName.")
-        var variants = vec![]
-        var enum_variants = vec![]
+        var variants = vec[]
+        var enum_variants = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             this.consume(T_IDENTIFIER(), "Expect EnumVariant name.")
             var variant_name = this.previous.lexeme
             variants.push(variant_name)
-            var payload_types = vec![]
+            var payload_types = vec[]
             if this.match_token(T_LEFT_PAREN()) {
                 if !this.check(T_RIGHT_PAREN()) {
                     while true {
@@ -284,7 +284,7 @@ impl Parser {
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after trait body.")
         // TODO: trait 暂未进入 AST 声明节点；当前仅在 std 导入路径做语法跳过。
-        return make_stmt_block(vec![])
+        return make_stmt_block(vec[])
     }
 
     Stmt var_declaration(bool is_const) {

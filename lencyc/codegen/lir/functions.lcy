@@ -7,13 +7,13 @@ import lencyc.codegen.lir
 
 impl LirBuilder {
     void reset_function_state() {
-        this.break_targets = vec![]
-        this.continue_targets = vec![]
+        this.break_targets = vec[]
+        this.continue_targets = vec[]
         this.loop_depth = 0
-        this.enum_var_names = vec![]
-        this.enum_var_types = vec![]
-        this.typed_var_names = vec![]
-        this.typed_var_types = vec![]
+        this.enum_var_names = vec[]
+        this.enum_var_types = vec[]
+        this.typed_var_names = vec[]
+        this.typed_var_types = vec[]
         this.current_function_returns = false
         this.current_function_name = ""
     }
@@ -147,8 +147,8 @@ impl LirBuilder {
     void emit_method_decl(string owner_name, Decl decl) {
         this.reset_function_state()
         this.current_function_name = owner_name + "__" + decl.name.lexeme
-        var params = vec!["this"]
-        var param_types = vec![owner_name]
+        var params = vec["this"]
+        var param_types = vec[owner_name]
         var i = 0
         while i < decl.params.len() {
             params.push(decl.params[i])
@@ -200,7 +200,7 @@ impl LirBuilder {
     }
 
     Vec<string> extract_type_names(Vec<TypeRef> type_refs) {
-        var names = vec![]
+        var names = vec[]
         var i = 0
         while i < type_refs.len() {
             names.push(type_refs[i].name)

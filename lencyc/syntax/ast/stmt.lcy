@@ -29,8 +29,8 @@ Stmt make_stmt_base(int kind) {
         expr: make_expr_literal(make_token(0, "", 0, 0)),
         has_expr: false,
         decl: make_decl_base(DECL_UNKNOWN()),
-        body: vec![],
-        else_body: vec![]
+        body: vec[],
+        else_body: vec[]
     }
 }
 
@@ -134,10 +134,10 @@ Stmt make_stmt_extern(
 }
 
 Stmt make_stmt_enum(Token name, Vec<string> variants) {
-    var enum_variants = vec![]
+    var enum_variants = vec[]
     var i = 0
     while i < variants.len() {
-        enum_variants.push(make_enum_variant(variants[i], vec![]))
+        enum_variants.push(make_enum_variant(variants[i], vec[]))
         i = i + 1
     }
     return make_stmt_enum_with_variants(name, variants, enum_variants)

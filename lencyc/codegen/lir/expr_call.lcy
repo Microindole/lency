@@ -54,7 +54,7 @@ impl LirBuilder {
                 if member_name == "pop" { vec_runtime_name = "lency_vec_pop" }
                 if member_name == "set" { vec_runtime_name = "lency_vec_set" }
                 var vec_object = this.emit_expr(object_expr)
-                var vec_args = vec![vec_object]
+                var vec_args = vec[vec_object]
                 var vec_arg_id = 1
                 while vec_arg_id < expr.children.len() {
                     vec_args.push(this.emit_expr(expr.children[vec_arg_id]))
@@ -66,7 +66,7 @@ impl LirBuilder {
             }
             if object_type != "" && !this.is_vec_type_name(object_type) && object_type != "string" {
                 var object_value = this.emit_expr(object_expr)
-                var member_args = vec![object_value]
+                var member_args = vec[object_value]
                 var member_arg_id = 1
                 while member_arg_id < expr.children.len() {
                     member_args.push(this.emit_expr(expr.children[member_arg_id]))
@@ -78,7 +78,7 @@ impl LirBuilder {
             }
         }
         var callee = this.emit_expr(expr.children[0])
-        var args = vec![]
+        var args = vec[]
         var i = 1
         while i < expr.children.len() {
             args.push(this.emit_expr(expr.children[i]))

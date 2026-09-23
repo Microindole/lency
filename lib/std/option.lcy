@@ -7,18 +7,10 @@
 //       None
 //   }
 //
-// 编译器内置方法:
-//   .is_some()      -> bool    检查是否有值
-//   .is_none()      -> bool    检查是否为空
-//   .unwrap()       -> T       获取值，None 时 panic
-//   .unwrap_or(T)   -> T       获取值，None 时返回默认值
-//   .expect(string) -> T       获取值，None 时以自定义消息 panic
+// Option 没有编译器内置方法；需要取值时使用 match。
+// `T?` 是独立的 nullable 类型，不是 Option 的语法糖。
 //
-// 也可以使用 T? 可空语法作为 Option 的简写：
-//   int? maybe = null       // 等价于 Option<int>.None
-//   int? maybe = 42         // 等价于 Option<int>.Some(42)
-//
-// match 解构:
+// match 解构：
 //   match opt {
 //       case Option.Some(v) => // 使用 v
 //       case Option.None => // 空值处理

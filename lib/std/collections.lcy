@@ -96,7 +96,7 @@ T last<T>(Vec<T> v) {
 
 // 生成整数序列 [start, end)
 Vec<int> range(int start, int end) {
-    var result: Vec<int> = vec![]
+    Vec<int> result = vec[]
     var i = start
     while i < end {
         result.push(i)
@@ -190,4 +190,3 @@ int vec_min(Vec<int> v) {
 //   var exists = hashmap_string_contains(map, key)
 //   var removed = hashmap_string_remove(map, key)
 //   var size = hashmap_string_len(map)
-

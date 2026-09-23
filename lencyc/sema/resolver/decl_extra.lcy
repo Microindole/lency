@@ -71,8 +71,8 @@ impl Resolver {
                     if !this.table.resolve(variant.name) {
                         this.table.define(variant.name)
                     }
-                    var payload_tys = vec![]
-                    var payload_ty_names = vec![]
+                    var payload_tys = vec[]
+                    var payload_ty_names = vec[]
                     var p = 0
                     while p < variant.payload_types.len() {
                         payload_tys.push(this.resolve_signature_type_or_unknown(variant.payload_types[p]))
@@ -87,8 +87,8 @@ impl Resolver {
                 if !this.table.resolve(decl.name.lexeme) {
                     this.table.define(decl.name.lexeme)
                     this.preload_builtin_arity(decl.name.lexeme, decl.params.len())
-                    var param_tys = vec![]
-                    var param_ty_names = vec![]
+                    var param_tys = vec[]
+                    var param_ty_names = vec[]
                     var k = 0
                     while k < decl.param_types.len() {
                         param_tys.push(this.resolve_signature_type_or_unknown(decl.param_types[k]))
@@ -114,8 +114,8 @@ impl Resolver {
                     if member.kind == DECL_FUNCTION() && !this.table.resolve(member.name.lexeme) {
                         this.table.define(member.name.lexeme)
                         this.preload_builtin_arity(member.name.lexeme, member.params.len())
-                        var member_param_tys = vec![]
-                        var member_param_ty_names = vec![]
+                        var member_param_tys = vec[]
+                        var member_param_ty_names = vec[]
                         var mp = 0
                         while mp < member.param_types.len() {
                             member_param_tys.push(this.resolve_signature_type_or_unknown(member.param_types[mp]))
@@ -179,7 +179,7 @@ impl Resolver {
             return true
         }
         // std 模块统一通过模块文件自动导入签名（含递归 import std.*）。
-        this.preload_std_module_symbols_auto(module_path, vec![])
+        this.preload_std_module_symbols_auto(module_path, vec[])
         return true
     }
 
@@ -227,7 +227,7 @@ impl Resolver {
     }
 
     void resolve_enum_decl(Decl decl) {
-        var variant_names = vec![]
+        var variant_names = vec[]
         var i = 0
         while i < decl.enum_variants.len() {
             var variant = decl.enum_variants[i]

@@ -25,7 +25,6 @@ import std.math
 import std.assert
 
 // 类型系统辅助
-import std.result
 import std.option
 import std.iterator
 

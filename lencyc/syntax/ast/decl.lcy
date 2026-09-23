@@ -29,11 +29,11 @@ Decl make_decl_base(int kind) {
         kind: kind,
         name: make_token(0, "", 0, 0),
         return_type: make_type_ref(0, ""),
-        params: vec![],
-        param_types: vec![],
-        struct_fields: vec![],
-        enum_variants: vec![],
-        body: vec![]
+        params: vec[],
+        param_types: vec[],
+        struct_fields: vec[],
+        enum_variants: vec[],
+        body: vec[]
     }
 }
 
@@ -77,10 +77,10 @@ Decl make_decl_extern(Token name, TypeRef return_type, Vec<string> params, Vec<T
 }
 
 Decl make_decl_enum(Token name, Vec<string> variants) {
-    var enum_variants = vec![]
+    var enum_variants = vec[]
     var i = 0
     while i < variants.len() {
-        enum_variants.push(make_enum_variant(variants[i], vec![]))
+        enum_variants.push(make_enum_variant(variants[i], vec[]))
         i = i + 1
     }
     return make_decl_enum_with_variants(name, variants, enum_variants)

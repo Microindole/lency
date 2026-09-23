@@ -3,7 +3,7 @@
 
 // ============== 基础结构体 ==============
 
-// Error 类型 - 用于 Result 错误处理
+// Error 是可供普通 API 组合使用的数据类型，编译器不赋予它特殊语义
 struct Error {
     string message
 }
@@ -103,4 +103,3 @@ impl Eq<string> for string {
         return this != other
     }
 }
-

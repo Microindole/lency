@@ -167,16 +167,16 @@ StructFieldSignature make_struct_field_signature(string struct_name, string fiel
 Resolver make_resolver() {
     var resolver = Resolver {
         table: make_symbol_table(),
-        builtin_arities: vec![],
-        builtin_types: vec![],
-        typed_symbols: vec![],
-        const_symbols: vec![],
-        function_signatures: vec![],
-        enum_type_names: vec![],
-        enum_variant_signatures: vec![],
-        enum_value_symbols: vec![],
-        struct_field_signatures: vec![],
-        imported_module_paths: vec![],
+        builtin_arities: vec[],
+        builtin_types: vec[],
+        typed_symbols: vec[],
+        const_symbols: vec[],
+        function_signatures: vec[],
+        enum_type_names: vec[],
+        enum_variant_signatures: vec[],
+        enum_value_symbols: vec[],
+        struct_field_signatures: vec[],
+        imported_module_paths: vec[],
         in_function: false,
         require_value_return: false,
         current_function_return_type: TYPE_UNKNOWN(),
@@ -206,7 +206,7 @@ ResolveResult resolve_program(Program program) {
 
 ResolveResult resolve_function_body(Vec<string> params, Vec<Stmt> body) {
     var resolver = make_resolver()
-    resolver.resolve_function(params, vec![], vec![], body, true, TYPE_UNKNOWN(), "")
+    resolver.resolve_function(params, vec[], vec[], body, true, TYPE_UNKNOWN(), "")
     return ResolveResult {
         has_error: resolver.has_error,
         error_count: resolver.error_count

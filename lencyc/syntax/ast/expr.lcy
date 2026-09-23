@@ -24,25 +24,25 @@ Expr make_expr_literal(Token v) {
         kind: EXPR_LITERAL(),
         literal_value: v,
         operator: make_token(0, "", 0, 0),
-        children: vec![],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
 Expr make_expr_binary(Expr left, Token op, Expr right) {
-    var children = vec![left, right]
+    var children = vec[left, right]
     return Expr {
         kind: EXPR_BINARY(),
         literal_value: make_token(0, "", 0, 0),
         operator: op,
         children: children,
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -51,11 +51,11 @@ Expr make_expr_variable(Token name) {
         kind: EXPR_VARIABLE(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -64,11 +64,11 @@ Expr make_expr_grouping(Expr expression) {
         kind: EXPR_GROUPING(),
         literal_value: make_token(0, "", 0, 0),
         operator: make_token(0, "", 0, 0),
-        children: vec![expression],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[expression],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -77,11 +77,11 @@ Expr make_expr_unary(Token op, Expr right) {
         kind: EXPR_UNARY(),
         literal_value: make_token(0, "", 0, 0),
         operator: op,
-        children: vec![right],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[right],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -90,30 +90,30 @@ Expr make_expr_assign(Token name, Expr value) {
         kind: EXPR_ASSIGN(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![value],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[value],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
 Expr make_expr_logical(Expr left, Token op, Expr right) {
-    var children = vec![left, right]
+    var children = vec[left, right]
     return Expr {
         kind: EXPR_LOGICAL(),
         literal_value: make_token(0, "", 0, 0),
         operator: op,
         children: children,
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
 Expr make_expr_call(Expr callee, Vec<Expr> args) {
-    var children = vec![callee]
+    var children = vec[callee]
     var i = 0
     while i < args.len() {
         children.push(args[i])
@@ -124,10 +124,10 @@ Expr make_expr_call(Expr callee, Vec<Expr> args) {
         literal_value: make_token(0, "", 0, 0),
         operator: make_token(0, "", 0, 0),
         children: children,
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -136,11 +136,11 @@ Expr make_expr_get(Expr object, Token name) {
         kind: EXPR_GET(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![object],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[object],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -151,9 +151,9 @@ Expr make_expr_struct(Token type_name, Vec<string> field_names, Vec<Expr> field_
         operator: make_token(0, "", 0, 0),
         children: field_values,
         field_names: field_names,
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -162,11 +162,11 @@ Expr make_expr_set(Expr object, Token name, Expr value) {
         kind: EXPR_SET(),
         literal_value: name,
         operator: make_token(0, "", 0, 0),
-        children: vec![object, value],
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        children: vec[object, value],
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
@@ -176,15 +176,15 @@ Expr make_expr_vec(Vec<Expr> elements) {
         literal_value: make_token(0, "", 0, 0),
         operator: make_token(0, "vec", 0, 0),
         children: elements,
-        field_names: vec![],
-        arm_patterns: vec![],
-        arm_guards: vec![],
-        arm_has_guards: vec![]
+        field_names: vec[],
+        arm_patterns: vec[],
+        arm_guards: vec[],
+        arm_has_guards: vec[]
     }
 }
 
 Expr make_expr_match(Expr target, Vec<MatchPattern> patterns, Vec<Expr> arm_values, Vec<Expr> arm_guards, Vec<bool> arm_has_guards) {
-    var children = vec![target]
+    var children = vec[target]
     var i = 0
     while i < arm_values.len() {
         children.push(arm_values[i])
@@ -195,7 +195,7 @@ Expr make_expr_match(Expr target, Vec<MatchPattern> patterns, Vec<Expr> arm_valu
         literal_value: make_token(0, "", 0, 0),
         operator: make_token(0, "match", 0, 0),
         children: children,
-        field_names: vec![],
+        field_names: vec[],
         arm_patterns: patterns,
         arm_guards: arm_guards,
         arm_has_guards: arm_has_guards

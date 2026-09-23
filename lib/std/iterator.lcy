@@ -26,11 +26,11 @@ struct VecIterator<T> {
 impl<T> Iterator<T> for VecIterator<T> {
     Option<T> next() {
         if this.index >= this.data.len() {
-            return Option::<T>.None
+            return Option<T>.None
         }
         var item = this.data.get(this.index)
         this.index = this.index + 1
-        return Option::<T>.Some(item)
+        return Option<T>.Some(item)
     }
 }
 
