@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-- Rust 母体编译器已经形成完整的语法、语义、单态化、LLVM codegen、CLI 和 runtime 链路，正在按冻结语法清除历史特判后固化为 stage0。
+- Rust 母体编译器已经形成端到端的语法、语义、单态化、LLVM codegen、CLI 和 runtime 链路，并已按冻结语法固化为 stage0。后续只修复参考行为缺陷或自举阻塞，不再并行扩展语言表面。
 - `lencyc/` 已打通 `Read -> Lex -> Parse -> Resolve -> Emit(AST/LIR)`，并具备依赖 Rust LIR backend 的 stage1/stage2/stage3 收敛检查。
 - `bootstrap-check` 已能由 stage1 生成 stage2、由 stage2 生成 stage3，并通过编译器 LIR、样例 LIR 与 smoke pipeline 的收敛比较。
 - 当前主线是让 Lency 自举编译器完成并稳定最基础的自举子集，而不是继续扩展 Rust 母体。
@@ -41,8 +41,10 @@
 - 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
-- Rust 母体已停止接受公开的 `T!` 返回类型糖和后缀 `?` 错误传播，并已移除 `Result`、`Ok`、`Err` 的专用 token、AST、类型推导和 codegen。它们现在只能是普通用户类型或 enum 项。selfhost 中仍有旧的 Result 兼容路径，待 Rust 母体语法固化后按同一契约迁移。
+- Rust 母体已停止接受公开的 `T!` 返回类型糖和后缀 `?` 错误传播，并已移除 `Result`、`Ok`、`Err` 的专用 token、AST、类型推导和 codegen。它们现在只能是普通用户类型或 enum 项。selfhost 中仍有旧的 Result 兼容路径，下一阶段按该冻结契约迁移。
 - Rust 母体的冻结语法已改为类型在前的显式局部变量、C 风格泛型调用、`vec[...]` 字面量和 `int[3]` 固定数组；`=>` 仅保留给 match。旧的 `var x: T`、`::<T>`、`vec![]` 与 Rust 风格闭包已退出公开语法。
+- Rust 母体的 runtime intrinsic 已统一解析为普通 `Call` AST，并通过全局函数符号完成名称与类型检查；专用处理只保留在集中 lowering 边界。字符串动态索引也已补齐越界 panic，不再静默读取越界内存。
+- 普通调用现在统一执行参数数量和参数类型检查，嵌套调用也不再绕过强静态约束。由此暴露出的 selfhost 无类型空 Vec 已全部改为 `Vec<T> name = vec[]`，selfhost parser/AST/resolver/LIR 同步保留显式局部变量类型，stage2/stage3 继续收敛。
 - 检查输出以 `[xtask]`、`[rust/cargo]`、`[lency/rust-host]`、`[lency/selfhost]` 标记执行来源；交互终端中使用颜色区分，`NO_COLOR` 或非终端输出保持纯文本。
 - 块内声明和顶层声明仍存在中间表示上的双轨边界。
 - Lency 尚不支持 `/* ... */` 块注释。
