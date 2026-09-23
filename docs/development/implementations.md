@@ -12,7 +12,7 @@ Lency 仓库包含一个参考实现和一个正在自举的实现。讨论“�
 - 泛型单态化；
 - LLVM codegen 与 runtime；
 - `compile`、`run`、`check`、`build` 和实验性 REPL；
-- 数组/Vec、struct/方法、enum/match、泛型、trait、nullable、Result、模块和标准库等集成回归。
+- 数组/Vec、struct/方法、enum/match、泛型、trait、nullable、模块和标准库等集成回归。
 
 这里的“参考实现”不表示没有缺陷，而是表示当前语言示例、普通程序和 selfhost stage0 都以它为准。
 
@@ -37,7 +37,7 @@ Lency 仓库包含一个参考实现和一个正在自举的实现。讨论“�
 | struct | 可用 | 声明、字段与基础语义 | 仅 non-generic 字段读写、参数和返回 |
 | enum / match | 可用 | payload、嵌套模式、guard 等已有检查 | 现有递归 payload/runtime 用例可运行 |
 | import / std 签名 | 可用 | 已有源码签名导入 | 仅自举所需路径经过验证 |
-| nullable / Result | 可用 | 最小签名与构造/匹配语义 | 仅已有用例覆盖的路径 |
+| nullable / 普通 enum 结果 | nullable 与 enum 可用；无内建 Result | selfhost 仍有旧 Result 兼容语义 | 仅已有用例覆盖的路径 |
 | 泛型 | 有单态化与集成测试 | 有语法入口 | 尚非稳定子集 |
 | trait / 完整 impl method | 有集成测试 | 不完整 | 尚非稳定子集 |
 | 闭包、完整集合/标准库 | 有相应实现或测试 | 不完整 | 尚非稳定子集 |

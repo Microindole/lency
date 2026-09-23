@@ -1,11 +1,11 @@
 # 变量与类型
 
-局部变量使用 `var` 声明，可由初始值推断类型，也可显式标注类型：
+局部变量使用 `var` 从初始值推断类型；需要显式类型时采用与 C/C++ 一致的类型在前写法：
 
 ```lency
 var count = 10
-var name: string = "Lency"
-var active: bool = true
+string name = "Lency"
+bool active = true
 ```
 
 常量使用 `const`：

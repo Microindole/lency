@@ -1,9 +1,9 @@
 # Vec
 
-`Vec<T>` 是编译器内建集合类型，基础操作由 runtime 提供：
+`Vec<T>` 是核心集合类型，`vec[...]` 是公开且固定的集合字面量语法，基础操作由 runtime 提供：
 
 ```lency
-var values = vec![1, 2, 3]
+var values = vec[1, 2, 3]
 values.push(4)
 var size = values.len()
 var first = values.get(0)

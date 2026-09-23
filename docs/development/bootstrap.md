@@ -75,7 +75,7 @@ Rust 母体中的能力不应整批移植。只有满足以下至少一项时，
 
 当前应优先：
 
-- 让编译器自身已经使用的函数、struct、enum/match、字符串、Vec、import 和 Result 路径稳定；
+- 让编译器自身已经使用的函数、struct、enum/match、字符串、Vec、import 和普通结果数据路径稳定；
 - 将剩余的宽松回退变成明确错误或真实 lowering，并保持 LIR backend 拒绝占位指令；
 - 缩小 stage2/stage3 对 Rust 母体后端的依赖。
 
