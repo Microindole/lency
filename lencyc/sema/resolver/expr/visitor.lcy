@@ -25,6 +25,7 @@ impl Resolver {
         if expr.literal_value.kind == T_NULL() {
             return TYPE_NULL()
         }
+        this.error("unsupported literal token kind: " + int_to_string(expr.literal_value.kind))
         return TYPE_UNKNOWN()
     }
 
@@ -37,6 +38,10 @@ impl Resolver {
     }
 
     int visit_expr_assign(Expr expr) {
+        if expr.children.len() == 0 {
+            this.error("assignment expression is missing its value")
+            return TYPE_UNKNOWN()
+        }
         if !this.table.resolve(expr.literal_value.lexeme) {
             this.error("assignment to undefined variable: " + expr.literal_value.lexeme)
         } else {
@@ -44,38 +49,41 @@ impl Resolver {
                 this.error("assignment to const is not allowed: " + expr.literal_value.lexeme)
             }
         }
-        if expr.children.len() > 0 {
-            var rhs_ty = this.resolve_expr(expr.children[0])
-            var lhs_ty = this.lookup_typed_symbol(expr.literal_value.lexeme)
-            var rhs_ty_name = this.infer_expr_type_name(expr.children[0], rhs_ty)
-            var lhs_ty_name = this.lookup_typed_symbol_name(expr.literal_value.lexeme)
-            if lhs_ty_name == "" {
-                lhs_ty_name = this.type_to_string(lhs_ty)
-            }
-            if rhs_ty_name == "" {
-                rhs_ty_name = this.type_to_string(rhs_ty)
-            }
-            var lhs_enum_name = this.lookup_enum_value_symbol(expr.literal_value.lexeme)
-            var rhs_enum_name = this.infer_expr_enum_name(expr.children[0])
-            if lhs_enum_name != "" && rhs_enum_name != "" && lhs_enum_name != rhs_enum_name {
-                this.error(
-                    "EnumAssignment mismatch for " + expr.literal_value.lexeme +
-                    ": expected " + lhs_enum_name + ", got " + rhs_enum_name
-                )
-            }
-            if !this.types_match_or_unknown_by_name(lhs_ty, lhs_ty_name, rhs_ty, rhs_ty_name) {
-                this.error(
-                    "type mismatch in assignment to " + expr.literal_value.lexeme +
-                    ": expected " + lhs_ty_name + ", got " + rhs_ty_name
-                )
-            }
-            return rhs_ty
+        var rhs_ty = this.resolve_expr(expr.children[0])
+        var lhs_ty = this.lookup_typed_symbol(expr.literal_value.lexeme)
+        var rhs_ty_name = this.infer_expr_type_name(expr.children[0], rhs_ty)
+        var lhs_ty_name = this.lookup_typed_symbol_name(expr.literal_value.lexeme)
+        if lhs_ty_name == "" {
+            lhs_ty_name = this.type_to_string(lhs_ty)
         }
-        return TYPE_UNKNOWN()
+        if rhs_ty_name == "" {
+            rhs_ty_name = this.type_to_string(rhs_ty)
+        }
+        var lhs_enum_name = this.lookup_enum_value_symbol(expr.literal_value.lexeme)
+        var rhs_enum_name = this.infer_expr_enum_name(expr.children[0])
+        if lhs_enum_name != "" && rhs_enum_name != "" && lhs_enum_name != rhs_enum_name {
+            this.error(
+                "EnumAssignment mismatch for " + expr.literal_value.lexeme +
+                ": expected " + lhs_enum_name + ", got " + rhs_enum_name
+            )
+        }
+        if !this.types_match_or_unknown_by_name(lhs_ty, lhs_ty_name, rhs_ty, rhs_ty_name) {
+            this.error(
+                "type mismatch in assignment to " + expr.literal_value.lexeme +
+                ": expected " + lhs_ty_name + ", got " + rhs_ty_name
+            )
+        }
+        return rhs_ty
     }
 
     int visit_expr_set(Expr expr) {
         if expr.children.len() < 2 {
+            var child_index = 0
+            while child_index < expr.children.len() {
+                this.resolve_expr(expr.children[child_index])
+                child_index = child_index + 1
+            }
+            this.error("member assignment expression requires object and value")
             return TYPE_UNKNOWN()
         }
         var object_ty = this.resolve_expr(expr.children[0])
@@ -141,6 +149,7 @@ impl Resolver {
             }
             return TYPE_UNKNOWN()
         }
+        this.error("member access expression is missing its object")
         return TYPE_UNKNOWN()
     }
 
@@ -196,6 +205,7 @@ impl Resolver {
 
     int visit_expr_unary(Expr expr) {
         if expr.children.len() == 0 {
+            this.error("unary expression is missing its operand")
             return TYPE_UNKNOWN()
         }
         var right_ty = this.resolve_expr(expr.children[0])
@@ -211,11 +221,18 @@ impl Resolver {
             }
             return right_ty
         }
+        this.error("unsupported unary operator: " + expr.operator.lexeme)
         return TYPE_UNKNOWN()
     }
 
     int visit_expr_binary_like(Expr expr) {
         if expr.children.len() < 2 {
+            var child_index = 0
+            while child_index < expr.children.len() {
+                this.resolve_expr(expr.children[child_index])
+                child_index = child_index + 1
+            }
+            this.error("binary expression requires left and right operands")
             return TYPE_UNKNOWN()
         }
         var left_ty = this.resolve_expr(expr.children[0])
@@ -279,6 +296,7 @@ impl Resolver {
             }
             return TYPE_BOOL()
         }
+        this.error("unsupported binary operator: " + expr.operator.lexeme)
         return TYPE_UNKNOWN()
     }
 
