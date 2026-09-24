@@ -58,6 +58,13 @@ bool run_resolver_preload_defensive_tests() {
         print("Signature precedence test failed: latest function param type should win.\n")
         return false
     }
+    var unsupported_expr = make_expr_literal(make_token(T_NUMBER(), "1", 1, 1))
+    unsupported_expr.kind = 999
+    sig_resolver.resolve_expr(unsupported_expr)
+    if !sig_resolver.has_error {
+        print("Resolver defensive test failed: unsupported expression kind should report error.\n")
+        return false
+    }
     sig_resolver.function_signatures.push(
         make_function_signature("demo_enum", TYPE_NAMED(), vec[], "Status", vec[], "")
     )

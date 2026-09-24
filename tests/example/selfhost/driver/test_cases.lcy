@@ -72,6 +72,8 @@ string src_resolver_type_consistency_ok() { return "var n = 1\nn = n + 2\nvar fl
 string src_resolver_type_assignment_bad() { return "var n = 1\nn = true"; }
 string src_resolver_type_arithmetic_bad() { return "var n = 1\nvar s = \"x\"\nvar y = n + s"; }
 string src_resolver_type_logical_bad() { return "var n = 1\nvar bad = n && true"; }
+string src_resolver_grouped_type_ok() { return "var n = (1)\nn = n + (2)"; }
+string src_resolver_grouped_arithmetic_bad() { return "var bad = (true) + (1)"; }
 string src_resolver_null_assignment_bad() { return "var n = 1\nn = null"; }
 string src_resolver_null_arithmetic_bad() { return "var x = null\nvar y = x + 1\nreturn 0"; }
 string src_resolver_null_equality_ok() { return "var x = null\nvar y = (x == null)\nreturn 0"; }

@@ -135,6 +135,12 @@ int main() {
     if !expect_shared_resolve_error(src_resolver_type_logical_bad(), "logical type mismatch negative") {
         return 1
     }
+    if !expect_shared_resolve_success(src_resolver_grouped_type_ok(), "grouping preserves expression type positive") {
+        return 1
+    }
+    if !expect_shared_resolve_error(src_resolver_grouped_arithmetic_bad(), "grouped arithmetic type mismatch negative") {
+        return 1
+    }
     if !expect_shared_resolve_error(src_resolver_null_assignment_bad(), "null assignment mismatch negative") {
         return 1
     }
