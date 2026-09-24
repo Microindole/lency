@@ -13,7 +13,7 @@ impl Resolver {
             Vec<string> fn_param_ty_names = vec[]
             var i = 0
             while i < decl.param_types.len() {
-                fn_param_tys.push(this.resolve_signature_type_or_error(decl.param_types[i]))
+                fn_param_tys.push(this.resolve_signature_type_with_params_or_error(decl.param_types[i], decl.generic_params))
                 fn_param_ty_names.push(this.resolve_signature_type_name(decl.param_types[i]))
                 i = i + 1
             }
@@ -23,7 +23,7 @@ impl Resolver {
                 fn_param_ty_names,
                 decl.body,
                 decl.return_type.kind != T_VOID(),
-                this.resolve_signature_type_or_error(decl.return_type),
+                this.resolve_signature_type_with_params_or_error(decl.return_type, decl.generic_params),
                 this.resolve_signature_type_name(decl.return_type)
             )
             return
@@ -39,7 +39,7 @@ impl Resolver {
                     continue
                 }
                 field_names.push(field.name.lexeme)
-                this.resolve_signature_type_or_error(field.type_ref)
+                this.resolve_signature_type_with_params_or_error(field.type_ref, decl.generic_params)
                 i = i + 1
             }
             return
@@ -68,7 +68,7 @@ impl Resolver {
                 Vec<string> fn_param_ty_names = vec[]
                 var j = 0
                 while j < member.param_types.len() {
-                    fn_param_tys.push(this.resolve_signature_type_or_error(member.param_types[j]))
+                    fn_param_tys.push(this.resolve_signature_type_with_params_or_error(member.param_types[j], member.generic_params))
                     fn_param_ty_names.push(this.resolve_signature_type_name(member.param_types[j]))
                     j = j + 1
                 }
@@ -78,7 +78,7 @@ impl Resolver {
                     fn_param_ty_names,
                     member.body,
                     member.return_type.kind != T_VOID(),
-                    this.resolve_signature_type_or_error(member.return_type),
+                    this.resolve_signature_type_with_params_or_error(member.return_type, member.generic_params),
                     this.resolve_signature_type_name(member.return_type)
                 )
                 i = i + 1

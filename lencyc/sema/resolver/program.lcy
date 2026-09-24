@@ -46,7 +46,7 @@ impl Resolver {
                         make_struct_field_signature(
                             decl.name.lexeme,
                             field.name.lexeme,
-                            this.resolve_signature_type_or_error(field.type_ref),
+                            this.resolve_signature_type_with_params_or_error(field.type_ref, decl.generic_params),
                             this.resolve_signature_type_name(field.type_ref)
                         )
                     )
@@ -67,7 +67,7 @@ impl Resolver {
                     Vec<string> payload_ty_names = vec[]
                     var p = 0
                     while p < variant.payload_types.len() {
-                        payload_tys.push(this.resolve_signature_type_or_error(variant.payload_types[p]))
+                        payload_tys.push(this.resolve_signature_type_with_params_or_error(variant.payload_types[p], decl.generic_params))
                         payload_ty_names.push(this.resolve_signature_type_name(variant.payload_types[p]))
                         p = p + 1
                     }
@@ -91,14 +91,14 @@ impl Resolver {
                     Vec<string> param_ty_names = vec[]
                     var k = 0
                     while k < decl.param_types.len() {
-                        param_tys.push(this.resolve_signature_type_or_error(decl.param_types[k]))
+                        param_tys.push(this.resolve_signature_type_with_params_or_error(decl.param_types[k], decl.generic_params))
                         param_ty_names.push(this.resolve_signature_type_name(decl.param_types[k]))
                         k = k + 1
                     }
                     this.function_signatures.push(
                         make_function_signature(
                             decl.name.lexeme,
-                            this.resolve_signature_type_or_error(decl.return_type),
+                            this.resolve_signature_type_with_params_or_error(decl.return_type, decl.generic_params),
                             param_tys,
                             this.resolve_signature_type_name(decl.return_type),
                             param_ty_names,
