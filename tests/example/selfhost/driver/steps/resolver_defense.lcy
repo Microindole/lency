@@ -65,6 +65,56 @@ bool run_resolver_preload_defensive_tests() {
         print("Resolver defensive test failed: unsupported expression kind should report error.\n")
         return false
     }
+    var malformed_resolver = make_resolver()
+    malformed_resolver.resolve_expr(make_expr_literal(make_token(T_ERROR(), "", 1, 1)))
+    var malformed_assign = make_expr_assign(make_token(T_IDENTIFIER(), "x", 1, 1), make_expr_literal(make_token(T_NUMBER(), "1", 1, 1)))
+    malformed_assign.children = vec[]
+    malformed_resolver.resolve_expr(malformed_assign)
+    var malformed_set = make_expr_set(
+        make_expr_literal(make_token(T_NUMBER(), "1", 1, 1)),
+        make_token(T_IDENTIFIER(), "value", 1, 1),
+        make_expr_literal(make_token(T_NUMBER(), "2", 1, 1))
+    )
+    malformed_set.children = vec[]
+    malformed_resolver.resolve_expr(malformed_set)
+    var malformed_get = make_expr_get(
+        make_expr_literal(make_token(T_NUMBER(), "1", 1, 1)),
+        make_token(T_IDENTIFIER(), "value", 1, 1)
+    )
+    malformed_get.children = vec[]
+    malformed_resolver.resolve_expr(malformed_get)
+    var malformed_unary = make_expr_unary(
+        make_token(T_MINUS(), "-", 1, 1),
+        make_expr_literal(make_token(T_NUMBER(), "1", 1, 1))
+    )
+    malformed_unary.children = vec[]
+    malformed_resolver.resolve_expr(malformed_unary)
+    malformed_resolver.resolve_expr(make_expr_unary(
+        make_token(T_PLUS(), "+", 1, 1),
+        make_expr_literal(make_token(T_NUMBER(), "1", 1, 1))
+    ))
+    var malformed_binary = make_expr_binary(
+        make_expr_literal(make_token(T_NUMBER(), "1", 1, 1)),
+        make_token(T_PLUS(), "+", 1, 1),
+        make_expr_literal(make_token(T_NUMBER(), "2", 1, 1))
+    )
+    malformed_binary.children = vec[]
+    malformed_resolver.resolve_expr(malformed_binary)
+    malformed_resolver.resolve_expr(make_expr_binary(
+        make_expr_literal(make_token(T_NUMBER(), "1", 1, 1)),
+        make_token(T_BANG(), "!", 1, 1),
+        make_expr_literal(make_token(T_NUMBER(), "2", 1, 1))
+    ))
+    var malformed_call = make_expr_call(
+        make_expr_variable(make_token(T_IDENTIFIER(), "demo", 1, 1)),
+        vec[]
+    )
+    malformed_call.children = vec[]
+    malformed_resolver.resolve_expr(malformed_call)
+    if malformed_resolver.error_count != 9 {
+        print("Resolver defensive test failed: malformed expressions should each report one error.\n")
+        return false
+    }
     sig_resolver.function_signatures.push(
         make_function_signature("demo_enum", TYPE_NAMED(), vec[], "Status", vec[], "")
     )

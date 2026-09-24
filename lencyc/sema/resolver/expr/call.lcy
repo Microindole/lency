@@ -7,6 +7,10 @@ import lencyc.sema.resolver
 
 impl Resolver {
     int resolve_expr_call(Expr expr) {
+        if expr.children.len() == 0 {
+            this.error("call expression is missing its callee")
+            return TYPE_UNKNOWN()
+        }
         var call_ty = TYPE_UNKNOWN()
         var callee_name = ""
         var has_user_signature = false

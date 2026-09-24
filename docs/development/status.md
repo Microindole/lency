@@ -48,6 +48,7 @@
 - selfhost resolver 的括号表达式会继续传播内部类型；未知表达式 kind 会显式报错，不再统一降级为 `TYPE_UNKNOWN`。
 - selfhost resolver 会先登记导入模块中的类型名，再严格解析字段、枚举载荷和函数签名；同模块前向类型引用仍然有效，未知类型不再静默降级。
 - selfhost 签名校验会递归检查泛型参数中的类型名，并在当前模块与导入模块间共用同一规则；显式声明的 `T` 等泛型参数仍按声明作用域放行。
+- selfhost resolver 已为缺失子节点、未知 literal token 和不支持运算符补齐显式诊断，畸形表达式 AST 不再静默降级为 `TYPE_UNKNOWN`。
 - 检查输出以 `[xtask]`、`[rust/cargo]`、`[lency/rust-host]`、`[lency/selfhost]` 标记执行来源；交互终端中使用颜色区分，`NO_COLOR` 或非终端输出保持纯文本。
 - 块内声明和顶层声明仍存在中间表示上的双轨边界。
 - Lency 尚不支持 `/* ... */` 块注释。
