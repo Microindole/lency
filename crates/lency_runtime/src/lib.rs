@@ -252,7 +252,7 @@ pub unsafe extern "C" fn lency_vec_free(vec: *mut LencyVec) {
 /// Convert int to string
 /// Returns a newly allocated C string that must be freed
 #[no_mangle]
-pub extern "C" fn lency_int_to_string(n: i64) -> *mut i8 {
+pub extern "C" fn lency_int_to_string(n: i64) -> *mut c_char {
     let s = n.to_string();
     match CString::new(s) {
         Ok(cs) => cs.into_raw(),
@@ -262,7 +262,7 @@ pub extern "C" fn lency_int_to_string(n: i64) -> *mut i8 {
 
 /// Convert float to string
 #[no_mangle]
-pub extern "C" fn lency_float_to_string(f: f64) -> *mut i8 {
+pub extern "C" fn lency_float_to_string(f: f64) -> *mut c_char {
     let s = format!("{}", f);
     match CString::new(s) {
         Ok(cs) => cs.into_raw(),
@@ -276,7 +276,7 @@ pub extern "C" fn lency_float_to_string(f: f64) -> *mut i8 {
 /// # Safety
 /// `s` must be a valid null-terminated C string
 #[no_mangle]
-pub unsafe extern "C" fn lency_parse_int(s: *const i8, is_ok: *mut i32) -> i64 {
+pub unsafe extern "C" fn lency_parse_int(s: *const c_char, is_ok: *mut i32) -> i64 {
     if s.is_null() {
         if !is_ok.is_null() {
             *is_ok = 0;
@@ -314,7 +314,7 @@ pub unsafe extern "C" fn lency_parse_int(s: *const i8, is_ok: *mut i32) -> i64 {
 /// # Safety
 /// `s` must be a valid null-terminated C string
 #[no_mangle]
-pub unsafe extern "C" fn lency_parse_float(s: *const i8, is_ok: *mut i32) -> f64 {
+pub unsafe extern "C" fn lency_parse_float(s: *const c_char, is_ok: *mut i32) -> f64 {
     if s.is_null() {
         if !is_ok.is_null() {
             *is_ok = 0;
@@ -352,7 +352,7 @@ pub unsafe extern "C" fn lency_parse_float(s: *const i8, is_ok: *mut i32) -> f64
 /// # Safety
 /// `s` must be a valid pointer returned by one of the above functions
 #[no_mangle]
-pub unsafe extern "C" fn lency_free_string(s: *mut i8) {
+pub unsafe extern "C" fn lency_free_string(s: *mut c_char) {
     if !s.is_null() {
         let _ = CString::from_raw(s);
     }
@@ -408,7 +408,7 @@ pub extern "C" fn lency_arg_count() -> i64 {
 /// # Safety
 /// Caller must eventually free returned string with `lency_free_string`.
 #[no_mangle]
-pub unsafe extern "C" fn lency_arg_at(index: i64) -> *mut i8 {
+pub unsafe extern "C" fn lency_arg_at(index: i64) -> *mut c_char {
     if index < 0 {
         return std::ptr::null_mut();
     }
