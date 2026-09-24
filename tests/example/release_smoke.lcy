@@ -1,0 +1,5 @@
+// Minimal source used to verify that an unpacked release bundle can build and run a program.
+
+int main() {
+    return 0
+}
