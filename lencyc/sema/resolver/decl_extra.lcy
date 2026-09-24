@@ -231,10 +231,10 @@ impl Resolver {
 
     void resolve_extern_decl(Decl decl) {
         // extern 签名已在 preload 阶段进入符号表，这里只做类型引用校验。
-        this.resolve_signature_type_or_error(decl.return_type)
+        this.resolve_signature_type_with_params_or_error(decl.return_type, decl.generic_params)
         var i = 0
         while i < decl.param_types.len() {
-            this.resolve_signature_type_or_error(decl.param_types[i])
+            this.resolve_signature_type_with_params_or_error(decl.param_types[i], decl.generic_params)
             i = i + 1
         }
     }
@@ -252,7 +252,7 @@ impl Resolver {
             variant_names.push(variant.name)
             var j = 0
             while j < variant.payload_types.len() {
-                this.resolve_signature_type_or_error(variant.payload_types[j])
+                this.resolve_signature_type_with_params_or_error(variant.payload_types[j], decl.generic_params)
                 j = j + 1
             }
             i = i + 1

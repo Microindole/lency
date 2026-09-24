@@ -193,7 +193,37 @@ impl Resolver {
         return TYPE_UNKNOWN()
     }
 
-    int resolve_signature_type_or_error(TypeRef type_ref) {
+    bool is_signature_type_identifier_start(int ch) {
+        return (ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122) || ch == 95
+    }
+
+    bool is_signature_type_identifier_continue(int ch) {
+        return this.is_signature_type_identifier_start(ch) || (ch >= 48 && ch <= 57)
+    }
+
+    void validate_signature_type_names(string type_name, Vec<string> generic_params) {
+        var i = 0
+        while i < len(type_name) {
+            if !this.is_signature_type_identifier_start(type_name[i]) {
+                i = i + 1
+                continue
+            }
+            var start = i
+            i = i + 1
+            while i < len(type_name) {
+                if !this.is_signature_type_identifier_continue(type_name[i]) {
+                    break
+                }
+                i = i + 1
+            }
+            var nested_name = substr(type_name, start, i - start)
+            if !this.contains_name(generic_params, nested_name) && !this.table.resolve(nested_name) {
+                this.error("unknown type in signature: " + nested_name)
+            }
+        }
+    }
+
+    int resolve_signature_type_with_params_or_error(TypeRef type_ref, Vec<string> generic_params) {
         var type_name = type_ref.name
         var nullable_suffix = false
         if len(type_name) > 0 && type_name[len(type_name) - 1] == 63 {
@@ -206,9 +236,7 @@ impl Resolver {
                 this.error("empty custom type name in signature")
                 return TYPE_UNKNOWN()
             }
-            if !this.table.resolve(this.signature_base_type_name(type_name)) {
-                this.error("unknown type in signature: " + type_name)
-            }
+            this.validate_signature_type_names(type_name, generic_params)
             if nullable_suffix {
                 return TYPE_NULLABLE_NAMED()
             }
@@ -226,18 +254,8 @@ impl Resolver {
         return nullable_ty
     }
 
-    int resolve_signature_type_with_params_or_error(TypeRef type_ref, Vec<string> generic_params) {
-        if type_ref.kind == T_IDENTIFIER() {
-            var type_name = this.nullable_base_type_name(type_ref.name)
-            var base_name = this.signature_base_type_name(type_name)
-            if this.contains_name(generic_params, base_name) {
-                if this.is_nullable_type_name(type_ref.name) {
-                    return TYPE_NULLABLE_NAMED()
-                }
-                return TYPE_NAMED()
-            }
-        }
-        return this.resolve_signature_type_or_error(type_ref)
+    int resolve_signature_type_or_error(TypeRef type_ref) {
+        return this.resolve_signature_type_with_params_or_error(type_ref, vec[])
     }
 
     string resolve_signature_enum_name_or_empty(TypeRef type_ref) {

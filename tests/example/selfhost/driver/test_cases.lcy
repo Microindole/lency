@@ -86,8 +86,10 @@ string src_resolver_user_function_float_signature_ok() { return "float sum(float
 string src_resolver_nullable_signature_ok() { return "int? keep(int? x) {\n  return x\n}\nvar v = keep(null)\nv = 1\nv = null\nreturn 0"; }
 string src_resolver_nullable_signature_bad() { return "int? keep(int? x) {\n  return true\n}\nreturn 0"; }
 string src_resolver_custom_type_signature_ok() { return "enum Outcome {\n  Value(int)\n}\nOutcome id(Outcome x) {\n  return x\n}\nvar y = id(Value(1))\nreturn 0"; }
+string src_resolver_generic_type_signature_ok() { return "T identity<T>(T value) {\n  return value\n}\nreturn 0"; }
 string src_resolver_custom_nullable_signature_ok() { return "struct Boxed {\n}\nBoxed? id(Boxed? x) {\n  return x\n}\nvar y = id(null)\nreturn 0"; }
 string src_resolver_custom_type_signature_bad() { return "Mystery id(Mystery x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
+string src_resolver_nested_unknown_type_signature_bad() { return "Vec<Mystery> bad(Vec<int> value) {\n  return value\n}\nreturn 0"; }
 string src_parser_struct_decl_program() { return "struct Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
 string src_resolver_custom_type_signature_with_struct_ok() { return "struct Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nreturn 0"; }
 string src_parser_impl_decl_program() { return "struct Boxed {\n}\nimpl Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }

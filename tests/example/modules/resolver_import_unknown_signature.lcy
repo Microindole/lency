@@ -1,6 +1,6 @@
 // tests/example/modules/resolver_import_unknown_signature.lcy
 // Unknown types in imported signatures must be rejected by the resolver.
 
-MissingType make_missing() {
-    return null
+Vec<MissingType> make_missing() {
+    return vec[]
 }

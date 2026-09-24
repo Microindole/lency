@@ -183,10 +183,16 @@ int main() {
     if !expect_shared_resolve_success(src_resolver_custom_type_signature_ok(), "custom type signature positive") {
         return 1
     }
+    if !expect_shared_resolve_success(src_resolver_generic_type_signature_ok(), "generic type parameter signature positive") {
+        return 1
+    }
     if !expect_shared_resolve_success(src_resolver_custom_nullable_signature_ok(), "custom nullable signature positive") {
         return 1
     }
     if !expect_shared_resolve_error(src_resolver_custom_type_signature_bad(), "custom type signature unknown type negative") {
+        return 1
+    }
+    if !expect_shared_resolve_error(src_resolver_nested_unknown_type_signature_bad(), "nested generic unknown type negative") {
         return 1
     }
 
