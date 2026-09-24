@@ -111,7 +111,7 @@ jobs:
           mkdir -p "$SMOKE_ROOT"
           tar -C "$SMOKE_ROOT" -xzf "$ARCHIVE"
           BUNDLE="$SMOKE_ROOT/lency-linux-${{ matrix.arch }}"
-          "$BUNDLE/lencyc" build "$GITHUB_WORKSPACE/tests/example/lir/lencyc_lir_exit0.lcy" -o release-smoke --out-dir "$BUNDLE"
+          "$BUNDLE/lencyc" build "$GITHUB_WORKSPACE/tests/example/release_smoke.lcy" -o release-smoke --out-dir "$BUNDLE"
           "$BUNDLE/release-smoke"
       - uses: actions/upload-artifact@v7
         with:
@@ -162,7 +162,7 @@ jobs:
           mkdir -p "$SMOKE_ROOT"
           tar -C "$SMOKE_ROOT" -xzf "$ARCHIVE"
           BUNDLE="$SMOKE_ROOT/lency-macos-arm64"
-          "$BUNDLE/lencyc" build "$GITHUB_WORKSPACE/tests/example/lir/lencyc_lir_exit0.lcy" -o release-smoke --out-dir "$BUNDLE"
+          "$BUNDLE/lencyc" build "$GITHUB_WORKSPACE/tests/example/release_smoke.lcy" -o release-smoke --out-dir "$BUNDLE"
           "$BUNDLE/release-smoke"
       - uses: actions/upload-artifact@v7
         with:
@@ -207,8 +207,8 @@ jobs:
           $smokeRoot = Join-Path $env:RUNNER_TEMP 'lency-release-smoke'
           Expand-Archive -LiteralPath $archive -DestinationPath $smokeRoot -Force
           $bundle = Join-Path $smokeRoot 'lency-windows-x64'
-          $input = Join-Path $env:GITHUB_WORKSPACE 'tests\example\lir\lencyc_lir_exit0.lcy'
-          & (Join-Path $bundle 'lencyc.exe') build $input -o release-smoke --out-dir $bundle
+          $input = Join-Path $env:GITHUB_WORKSPACE 'tests\example\release_smoke.lcy'
+          & (Join-Path $bundle 'lencyc.exe') build $input -o release-smoke.exe --out-dir $bundle
           & (Join-Path $bundle 'release-smoke.exe')
       - uses: actions/upload-artifact@v7
         with:
