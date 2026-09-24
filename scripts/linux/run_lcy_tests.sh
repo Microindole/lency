@@ -28,7 +28,7 @@ fi
 echo ""
 
 for file in $LCY_FILES; do
-    rel_path="${file#$PROJECT_ROOT/}"
+    rel_path="${file#"$PROJECT_ROOT"/}"
     
     # 检查文件是否包含 @expect-error 注释
     first_lines=$(head -5 "$file")
@@ -77,9 +77,6 @@ done
 
 echo ""
 echo "====================================="
-
-# 计算总预期失败数
-TOTAL_EXPECTED=$((EXPECTED_FAIL + EXPECTED_TODO + EXPECTED_FIXME))
 
 echo "📊 Results:"
 echo "   ✅ Passed: $PASS"
