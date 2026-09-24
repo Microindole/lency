@@ -16,6 +16,22 @@ Vec<Stmt> empty_stmt_list() {
 }
 
 impl Parser {
+    Vec<string> parse_generic_parameter_names() {
+        Vec<string> names = vec[]
+        if !this.match_token(T_LESS()) {
+            return names
+        }
+        while !this.check(T_GREATER()) && !this.is_at_end() {
+            this.consume(T_IDENTIFIER(), "Expect generic parameter name.")
+            names.push(this.previous.lexeme)
+            if !this.match_token(T_COMMA()) {
+                break
+            }
+        }
+        this.consume(T_GREATER(), "Expect '>' after generic parameters.")
+        return names
+    }
+
     string parse_signature_generic_suffix() {
         if !this.match_token(T_LESS()) {
             return ""
@@ -124,7 +140,7 @@ impl Parser {
     }
 
     Stmt function_declaration_after_name(TypeRef return_type, Token name) {
-        this.skip_generic_type_arguments_if_any()
+        var generic_params = this.parse_generic_parameter_names()
         this.consume(T_LEFT_PAREN(), "Expect '(' after function name.")
         var parsed_params = this.parse_signature_param_list()
         this.consume(T_RIGHT_PAREN(), "Expect ')' after parameters.")
@@ -135,19 +151,21 @@ impl Parser {
         } else {
             body = this.block()
         }
-        return make_stmt_function(
+        var stmt = make_stmt_function(
             name,
             return_type,
             parsed_params.names,
             parsed_params.types,
             body
         )
+        stmt.decl.generic_params = generic_params
+        return stmt
     }
 
     Stmt struct_declaration() {
         this.consume(T_IDENTIFIER(), "Expect type name after 'struct'.")
         var name = this.previous
-        this.skip_generic_type_arguments_if_any()
+        var generic_params = this.parse_generic_parameter_names()
         this.consume(T_LEFT_BRACE(), "Expect '{' after type name.")
         Vec<StructField> fields = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
@@ -164,11 +182,13 @@ impl Parser {
             this.advance()
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after type body.")
-        return make_stmt_struct(name, fields)
+        var stmt = make_stmt_struct(name, fields)
+        stmt.decl.generic_params = generic_params
+        return stmt
     }
 
     Stmt impl_declaration() {
-        this.skip_generic_type_arguments_if_any()
+        var generic_params = this.parse_generic_parameter_names()
         this.consume(T_IDENTIFIER(), "Expect type name after 'impl'.")
         var name = this.previous
         this.skip_generic_type_arguments_if_any()
@@ -181,14 +201,22 @@ impl Parser {
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.is_function_return_type_start() {
                 var member_return_type = this.parse_signature_type_ref()
-                members.push(this.function_declaration(member_return_type))
+                var member = this.function_declaration(member_return_type)
+                var generic_index = 0
+                while generic_index < generic_params.len() {
+                    member.decl.generic_params.push(generic_params[generic_index])
+                    generic_index = generic_index + 1
+                }
+                members.push(member)
             } else {
                 this.error("Expect function declaration in impl body.")
                 this.advance()
             }
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after impl body.")
-        return make_stmt_impl(name, members)
+        var stmt = make_stmt_impl(name, members)
+        stmt.decl.generic_params = generic_params
+        return stmt
     }
 
     Stmt import_declaration() {
@@ -236,7 +264,7 @@ impl Parser {
         var return_type = this.parse_signature_type_ref()
         this.consume(T_IDENTIFIER(), "Expect function name after extern return type.")
         var name = this.previous
-        this.skip_generic_type_arguments_if_any()
+        var generic_params = this.parse_generic_parameter_names()
         this.consume(T_LEFT_PAREN(), "Expect '(' after extern function name.")
         var parsed_params = this.parse_signature_param_list()
         this.consume(T_RIGHT_PAREN(), "Expect ')' after extern parameters.")
@@ -244,13 +272,15 @@ impl Parser {
         if this.match_token(T_SEMICOLON()) {
             // no-op
         }
-        return make_stmt_extern(name, return_type, parsed_params.names, parsed_params.types)
+        var stmt = make_stmt_extern(name, return_type, parsed_params.names, parsed_params.types)
+        stmt.decl.generic_params = generic_params
+        return stmt
     }
 
     Stmt enum_declaration() {
         this.consume(T_IDENTIFIER(), "Expect EnumName after 'enum'.")
         var name = this.previous
-        this.skip_generic_type_arguments_if_any()
+        var generic_params = this.parse_generic_parameter_names()
         this.consume(T_LEFT_BRACE(), "Expect '{' after EnumName.")
         Vec<string> variants = vec[]
         Vec<EnumVariant> enum_variants = vec[]
@@ -276,7 +306,9 @@ impl Parser {
             }
         }
         this.consume(T_RIGHT_BRACE(), "Expect '}' after EnumBody.")
-        return make_stmt_enum_with_variants(name, variants, enum_variants)
+        var stmt = make_stmt_enum_with_variants(name, variants, enum_variants)
+        stmt.decl.generic_params = generic_params
+        return stmt
     }
 
     Stmt trait_declaration() {

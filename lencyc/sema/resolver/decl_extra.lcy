@@ -39,13 +39,36 @@ impl Resolver {
     }
 
     void preload_imported_declarations(Program program, string module_path) {
+        var type_index = 0
+        while type_index < program.decls.len() {
+            var type_decl = program.decls[type_index]
+            if type_decl.kind == DECL_STRUCT() || type_decl.kind == DECL_ENUM() {
+                if !this.table.resolve(type_decl.name.lexeme) {
+                    this.table.define(type_decl.name.lexeme)
+                }
+                if type_decl.kind == DECL_ENUM() {
+                    this.preload_enum_type_name(type_decl.name.lexeme)
+                }
+            }
+            type_index = type_index + 1
+        }
+
+        var import_index = 0
+        while import_index < program.decls.len() {
+            var import_decl = program.decls[import_index]
+            if import_decl.kind == DECL_IMPORT() {
+                var imported_path = this.resolve_import_module_file_path(import_decl.params)
+                if imported_path != "" {
+                    this.preload_import_module(imported_path)
+                }
+            }
+            import_index = import_index + 1
+        }
+
         var i = 0
         while i < program.decls.len() {
             var decl = program.decls[i]
             if decl.kind == DECL_STRUCT() {
-                if !this.table.resolve(decl.name.lexeme) {
-                    this.table.define(decl.name.lexeme)
-                }
                 var f = 0
                 while f < decl.struct_fields.len() {
                     var field = decl.struct_fields[f]
@@ -53,7 +76,7 @@ impl Resolver {
                         make_struct_field_signature(
                             decl.name.lexeme,
                             field.name.lexeme,
-                            this.resolve_signature_type_or_unknown(field.type_ref),
+                            this.resolve_signature_type_with_params_or_error(field.type_ref, decl.generic_params),
                             this.resolve_signature_type_name(field.type_ref)
                         )
                     )
@@ -61,10 +84,6 @@ impl Resolver {
                 }
             }
             if decl.kind == DECL_ENUM() {
-                if !this.table.resolve(decl.name.lexeme) {
-                    this.table.define(decl.name.lexeme)
-                }
-                this.preload_enum_type_name(decl.name.lexeme)
                 var v = 0
                 while v < decl.enum_variants.len() {
                     var variant = decl.enum_variants[v]
@@ -75,7 +94,7 @@ impl Resolver {
                     Vec<string> payload_ty_names = vec[]
                     var p = 0
                     while p < variant.payload_types.len() {
-                        payload_tys.push(this.resolve_signature_type_or_unknown(variant.payload_types[p]))
+                        payload_tys.push(this.resolve_signature_type_with_params_or_error(variant.payload_types[p], decl.generic_params))
                         payload_ty_names.push(this.resolve_signature_type_name(variant.payload_types[p]))
                         p = p + 1
                     }
@@ -91,14 +110,14 @@ impl Resolver {
                     Vec<string> param_ty_names = vec[]
                     var k = 0
                     while k < decl.param_types.len() {
-                        param_tys.push(this.resolve_signature_type_or_unknown(decl.param_types[k]))
+                        param_tys.push(this.resolve_signature_type_with_params_or_error(decl.param_types[k], decl.generic_params))
                         param_ty_names.push(this.resolve_signature_type_name(decl.param_types[k]))
                         k = k + 1
                     }
                     this.function_signatures.push(
                         make_function_signature(
                             decl.name.lexeme,
-                            this.resolve_signature_type_or_unknown(decl.return_type),
+                            this.resolve_signature_type_with_params_or_error(decl.return_type, decl.generic_params),
                             param_tys,
                             this.resolve_signature_type_name(decl.return_type),
                             param_ty_names,
@@ -118,14 +137,14 @@ impl Resolver {
                         Vec<string> member_param_ty_names = vec[]
                         var mp = 0
                         while mp < member.param_types.len() {
-                            member_param_tys.push(this.resolve_signature_type_or_unknown(member.param_types[mp]))
+                            member_param_tys.push(this.resolve_signature_type_with_params_or_error(member.param_types[mp], member.generic_params))
                             member_param_ty_names.push(this.resolve_signature_type_name(member.param_types[mp]))
                             mp = mp + 1
                         }
                         this.function_signatures.push(
                             make_function_signature(
                                 member.name.lexeme,
-                                this.resolve_signature_type_or_unknown(member.return_type),
+                                this.resolve_signature_type_with_params_or_error(member.return_type, member.generic_params),
                                 member_param_tys,
                                 this.resolve_signature_type_name(member.return_type),
                                 member_param_ty_names,
@@ -134,12 +153,6 @@ impl Resolver {
                         )
                     }
                     m = m + 1
-                }
-            }
-            if decl.kind == DECL_IMPORT() {
-                var imported_path = this.resolve_import_module_file_path(decl.params)
-                if imported_path != "" {
-                    this.preload_import_module(imported_path)
                 }
             }
             i = i + 1

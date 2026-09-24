@@ -118,6 +118,8 @@ string src_parser_import_missing_segment_bad() { return "import std.\nvar x = 1\
 string src_resolver_extern_call_ok() { return "extern int strlen(string s)\nvar n = strlen(\"ok\")\nreturn n"; }
 string src_resolver_extern_call_arity_bad() { return "extern int strlen(string s)\nvar n = strlen()\nreturn n"; }
 string src_resolver_import_module_symbol_ok() { return "import tests.example.modules.resolver_import_symbols\nvar x = inc(1)\nvar m = make_mode()\nvar code = match (m) {\n  A => 0,\n  B => 1\n}\nreturn x + code"; }
+string src_resolver_import_forward_type_ok() { return "import tests.example.modules.resolver_import_forward_type\nvar item = make_item()\nreturn item.value"; }
+string src_resolver_import_unknown_signature_bad() { return "import tests.example.modules.resolver_import_unknown_signature\nreturn 0"; }
 string src_resolver_import_module_missing_bad() { return "import tests.example.modules.missing_symbols\nvar x = 1\nreturn x"; }
 string src_resolver_user_result_enum_ok() { return "import std.core\nenum Result {\n  Ok(int),\n  Err(string)\n}\nResult make_ok() {\n  return Ok(1)\n}\nvar r = make_ok()\nvar code = match (r) {\n  Ok(v) => v,\n  Err(e) => 0\n}\nreturn code"; }
 string src_resolver_std_core_result_missing_bad() { return "import std.core\nResult make_ok() {\n  return Ok(1)\n}\nreturn 0"; }

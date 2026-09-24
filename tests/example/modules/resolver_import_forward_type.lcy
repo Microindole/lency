@@ -1,0 +1,10 @@
+// tests/example/modules/resolver_import_forward_type.lcy
+// Imported signatures may refer to a type declared later in the same module.
+
+Item make_item() {
+    return Item { value: 1 }
+}
+
+struct Item {
+    int value
+}

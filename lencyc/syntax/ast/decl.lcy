@@ -17,6 +17,7 @@ struct Decl {
     int kind
     Token name
     TypeRef return_type
+    Vec<string> generic_params
     Vec<string> params
     Vec<TypeRef> param_types
     Vec<StructField> struct_fields
@@ -29,6 +30,7 @@ Decl make_decl_base(int kind) {
         kind: kind,
         name: make_token(0, "", 0, 0),
         return_type: make_type_ref(0, ""),
+        generic_params: vec[],
         params: vec[],
         param_types: vec[],
         struct_fields: vec[],

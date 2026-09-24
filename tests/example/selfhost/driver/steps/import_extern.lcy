@@ -79,6 +79,12 @@ bool run_import_extern_declaration_tests() {
     if !expect_shared_resolve_success(src_resolver_import_module_symbol_ok(), "import module symbol positive") {
         return false
     }
+    if !expect_shared_resolve_success(src_resolver_import_forward_type_ok(), "import forward type signature positive") {
+        return false
+    }
+    if !expect_shared_resolve_error(src_resolver_import_unknown_signature_bad(), "import unknown signature type negative") {
+        return false
+    }
     if !expect_shared_resolve_error(src_resolver_import_module_missing_bad(), "import module missing negative") {
         return false
     }
