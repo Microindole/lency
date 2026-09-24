@@ -283,11 +283,29 @@ impl Resolver {
     }
 
     int visit_expr_grouping(Expr expr) {
+        if expr.children.len() == 0 {
+            this.error("grouping expression is missing its inner expression")
+            return TYPE_UNKNOWN()
+        }
+        var inner_ty = this.resolve_expr(expr.children[0])
+        if expr.children.len() > 1 {
+            var i = 1
+            while i < expr.children.len() {
+                this.resolve_expr(expr.children[i])
+                i = i + 1
+            }
+            this.error("grouping expression must contain exactly one inner expression")
+        }
+        return inner_ty
+    }
+
+    int visit_expr_unsupported(Expr expr) {
         var i = 0
         while i < expr.children.len() {
             this.resolve_expr(expr.children[i])
             i = i + 1
         }
+        this.error("unsupported expression kind: " + int_to_string(expr.kind))
         return TYPE_UNKNOWN()
     }
 
@@ -330,6 +348,9 @@ impl Resolver {
         if expr.kind == EXPR_MATCH() {
             return this.resolve_expr_match(expr)
         }
-        return this.visit_expr_grouping(expr)
+        if expr.kind == EXPR_GROUPING() {
+            return this.visit_expr_grouping(expr)
+        }
+        return this.visit_expr_unsupported(expr)
     }
 }

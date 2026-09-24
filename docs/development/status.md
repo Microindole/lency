@@ -45,6 +45,7 @@
 - Rust 母体的冻结语法已改为类型在前的显式局部变量、C 风格泛型调用、`vec[...]` 字面量和 `int[3]` 固定数组；`=>` 仅保留给 match。旧的 `var x: T`、`::<T>`、`vec![]` 与 Rust 风格闭包已退出公开语法。
 - Rust 母体的 runtime intrinsic 已统一解析为普通 `Call` AST，并通过全局函数符号完成名称与类型检查；专用处理只保留在集中 lowering 边界。字符串动态索引也已补齐越界 panic，不再静默读取越界内存。
 - 普通调用现在统一执行参数数量和参数类型检查，嵌套调用也不再绕过强静态约束。由此暴露出的 selfhost 无类型空 Vec 已全部改为 `Vec<T> name = vec[]`，selfhost parser/AST/resolver/LIR 同步保留显式局部变量类型，stage2/stage3 继续收敛。
+- selfhost resolver 的括号表达式会继续传播内部类型；未知表达式 kind 会显式报错，不再统一降级为 `TYPE_UNKNOWN`。
 - 检查输出以 `[xtask]`、`[rust/cargo]`、`[lency/rust-host]`、`[lency/selfhost]` 标记执行来源；交互终端中使用颜色区分，`NO_COLOR` 或非终端输出保持纯文本。
 - 块内声明和顶层声明仍存在中间表示上的双轨边界。
 - Lency 尚不支持 `/* ... */` 块注释。
