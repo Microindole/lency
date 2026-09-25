@@ -29,7 +29,7 @@ jobs:
     name: GitHub Actions and shell scripts
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Lint workflow files
         run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
       - name: Lint shell scripts
@@ -39,7 +39,7 @@ jobs:
     name: PowerShell syntax
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Parse PowerShell scripts
         shell: pwsh
         run: |
