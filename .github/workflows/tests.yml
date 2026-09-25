@@ -38,7 +38,7 @@ jobs:
       rust: ${{ steps.filter.outputs.rust }}
       compiler: ${{ steps.filter.outputs.compiler }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: filter
@@ -85,7 +85,7 @@ jobs:
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install LLVM 15
         run: |
           sudo apt-get update
@@ -111,7 +111,7 @@ jobs:
     env:
       LLVM_SYS_150_PREFIX: /usr/lib/llvm-15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install LLVM 15
         run: |
           sudo apt-get update
@@ -129,7 +129,7 @@ jobs:
     env:
       RUSTFLAGS: -C symbol-mangling-version=v0
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install LLVM 15
         run: |
           brew install llvm@15
@@ -149,7 +149,7 @@ jobs:
     if: needs.changes.outputs.compiler == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-llvm-15-windows
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2

@@ -34,7 +34,7 @@ jobs:
     name: Editor Checks (Linux)
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Use Node.js
       uses: actions/setup-node@v6
@@ -70,7 +70,7 @@ jobs:
     runs-on: windows-2025
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Use Node.js
       uses: actions/setup-node@v6
