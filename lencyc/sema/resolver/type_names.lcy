@@ -79,6 +79,13 @@ impl Resolver {
         if expr.kind == EXPR_CALL() {
             if expr.children.len() > 0 {
                 var callee_name = this.extract_callee_name(expr.children[0])
+                var callee = expr.children[0]
+                while callee.kind == EXPR_GROUPING() && callee.children.len() > 0 {
+                    callee = callee.children[0]
+                }
+                if callee.kind == EXPR_GET() && callee.children.len() > 0 {
+                    return this.infer_member_call_type_name(callee)
+                }
                 if callee_name != "" {
                     var ctor_enum_name = this.lookup_enum_constructor_name(callee_name)
                     if ctor_enum_name != "" {

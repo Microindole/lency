@@ -124,29 +124,13 @@ impl Resolver {
             var object_ty = this.resolve_expr(expr.children[0])
             var object_ty_name = this.infer_expr_type_name(expr.children[0], object_ty)
             if object_ty_name == "" {
+                this.error("member access receiver has no known type: " + expr.literal_value.lexeme)
                 return TYPE_UNKNOWN()
             }
             if this.is_struct_field(object_ty_name, expr.literal_value.lexeme) {
                 return this.lookup_struct_field_type(object_ty_name, expr.literal_value.lexeme)
             }
-            if this.signature_base_type_name(object_ty_name) == "Vec" {
-                if expr.literal_value.lexeme == "len" {
-                    return TYPE_INT()
-                }
-                if expr.literal_value.lexeme == "push" ||
-                   expr.literal_value.lexeme == "pop" ||
-                   expr.literal_value.lexeme == "get" ||
-                   expr.literal_value.lexeme == "set" ||
-                   expr.literal_value.lexeme == "index" {
-                    return TYPE_UNKNOWN()
-                }
-            }
-            if this.lookup_user_function_arity(expr.literal_value.lexeme) >= 0 {
-                return this.lookup_user_function_return_type(expr.literal_value.lexeme)
-            }
-            if object_ty == TYPE_NAMED() || object_ty == TYPE_NULLABLE_NAMED() {
-                this.error("unknown struct-field in access for " + object_ty_name + ": " + expr.literal_value.lexeme)
-            }
+            this.error("unknown field in access for " + object_ty_name + ": " + expr.literal_value.lexeme)
             return TYPE_UNKNOWN()
         }
         this.error("member access expression is missing its object")

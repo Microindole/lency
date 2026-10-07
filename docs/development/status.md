@@ -1,6 +1,6 @@
 # 自举状态
 
-更新：2026-09-23
+更新：2026-10-06
 
 ## 当前结论
 
@@ -40,6 +40,7 @@
 - selfhost emitter 的未知节点占位和未知函数 ABI 类型均已改为显式失败；下一步应继续收紧兼容性类型推断等宽松回退。
 - 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
+- selfhost 已按接收者类型检查 non-generic struct 方法（含导入模块），不同类型的同名方法不再混用签名；`this` 保留所属类型，方法参数和返回值参与类型检查。Vec 的 len/push/pop/get/set/索引与基础字符串方法也会传播类型、检查参数；无法确定元素类型的空 Vec 不能调用依赖元素类型的方法。未知字段和方法明确报错，generic impl 实例化仍待补齐。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
 - Rust 母体和 selfhost 均不再预置 `Result`、`Ok`、`Err`。它们只能来自普通用户类型或 enum 项；导入 `std.core` 不会隐式注入这些名称。
 - Rust 母体的冻结语法已改为类型在前的显式局部变量、C 风格泛型调用、`vec[...]` 字面量和 `int[3]` 固定数组；`=>` 仅保留给 match。旧的 `var x: T`、`::<T>`、`vec![]` 与 Rust 风格闭包已退出公开语法。

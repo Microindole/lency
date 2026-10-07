@@ -12,6 +12,13 @@ impl Resolver {
             return TYPE_UNKNOWN()
         }
         var call_ty = TYPE_UNKNOWN()
+        var callee_expr = expr.children[0]
+        while callee_expr.kind == EXPR_GROUPING() && callee_expr.children.len() > 0 {
+            callee_expr = callee_expr.children[0]
+        }
+        if callee_expr.kind == EXPR_GET() && callee_expr.children.len() > 0 {
+            return this.resolve_member_call(expr, callee_expr)
+        }
         var callee_name = ""
         var has_user_signature = false
         var has_enum_constructor_signature = false

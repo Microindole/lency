@@ -64,6 +64,9 @@ impl Resolver {
                     continue
                 }
                 method_names.push(member.name.lexeme)
+                this.begin_scope()
+                this.table.define("this")
+                this.define_typed_symbol("this", TYPE_NAMED(), decl.name.lexeme)
                 Vec<int> fn_param_tys = vec[]
                 Vec<string> fn_param_ty_names = vec[]
                 var j = 0
@@ -81,6 +84,7 @@ impl Resolver {
                     this.resolve_signature_type_with_params_or_error(member.return_type, member.generic_params),
                     this.resolve_signature_type_name(member.return_type)
                 )
+                this.end_scope()
                 i = i + 1
             }
             return

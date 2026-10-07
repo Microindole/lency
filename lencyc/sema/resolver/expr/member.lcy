@@ -1,0 +1,149 @@
+// lencyc/sema/resolver/expr/member.lcy
+// Receiver-aware method signatures and member-call type checking.
+import std.core
+import lencyc.syntax.ast
+import lencyc.sema.resolver
+
+impl Resolver {
+    void preload_method_signatures(Decl owner) {
+        // TODO: 为 generic impl 实例化替换所属类型参数；当前只按声明类型登记签名。
+        var i = 0
+        while i < owner.body.len() {
+            var method = stmt_to_decl(owner.body[i])
+            if method.kind == DECL_FUNCTION() {
+                var key = owner.name.lexeme + "__" + method.name.lexeme
+                if this.lookup_user_function_arity(key) < 0 {
+                    Vec<int> types = vec[]
+                    Vec<string> names = vec[]
+                    var p = 0
+                    while p < method.param_types.len() {
+                        types.push(this.resolve_signature_type_with_params_or_error(method.param_types[p], method.generic_params))
+                        names.push(method.param_types[p].name)
+                        p = p + 1
+                    }
+                    this.function_signatures.push(make_function_signature(
+                        key,
+                        this.resolve_signature_type_with_params_or_error(method.return_type, method.generic_params),
+                        types, method.return_type.name, names,
+                        this.resolve_signature_enum_name_or_empty(method.return_type)
+                    ))
+                }
+            }
+            i = i + 1
+        }
+    }
+
+    string vec_member_element_name(string receiver) {
+        if starts_with(receiver, "Vec<") && len(receiver) > 5 {
+            return substr(receiver, 4, len(receiver) - 5)
+        }
+        return ""
+    }
+
+    int member_type_code(string name) {
+        if name == "int" || name == "char" { return TYPE_INT() }
+        if name == "float" { return TYPE_FLOAT() }
+        if name == "bool" { return TYPE_BOOL() }
+        if name == "string" { return TYPE_STRING() }
+        if name == "void" { return TYPE_VOID() }
+        if name == "" || name == "unknown" { return TYPE_UNKNOWN() }
+        if this.is_nullable_type_name(name) {
+            var inner = this.member_type_code(this.nullable_base_type_name(name))
+            if inner == TYPE_NAMED() { return TYPE_NULLABLE_NAMED() }
+            return this.make_nullable_primitive_type(inner)
+        }
+        return TYPE_NAMED()
+    }
+
+    FunctionSignature member_signature(string receiver, string member) {
+        var key = receiver + "__" + member
+        var i = this.function_signatures.len() - 1
+        while i >= 0 {
+            if this.function_signatures[i].name == key {
+                return this.function_signatures[i]
+            }
+            i = i - 1
+        }
+        Vec<string> params = vec[]
+        var result = ""
+        var element = this.vec_member_element_name(receiver)
+        if this.signature_base_type_name(receiver) == "Vec" {
+            if member == "len" { result = "int" }
+            if element != "" {
+                if member == "push" { params = vec[element]; result = "void" }
+                if member == "pop" { result = element }
+                if member == "get" || member == "index" { params = vec["int"]; result = element }
+                if member == "set" { params = vec["int", element]; result = "void" }
+            }
+        }
+        if receiver == "string" {
+            if member == "len" { result = "int" }
+            if member == "index" { params = vec["int"]; result = "int" }
+            if member == "trim" { result = "string" }
+            if member == "split" { params = vec["string"]; result = "Vec<string>" }
+            if member == "substr" { params = vec["int", "int"]; result = "string" }
+        }
+        if member == "to_string" && (receiver == "int" || receiver == "float" || receiver == "bool" || receiver == "string") {
+            result = "string"
+        }
+        // String/Vec extension calls use a visible function whose first parameter is the receiver.
+        if result == "" && (receiver == "string" || starts_with(receiver, "Vec<")) {
+            var f = this.function_signatures.len() - 1
+            while f >= 0 {
+                var sig = this.function_signatures[f]
+                if sig.name == member && sig.param_ty_names.len() > 0 {
+                    if sig.param_ty_names[0] == receiver {
+                        var p = 1
+                        while p < sig.param_ty_names.len() {
+                            params.push(sig.param_ty_names[p])
+                            p = p + 1
+                        }
+                        result = sig.return_ty_name
+                        break
+                    }
+                }
+                f = f - 1
+            }
+        }
+        Vec<int> types = vec[]
+        var p = 0
+        while p < params.len() {
+            types.push(this.member_type_code(params[p]))
+            p = p + 1
+        }
+        var found = key
+        if result == "" { found = "" }
+        return make_function_signature(found, this.member_type_code(result), types, result, params, "")
+    }
+
+    string infer_member_call_type_name(Expr callee) {
+        var receiver = this.infer_expr_type_name(callee.children[0], TYPE_UNKNOWN())
+        return this.member_signature(receiver, callee.literal_value.lexeme).return_ty_name
+    }
+
+    int resolve_member_call(Expr call, Expr callee) {
+        var object_ty = this.resolve_expr(callee.children[0])
+        var receiver = this.infer_expr_type_name(callee.children[0], object_ty)
+        var sig = this.member_signature(receiver, callee.literal_value.lexeme)
+        if sig.name == "" {
+            this.error("unknown method for " + receiver + ": " + callee.literal_value.lexeme)
+        } else {
+            if call.children.len() - 1 != sig.param_tys.len() {
+                this.error("method arity mismatch for " + sig.name + ": expected " + int_to_string(sig.param_tys.len()) + ", got " + int_to_string(call.children.len() - 1))
+            }
+        }
+        var i = 1
+        while i < call.children.len() {
+            var actual = this.resolve_expr(call.children[i])
+            var actual_name = this.infer_expr_type_name(call.children[i], actual)
+            if sig.name != "" && i - 1 < sig.param_tys.len() {
+                if !this.types_match_or_unknown_by_name(sig.param_tys[i - 1], sig.param_ty_names[i - 1], actual, actual_name) {
+                    this.error("method argument type mismatch for " + sig.name + " arg #" + int_to_string(i) +
+                        ": expected " + sig.param_ty_names[i - 1] + ", got " + actual_name)
+                }
+            }
+            i = i + 1
+        }
+        return sig.return_ty
+    }
+}

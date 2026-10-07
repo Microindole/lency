@@ -1,0 +1,18 @@
+// Receiver-qualified imported method signatures for resolver regression tests.
+struct ImportedCounter {
+    int value
+}
+impl ImportedCounter {
+    int read(int amount) {
+        return this.value + amount
+    }
+}
+struct ImportedFlag {
+    bool value
+}
+impl ImportedFlag {
+    bool read(bool value) {
+        return value
+    }
+}
+

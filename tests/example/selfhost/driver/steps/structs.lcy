@@ -9,8 +9,10 @@ import lencyc.syntax.parser
 import lencyc.syntax.ast
 import lencyc.syntax.token
 import lencyc.codegen.lir
+import tests.example.selfhost.driver.steps.member
 
 bool run_struct_field_declaration_tests() {
+    if !run_member_type_tests() { return false }
     print("Step 25: Struct field declaration parsing and semantic tests...\n")
     var source = src_parser_struct_fields_program()
     var parser = make_parser(source)
