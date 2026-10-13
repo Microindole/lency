@@ -1,0 +1,45 @@
+// Return/branch/block and loop terminators through selfhost LIR.
+// @expect-exit: 0
+struct Choice {
+    int value
+}
+impl Choice {
+    int pick(bool first) {
+        if first {
+            return this.value
+        } else {
+            { return this.value + 1 }
+        }
+    }
+    void touch(bool early) {
+        if early { return }
+        this.value = this.value + 1
+    }
+}
+int choose(bool first) {
+    if first { return 2 } else { return 3 }
+}
+int loop_value(bool enter) {
+    while enter {
+        return 4
+    }
+    return 5
+}
+int main() {
+    var item = Choice { value: 6 }
+    item.touch(true)
+    item.touch(false)
+    if item.pick(true) != 7 || item.pick(false) != 8 { return 1 }
+    if choose(true) != 2 || choose(false) != 3 { return 2 }
+    if loop_value(true) != 4 || loop_value(false) != 5 { return 3 }
+    var n = 0
+    var sum = 0
+    while n < 5 {
+        n = n + 1
+        if n == 2 { continue }
+        if n == 4 { break } else { sum = sum + n }
+        { sum = sum + 1 }
+    }
+    return sum - 6
+}
+

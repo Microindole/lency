@@ -46,6 +46,9 @@ impl Resolver {
             return
         }
         if stmt.kind == STMT_RETURN() {
+            if this.in_function && this.current_function_return_type == TYPE_VOID() {
+                this.error("value return is not allowed in void function")
+            }
             var ret_ty = this.resolve_expr(stmt.expr)
             var ret_ty_name = this.infer_expr_type_name(stmt.expr, ret_ty)
             var expected_ret_name = this.current_function_return_type_name

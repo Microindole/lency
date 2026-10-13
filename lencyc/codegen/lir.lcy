@@ -15,7 +15,9 @@ struct LirBuilder {
     int error_count
     int temp_counter
     int label_counter
-    bool current_function_returns
+    // Whether the current basic block already has a return or loop jump terminator.
+    bool current_block_terminated
+    string current_function_return_type_name
     string current_function_name
     Vec<string> break_targets
     Vec<string> continue_targets
@@ -57,7 +59,8 @@ LirBuilder make_lir_builder() {
         error_count: 0,
         temp_counter: 0,
         label_counter: 0,
-        current_function_returns: false,
+        current_block_terminated: false,
+        current_function_return_type_name: "",
         current_function_name: "",
         break_targets: vec[],
         continue_targets: vec[],
@@ -237,6 +240,7 @@ impl LirBuilder {
         }
     }
     void emit_stmt(Stmt stmt) {
+        if this.current_block_terminated { return }
         if stmt.kind == STMT_VAR_DECL() {
             var init_val = this.emit_expr(stmt.expr)
             this.emit_line("  var %" + stmt.name.lexeme + " = " + init_val)
@@ -262,14 +266,20 @@ impl LirBuilder {
             return
         }
         if stmt.kind == STMT_RETURN() {
+            if this.current_function_return_type_name == "void" {
+                this.error("value return is not allowed in void function")
+            }
             var val = this.emit_expr(stmt.expr)
             this.emit_line("  ret " + val)
-            this.current_function_returns = true
+            this.current_block_terminated = true
             return
         }
         if stmt.kind == STMT_RETURN_VOID() {
+            if this.current_function_return_type_name != "" && this.current_function_return_type_name != "void" {
+                this.error("void return is not allowed in value-return function")
+            }
             this.emit_line("  ret")
-            this.current_function_returns = true
+            this.current_block_terminated = true
             return
         }
         if stmt.kind == STMT_BLOCK() {
@@ -285,11 +295,15 @@ impl LirBuilder {
             this.emit_line("  br " + cond + ", " + then_label + ", " + else_label)
             this.emit_line(then_label + ":")
             this.emit_stmt_list(stmt.body)
-            this.emit_line("  jmp " + end_label)
+            var then_terminated = this.current_block_terminated
+            if !then_terminated { this.emit_line("  jmp " + end_label) }
             this.emit_line(else_label + ":")
+            this.current_block_terminated = false
             this.emit_stmt_list(stmt.else_body)
-            this.emit_line("  jmp " + end_label)
-            this.emit_line(end_label + ":")
+            var else_terminated = this.current_block_terminated
+            if !else_terminated { this.emit_line("  jmp " + end_label) }
+            this.current_block_terminated = then_terminated && else_terminated
+            if !this.current_block_terminated { this.emit_line(end_label + ":") }
             return
         }
         if stmt.kind == STMT_WHILE() {
@@ -305,8 +319,9 @@ impl LirBuilder {
             this.push_loop_targets(end_label, cond_label)
             this.emit_stmt_list(stmt.body)
             this.pop_loop_targets()
-            this.emit_line("  jmp " + cond_label)
+            if !this.current_block_terminated { this.emit_line("  jmp " + cond_label) }
             this.emit_line(end_label + ":")
+            this.current_block_terminated = false
             return
         }
         if stmt.kind == STMT_BREAK() {
@@ -315,6 +330,7 @@ impl LirBuilder {
                 this.error("break has no loop target")
             } else {
                 this.emit_line("  jmp " + break_label)
+                this.current_block_terminated = true
             }
             return
         }
@@ -324,6 +340,7 @@ impl LirBuilder {
                 this.error("continue has no loop target")
             } else {
                 this.emit_line("  jmp " + continue_label)
+                this.current_block_terminated = true
             }
             return
         }
