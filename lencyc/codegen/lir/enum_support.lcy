@@ -320,6 +320,15 @@ impl LirBuilder {
                     return "string"
                 }
             }
+            if expr.operator.lexeme == "+" || expr.operator.lexeme == "-" || expr.operator.lexeme == "*" || expr.operator.lexeme == "/" {
+                return this.infer_expr_type_name(expr.children[0])
+            }
+            return "bool"
+        }
+        if expr.kind == EXPR_LOGICAL() { return "bool" }
+        if expr.kind == EXPR_UNARY() && expr.children.len() > 0 {
+            if expr.operator.lexeme == "!" { return "bool" }
+            return this.infer_expr_type_name(expr.children[0])
         }
         if expr.kind == EXPR_CALL() && expr.children.len() > 0 {
             var enum_name2 = this.infer_expr_enum_name(expr)
@@ -336,13 +345,27 @@ impl LirBuilder {
                 if this.is_vec_type_name(receiver_type) && member_name == "len" {
                     return "int"
                 }
+                if member_name == "to_string" { return "string" }
+                if receiver_type == "string" {
+                    if member_name == "len" || member_name == "index" { return "int" }
+                    if member_name == "trim" || member_name == "substr" { return "string" }
+                    if member_name == "split" { return "Vec<string>" }
+                }
                 if receiver_type != "" {
                     return this.lookup_function_return_type_name(receiver_type + "__" + member_name)
                 }
             }
             var callee_name = this.expr_callee_name(callee_expr)
             if callee_name != "" {
-                return this.lookup_function_return_type_name(callee_name)
+                var return_name = this.lookup_function_return_type_name(callee_name)
+                if return_name != "" { return return_name }
+                if callee_name == "int_to_string" || callee_name == "float_to_string" || callee_name == "char_to_string" ||
+                   callee_name == "bool_to_string" || callee_name == "arg_at" || callee_name == "read_to_string" {
+                    return "string"
+                }
+                if callee_name == "arg_count" || callee_name == "len" || callee_name == "parse_int" { return "int" }
+                if callee_name == "parse_float" { return "float" }
+                if callee_name == "file_exists" || callee_name == "is_dir" || callee_name == "int_to_bool" { return "bool" }
             }
         }
         if expr.kind == EXPR_STRUCT() {

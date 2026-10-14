@@ -41,6 +41,7 @@
 - selfhost 普通函数和 impl 方法均要求非 void 返回路径完整；LIR 发射入口不再以 `ret 0` 掩盖漏返回，错误时不输出部分 LIR。分支分别跟踪基本块终止状态，return/break/continue 后不再追加语句或跳转；只有仍可继续执行的路径生成合流和循环回边。void 函数保留隐式返回，声明为非 void 的 main 遵循普通函数规则；顶层语句的合成 main 仍保留默认退出码 0。循环按可能不执行处理，不以循环体含 return 推断函数一定返回。
 - 泛型签名目前只保留供类型传播使用的名称信息；generic struct 实例化、完整 impl method、trait 和更完整 member lowering 尚未形成稳定端到端子集。
 - resolver 中仍存在兼容性的 `TYPE_UNKNOWN` 路径，可能弱化部分诊断。
+- selfhost 非空 Vec 字面量会逐项检查元素类型，拒绝混合类型、不同命名类型和 void 元素。算术、逻辑、一元表达式和受支持内置调用的类型会继续传播到 Vec 元素、索引及成员调用；LIR 层同步保留这些类型，已有嵌套 Vec、字符串转换结果和 struct 元素的运行回归。当前 selfhost 要求元素类型一致，未移植 Rust 母体的混合 int/float Vec 提升；显式类型的空 Vec 仍保留。
 - selfhost 已按接收者类型检查 non-generic struct 方法（含导入模块），不同类型的同名方法不再混用签名；`this` 保留所属类型，方法参数和返回值参与类型检查。Vec 的 len/push/pop/get/set/索引与基础字符串方法也会传播类型、检查参数；无法确定元素类型的空 Vec 不能调用依赖元素类型的方法。未知字段和方法明确报错，generic impl 实例化仍待补齐。
 - Rust 母体与 selfhost 的顶层语法接受范围仍不完全一致。
 - Rust 母体和 selfhost 均不再预置 `Result`、`Ok`、`Err`。它们只能来自普通用户类型或 enum 项；导入 `std.core` 不会隐式注入这些名称。

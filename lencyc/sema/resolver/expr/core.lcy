@@ -5,6 +5,29 @@ import lencyc.syntax.ast
 import lencyc.sema.resolver
 
 impl Resolver {
+    int resolve_vec_literal(Expr expr) {
+        var element_name = ""
+        var i = 0
+        while i < expr.children.len() {
+            var ty = this.resolve_expr(expr.children[i])
+            var name = this.infer_expr_type_name(expr.children[i], ty)
+            if ty == TYPE_VOID() {
+                this.error("Vec element cannot be void")
+            } else {
+                if !this.has_concrete_type_name(name) || name == "named" {
+                    this.error("Vec element has no known type")
+                } else {
+                    if i == 0 { element_name = name }
+                    if element_name != "" && element_name != name {
+                        this.error("Vec element type mismatch at #" + int_to_string(i + 1) + ": expected " + element_name + ", got " + name)
+                    }
+                }
+            }
+            i = i + 1
+        }
+        return TYPE_NAMED()
+    }
+
     int resolve_expr(Expr expr) {
         return this.visit_expr(expr)
     }

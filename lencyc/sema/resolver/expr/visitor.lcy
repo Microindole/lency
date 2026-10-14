@@ -330,14 +330,7 @@ impl Resolver {
         if expr.kind == EXPR_STRUCT() {
             return this.visit_expr_struct(expr)
         }
-        if expr.kind == EXPR_VEC() {
-            var i = 0
-            while i < expr.children.len() {
-                this.resolve_expr(expr.children[i])
-                i = i + 1
-            }
-            return TYPE_NAMED()
-        }
+        if expr.kind == EXPR_VEC() { return this.resolve_vec_literal(expr) }
         if expr.kind == EXPR_UNARY() {
             return this.visit_expr_unary(expr)
         }

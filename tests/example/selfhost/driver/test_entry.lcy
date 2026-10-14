@@ -13,6 +13,7 @@ import tests.example.selfhost.driver.steps.match_expr
 import tests.example.selfhost.driver.steps.parser_frontend
 import tests.example.selfhost.driver.steps.resolver_defense
 import tests.example.selfhost.driver.steps.return_flow
+import tests.example.selfhost.driver.steps.vector
 import tests.example.selfhost.driver.steps.signature
 import tests.example.selfhost.driver.steps.structs
 import tests.example.selfhost.driver.test_support
@@ -23,6 +24,7 @@ import lencyc.syntax.token
 import lencyc.sema.resolver
 
 int main() {
+    if !run_vector_type_tests() { return 1 }
     if !run_return_flow_tests() { return 1 }
     print("Running Lency Self-hosted Compiler Lexer/Parser Tests...\n")
     

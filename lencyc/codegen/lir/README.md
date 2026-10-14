@@ -5,7 +5,7 @@
 | 文件 | 职责 |
 |---|---|
 | `functions.lcy` | 函数签名、参数、局部值和返回 |
-| `enum_support.lcy` | enum 声明、构造和 payload 表示 |
+| `enum_support.lcy` | enum 声明、payload 表示，以及供成员/索引 lowering 使用的局部值和 Vec 元素类型名 |
 | `expr_call.lcy` | 普通函数及受支持成员调用 |
 | `match_expr.lcy` | `match` 分支、模式与合流 |
 

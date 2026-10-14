@@ -1,0 +1,21 @@
+// tests/example/selfhost/driver/steps/vector.lcy
+// Vec literal element types must survive expression inference.
+import std.core
+import tests.example.selfhost.driver.test_support
+
+bool run_vector_type_tests() {
+    if !expect_shared_resolve_error("var values = vec[1, true]\nreturn 0", "mixed Vec primitive elements") { return false }
+    if !expect_shared_resolve_error("var values = vec[1, \"x\"]\nreturn 0", "mixed Vec string elements") { return false }
+    if !expect_shared_resolve_error("Vec<int> values = vec[1, true]\nreturn 0", "annotated Vec checks all elements") { return false }
+    if !expect_shared_resolve_error("var values = vec[vec[1], vec[true]]\nreturn 0", "nested Vec element mismatch") { return false }
+    if !expect_shared_resolve_error("struct A { int x }\nstruct B { int x }\nvar values = vec[A { x: 1 }, B { x: 2 }]\nreturn 0", "distinct named Vec elements") { return false }
+    if !expect_shared_resolve_error("var values = vec[print(1)]\nreturn 0", "void Vec element") { return false }
+    if !expect_shared_resolve_error("var values = vec[1 + 2, 3]\nvalues.push(true)\nreturn 0", "arithmetic Vec element type") { return false }
+    if !expect_shared_resolve_error("var values = vec[int_to_string(1)]\nvalues.push(2)\nreturn 0", "builtin result Vec element type") { return false }
+    if !expect_shared_resolve_success("var values = vec[1 + 2, -4, (5)]\nvalues.push(6)\nint first = values[0]\nreturn first", "arithmetic Vec inference") { return false }
+    if !expect_shared_resolve_success("var values = vec[1 < 2, !false]\nvalues.push(true)\nbool first = values[0]\nreturn 0", "boolean Vec inference") { return false }
+    if !expect_shared_resolve_success("var values = vec[int_to_string(1), \"2\"]\nvalues.push(\"3\")\nstring first = values[0]\nreturn 0", "builtin Vec inference") { return false }
+    if !expect_shared_resolve_success("var values = vec[vec[1 + 2], vec[3]]\nVec<int> first = values[0]\nfirst.push(4)\nreturn first[0]", "nested Vec inference") { return false }
+    return true
+}
+
