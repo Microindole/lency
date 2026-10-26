@@ -49,6 +49,36 @@ fn gen_print_value_impl<'ctx>(
     };
 
     match ty {
+        Type::Nullable(_) => {
+            if crate::nullable::is_null_type(ty) {
+                return gen_print_str_literal(ctx, "null");
+            }
+            let optional = CodegenValue {
+                value,
+                ty: ty.clone(),
+            };
+            let present = crate::nullable::present(ctx, &optional)?;
+            let function = ctx
+                .builder
+                .get_insert_block()
+                .unwrap()
+                .get_parent()
+                .unwrap();
+            let some = ctx.context.append_basic_block(function, "print.some");
+            let none = ctx.context.append_basic_block(function, "print.none");
+            let merge = ctx.context.append_basic_block(function, "print.merge");
+            ctx.builder
+                .build_conditional_branch(present, some, none)
+                .unwrap();
+            ctx.builder.position_at_end(some);
+            let payload = crate::nullable::unwrap(ctx, optional, 0)?;
+            gen_print_value_impl(ctx, payload.value, &payload.ty)?;
+            ctx.builder.build_unconditional_branch(merge).unwrap();
+            ctx.builder.position_at_end(none);
+            gen_print_str_literal(ctx, "null")?;
+            ctx.builder.build_unconditional_branch(merge).unwrap();
+            ctx.builder.position_at_end(merge);
+        }
         Type::Int => {
             let printf_fn = get_printf();
             let format_str = ctx

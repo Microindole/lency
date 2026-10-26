@@ -33,6 +33,8 @@ pub fn gen_while<'ctx, 'a>(
     gen.ctx.builder.position_at_end(cond_bb);
     let expr_gen = ExprGenerator::new(gen.ctx, gen.locals);
     let cond_val = expr_gen.generate(condition)?;
+    let cond_val =
+        crate::nullable::unwrap(gen.ctx, cond_val, gen.ctx.get_line(condition.span.start))?;
     let cond_int = cond_val.value.into_int_value();
     gen.ctx
         .builder
@@ -105,6 +107,8 @@ pub fn gen_for<'ctx, 'a>(
     if let Some(cond) = condition {
         let expr_gen = ExprGenerator::new(gen.ctx, gen.locals);
         let cond_val = expr_gen.generate(cond)?;
+        let cond_val =
+            crate::nullable::unwrap(gen.ctx, cond_val, gen.ctx.get_line(cond.span.start))?;
         let cond_int = cond_val.value.into_int_value();
         gen.ctx
             .builder

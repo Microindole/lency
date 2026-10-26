@@ -97,6 +97,7 @@ fn gen_arg_at<'ctx>(
     };
 
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::Int {
         return Err(CodegenError::TypeMismatch);
     }
@@ -138,6 +139,7 @@ fn gen_int_to_string<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::Int {
         return Err(CodegenError::TypeMismatch);
     }
@@ -181,6 +183,7 @@ fn gen_float_to_string<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::Float {
         return Err(CodegenError::TypeMismatch);
     }
@@ -223,6 +226,7 @@ fn gen_parse_int<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }
@@ -282,6 +286,7 @@ fn gen_parse_float<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }
@@ -376,6 +381,7 @@ fn gen_file_exists<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }
@@ -429,6 +435,7 @@ fn gen_is_dir<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }

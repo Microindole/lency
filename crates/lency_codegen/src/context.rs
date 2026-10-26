@@ -23,6 +23,11 @@ pub struct CodegenContext<'ctx> {
     pub struct_fields: std::collections::HashMap<String, Vec<String>>,
     /// Function Return Types - used for type propagation
     pub function_signatures: std::collections::HashMap<String, lency_syntax::ast::Type>,
+    /// 参数类型用于在调用边界保持可空值及数值表示一致。
+    pub function_param_types: std::collections::HashMap<String, Vec<lency_syntax::ast::Type>>,
+    /// 非空读取细化绑定到具体存储，不能被同名局部变量继承。
+    pub(crate) read_refinements:
+        std::cell::RefCell<std::collections::HashMap<String, inkwell::values::PointerValue<'ctx>>>,
     /// Struct Field Types (ordered) - used to recover Lency Type from field access
     /// Struct Field Types (ordered) - used to recover Lency Type from field access
     pub struct_field_types: std::collections::HashMap<String, Vec<lency_syntax::ast::Type>>,
@@ -66,6 +71,8 @@ impl<'ctx> CodegenContext<'ctx> {
             struct_types: std::collections::HashMap::new(),
             struct_fields: std::collections::HashMap::new(),
             function_signatures: std::collections::HashMap::new(),
+            function_param_types: std::collections::HashMap::new(),
+            read_refinements: std::cell::RefCell::new(std::collections::HashMap::new()),
             struct_field_types: std::collections::HashMap::new(),
             enum_types: std::collections::HashSet::new(),
             enum_variants: std::collections::HashMap::new(),

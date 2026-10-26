@@ -73,6 +73,16 @@ pub fn gen_struct_literal<'ctx>(
     let mut provided_values = HashMap::new();
     for (name, expr) in fields {
         let val_wrapper = generate_expr(ctx, locals, expr)?;
+        let field_index = field_names
+            .iter()
+            .position(|field| field == name)
+            .ok_or(CodegenError::TypeMismatch)?;
+        let expected = &ctx
+            .struct_field_types
+            .get(type_name)
+            .ok_or(CodegenError::TypeMismatch)?[field_index];
+        let val_wrapper =
+            crate::nullable::coerce(ctx, val_wrapper, expected, ctx.get_line(expr.span.start))?;
         provided_values.insert(name, val_wrapper.value);
     }
 

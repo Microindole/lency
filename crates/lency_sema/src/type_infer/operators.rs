@@ -19,6 +19,9 @@ impl<'a> TypeInferer<'a> {
         if matches!(op, lency_syntax::ast::BinaryOp::Elvis) {
             match &left_ty {
                 Type::Nullable(inner) => {
+                    if matches!(**inner, Type::Error) {
+                        return Ok(right_ty);
+                    }
                     // Start simple: Right must be compatible with Inner
                     // TODO: Implement proper Lowest Common Supertype (LUB)
                     if crate::type_infer::is_compatible(inner, &right_ty) {

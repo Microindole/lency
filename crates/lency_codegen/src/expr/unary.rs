@@ -19,6 +19,7 @@ pub(super) fn gen_unary<'ctx>(
     operand: &Expr,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     let val_wrapper = generate_expr(ctx, locals, operand)?;
+    let val_wrapper = crate::nullable::unwrap(ctx, val_wrapper, ctx.get_line(operand.span.start))?;
     let val = val_wrapper.value;
 
     let result_val = match op {

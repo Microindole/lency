@@ -37,6 +37,9 @@ impl<'ctx> ToLLVMType<'ctx> for Type {
             // 可空类型用指针表示
             Type::Nullable(inner) => {
                 let inner_type = inner.to_llvm_type(context)?;
+                if inner_type.is_pointer_type() {
+                    return Ok(inner_type);
+                }
                 Ok(inner_type
                     .ptr_type(AddressSpace::default())
                     .as_basic_type_enum())

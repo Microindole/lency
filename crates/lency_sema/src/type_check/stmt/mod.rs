@@ -1,7 +1,7 @@
 use super::TypeChecker;
 use crate::error::SemanticError;
 use crate::type_infer::is_compatible;
-use lency_syntax::ast::{Expr, Stmt, Type};
+use lency_syntax::ast::{Expr, ExprKind, Stmt, Type};
 
 pub mod control_flow;
 use control_flow::{check_for, check_for_in, check_if, check_while};
@@ -179,6 +179,12 @@ fn check_assignment(
     value: &mut Expr,
     span: &std::ops::Range<usize>,
 ) {
+    if !is_assignment_target(checker, target) {
+        checker.errors.push(SemanticError::InvalidAssignmentTarget {
+            span: target.span.clone(),
+        });
+        return;
+    }
     let target_ty = match checker.infer_type(target) {
         Ok(ty) => ty,
         Err(e) => {
@@ -201,6 +207,27 @@ fn check_assignment(
             found: value_ty.to_string(),
             span: span.clone(),
         });
+    }
+}
+
+fn is_assignment_target(checker: &mut TypeChecker, target: &mut Expr) -> bool {
+    use crate::symbol::Symbol;
+    match &mut target.kind {
+        ExprKind::Variable(name) => match checker.scopes.lookup(name) {
+            Some(Symbol::Variable(_) | Symbol::Parameter(_)) => true,
+            // 未定义名称和隐式接收者字段由普通推导提供具体诊断。
+            None => true,
+            _ => false,
+        },
+        ExprKind::Get { object, .. } => match checker.infer_type(object) {
+            Ok(Type::Struct(name) | Type::Generic(name, _)) => {
+                matches!(checker.scopes.lookup(&name), Some(Symbol::Struct(_)))
+            }
+            Ok(Type::Nullable(_)) | Err(_) => true,
+            _ => false,
+        },
+        ExprKind::Index { .. } => true,
+        _ => false,
     }
 }
 

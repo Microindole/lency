@@ -107,6 +107,12 @@ pub fn gen_vec_method_call<'ctx>(
         "push" => {
             let func = get_or_declare_vec_push(ctx)?;
             let arg_val = generate_expr(ctx, locals, &args[0])?;
+            let arg_val = crate::nullable::coerce(
+                ctx,
+                arg_val,
+                inner_type,
+                ctx.get_line(args[0].span.start),
+            )?;
             // Cast arg to i64
             let val_i64 = cast_to_i64(ctx, arg_val.value)?;
             ctx.builder
@@ -148,6 +154,8 @@ pub fn gen_vec_method_call<'ctx>(
         "get" => {
             let func = get_or_declare_vec_get(ctx)?;
             let index_val = generate_expr(ctx, locals, &args[0])?;
+            let index_val =
+                crate::nullable::unwrap(ctx, index_val, ctx.get_line(args[0].span.start))?;
             let index_i64 = index_val.value.into_int_value(); // Assume int
 
             let call = ctx
@@ -166,9 +174,13 @@ pub fn gen_vec_method_call<'ctx>(
         "set" => {
             let func = get_or_declare_vec_set(ctx)?;
             let index_val = generate_expr(ctx, locals, &args[0])?;
+            let index_val =
+                crate::nullable::unwrap(ctx, index_val, ctx.get_line(args[0].span.start))?;
             let index_i64 = index_val.value.into_int_value();
 
             let val = generate_expr(ctx, locals, &args[1])?;
+            let val =
+                crate::nullable::coerce(ctx, val, inner_type, ctx.get_line(args[1].span.start))?;
             let val_i64 = cast_to_i64(ctx, val.value)?;
 
             ctx.builder
@@ -284,7 +296,7 @@ pub(crate) fn cast_from_i64<'ctx>(
             .builder
             .build_bitcast(val, ctx.context.f64_type(), "i2f")
             .unwrap()),
-        Type::String | Type::Struct(_) | Type::Vec(_) | Type::Array { .. } => {
+        Type::String | Type::Struct(_) | Type::Vec(_) | Type::Array { .. } | Type::Nullable(_) => {
             // Pointer
             let ptr_ty = ctx.context.i8_type().ptr_type(AddressSpace::default());
             Ok(ctx

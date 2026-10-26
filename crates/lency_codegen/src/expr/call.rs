@@ -78,9 +78,19 @@ pub(super) fn gen_call<'ctx>(
     }
 
     // 生成参数
+    let parameter_types = match locals.get(func_name).map(|(_, ty)| ty) {
+        Some(Type::Function { param_types, .. }) => Some(param_types),
+        _ => ctx.function_param_types.get(func_name),
+    };
     let mut arg_values = Vec::new();
-    for arg in args {
+    for (index, arg) in args.iter().enumerate() {
         let val_wrapper = generate_expr(ctx, locals, arg)?;
+        let val_wrapper = if let Some(expected) = parameter_types.and_then(|types| types.get(index))
+        {
+            crate::nullable::coerce(ctx, val_wrapper, expected, ctx.get_line(arg.span.start))?
+        } else {
+            val_wrapper
+        };
         arg_values.push(val_wrapper.value.into());
     }
 

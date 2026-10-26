@@ -47,6 +47,10 @@ pub enum SemanticError {
     #[error("cannot infer type for '{name}', please add type annotation")]
     CannotInferType { name: String, span: Span },
 
+    /// 赋值目标必须表示可写存储，不能是普通结果值或只读属性。
+    #[error("invalid assignment target: expected a variable, writable field or element")]
+    InvalidAssignmentTarget { span: Span },
+
     /// 二元操作类型错误
     #[error("operator '{op}' cannot be applied to types '{left}' and '{right}'")]
     InvalidBinaryOp {
@@ -204,6 +208,7 @@ impl SemanticError {
             Self::ImportError { span, .. } => span,
             Self::TypeMismatch { span, .. } => span,
             Self::CannotInferType { span, .. } => span,
+            Self::InvalidAssignmentTarget { span } => span,
             Self::InvalidBinaryOp { span, .. } => span,
             Self::InvalidUnaryOp { span, .. } => span,
             Self::NullAssignmentToNonNullable { span, .. } => span,

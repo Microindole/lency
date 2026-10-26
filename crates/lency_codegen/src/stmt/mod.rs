@@ -111,7 +111,9 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
         body: impl FnOnce(&mut Self) -> CodegenResult<()>,
     ) -> CodegenResult<()> {
         let outer_locals = self.locals.clone();
+        let outer_refinements = self.ctx.read_refinements.borrow().clone();
         let result = body(self);
+        *self.ctx.read_refinements.borrow_mut() = outer_refinements;
         *self.locals = outer_locals;
         result
     }
@@ -125,7 +127,6 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     ) -> CodegenResult<()> {
         let expr_gen = ExprGenerator::new(self.ctx, self.locals);
         let val_wrapper = expr_gen.generate(value)?;
-        let val = val_wrapper.value;
 
         // 若有显式类型声明，优先使用（这里假定类型检查已通过）
         // 若无，使用推导类型
@@ -134,6 +135,13 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
         } else {
             val_wrapper.ty.clone()
         };
+        let val = crate::nullable::coerce(
+            self.ctx,
+            val_wrapper,
+            &var_ty,
+            self.ctx.get_line(value.span.start),
+        )?
+        .value;
 
         // 分配栈空间
         let alloca = self
@@ -158,11 +166,17 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     fn gen_assignment(&mut self, target: &Expr, value: &Expr) -> CodegenResult<()> {
         // 生成目标地址（LValue）
         let expr_gen = ExprGenerator::new(self.ctx, self.locals);
-        let (ptr, _ty) = expr_gen.generate_lvalue_addr(target)?;
+        let (ptr, ty) = expr_gen.generate_lvalue_addr(target)?;
 
         // 生成值
         let val_wrapper = expr_gen.generate(value)?;
-        let val = val_wrapper.value;
+        let val = crate::nullable::coerce(
+            self.ctx,
+            val_wrapper,
+            &ty,
+            self.ctx.get_line(value.span.start),
+        )?
+        .value;
 
         // 存储
         self.ctx
@@ -178,6 +192,17 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
         if let Some(expr) = value {
             let expr_gen = ExprGenerator::new(self.ctx, self.locals);
             let val_wrapper = expr_gen.generate(expr)?;
+            let expected = &self
+                .locals
+                .get("__return_type")
+                .ok_or(CodegenError::TypeMismatch)?
+                .1;
+            let val_wrapper = crate::nullable::coerce(
+                self.ctx,
+                val_wrapper,
+                expected,
+                self.ctx.get_line(expr.span.start),
+            )?;
 
             self.ctx
                 .builder

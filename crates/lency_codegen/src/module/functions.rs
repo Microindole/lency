@@ -38,6 +38,11 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                         continue;
                     }
 
+                    self.ctx.function_param_types.insert(
+                        name.clone(),
+                        params.iter().map(|param| param.ty.clone()).collect(),
+                    );
+
                     self.ctx
                         .function_signatures
                         .insert(name.clone(), return_type.clone());
@@ -58,6 +63,10 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     return_type,
                     ..
                 } => {
+                    self.ctx.function_param_types.insert(
+                        name.clone(),
+                        params.iter().map(|param| param.ty.clone()).collect(),
+                    );
                     self.ctx
                         .function_signatures
                         .insert(name.clone(), return_type.clone());
@@ -91,6 +100,10 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
 
                             let mut method_params = vec![this_param];
                             method_params.extend_from_slice(params);
+                            self.ctx.function_param_types.insert(
+                                mangled_name.clone(),
+                                method_params.iter().map(|param| param.ty.clone()).collect(),
+                            );
 
                             let func_gen = FunctionGenerator::new(&*self.ctx);
                             func_gen.declare(&mangled_name, &method_params, return_type)?;

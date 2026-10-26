@@ -186,6 +186,10 @@ impl ScopeStack {
             if let Some(ty) = self.scopes[current_id].refinements.get(name) {
                 return Some(ty.clone());
             }
+            // 同名局部变量终止外层细化查找，非空事实属于具体绑定。
+            if self.scopes[current_id].lookup_local(name).is_some() {
+                return None;
+            }
 
             if let Some(parent) = self.scopes[current_id].parent {
                 current_id = parent;

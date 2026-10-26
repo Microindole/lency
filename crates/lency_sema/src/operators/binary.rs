@@ -163,11 +163,12 @@ impl BinaryOpRegistry {
             }
 
             // x? == y?
-            if matches!(lhs, Type::Nullable(_)) && matches!(rhs, Type::Nullable(_)) {
-                // 还需要检查内部类型是否兼容吗？暂且允许，只要都是 nullable
-                // 或者是检查 base type 是否可比较？
-                // 为了简单，允许所有 nullable 比较 (null == null case covered above technically)
-                return Ok(Type::Bool);
+            if let (Type::Nullable(left), Type::Nullable(right)) = (lhs, rhs) {
+                if left == right {
+                    return Ok(Type::Bool);
+                }
+                // 可空标记不会让不兼容的基础类型获得比较能力。
+                return self.lookup(op, left, right, span);
             }
         }
 
