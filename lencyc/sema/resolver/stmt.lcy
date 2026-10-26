@@ -7,6 +7,15 @@ import lencyc.syntax.token
 import lencyc.sema.resolver
 
 impl Resolver {
+    void resolve_bool_condition(Expr expr, string context) {
+        var ty = this.resolve_expr(expr)
+        if ty != TYPE_BOOL() {
+            var name = this.infer_expr_type_name(expr, ty)
+            if name == "" { name = this.type_to_string(ty) }
+            this.error(context + " must be bool, got " + name)
+        }
+    }
+
     void resolve_stmt(Stmt stmt) {
         if stmt.kind == STMT_VAR_DECL() {
             var value_ty = this.resolve_expr(stmt.expr)
@@ -79,12 +88,12 @@ impl Resolver {
             return
         }
         if stmt.kind == STMT_WHILE() {
-            this.resolve_expr(stmt.expr)
+            this.resolve_bool_condition(stmt.expr, "while condition")
             this.resolve_in_new_scope(stmt.body)
             return
         }
         if stmt.kind == STMT_IF() {
-            this.resolve_expr(stmt.expr)
+            this.resolve_bool_condition(stmt.expr, "if condition")
             this.resolve_in_new_scope(stmt.body)
             this.resolve_in_new_scope(stmt.else_body)
             return

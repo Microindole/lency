@@ -47,7 +47,7 @@ cargo run -p xtask -- bootstrap-check
 ## 文档规则
 
 - 稳定的语言原则只写入 `docs/design.md`。
-- 当前实现状态只写入 `docs/development/status.md`。
+- 当前整体自举阶段和阻塞项写入[自举状态](./status.md)；具体语法、类型约束和必要的实现差异写入对应语言文档，不把修复完成项追加成状态流水账。
 - 工具命令只写入 `docs/tools/scripts.md`。
 - 已完成的逐提交流水账由 Git 历史承担，不再维护 walkthrough 或 Sprint 完成项长清单。
 - 文档中的“支持”必须注明是 Rust 母体、selfhost 前端，还是 selfhost 端到端支持。

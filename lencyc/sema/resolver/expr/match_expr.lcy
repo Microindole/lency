@@ -18,14 +18,7 @@ impl Resolver {
             this.error("match arm guard expression missing")
             return
         }
-        var guard_ty = this.resolve_expr(expr.arm_guards[arm_index])
-        var guard_ty_name = this.infer_expr_type_name(expr.arm_guards[arm_index], guard_ty)
-        if guard_ty_name == "" {
-            guard_ty_name = this.type_to_string(guard_ty)
-        }
-        if !this.types_match_or_unknown_by_name(TYPE_BOOL(), "bool", guard_ty, guard_ty_name) {
-            this.error("match arm guard must be bool, got " + guard_ty_name)
-        }
+        this.resolve_bool_condition(expr.arm_guards[arm_index], "match arm guard")
     }
 
     int resolve_expr_match(Expr expr) {

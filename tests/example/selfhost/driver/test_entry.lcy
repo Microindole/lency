@@ -7,6 +7,7 @@ import std.convert
 import std.str
 import tests.example.selfhost.driver.test_cases
 import tests.example.selfhost.driver.steps.const_step
+import tests.example.selfhost.driver.steps.conditions
 import tests.example.selfhost.driver.steps.enum_step
 import tests.example.selfhost.driver.steps.import_extern
 import tests.example.selfhost.driver.steps.match_expr
@@ -24,6 +25,7 @@ import lencyc.syntax.token
 import lencyc.sema.resolver
 
 int main() {
+    if !run_condition_type_tests() { return 1 }
     if !run_vector_type_tests() { return 1 }
     if !run_return_flow_tests() { return 1 }
     print("Running Lency Self-hosted Compiler Lexer/Parser Tests...\n")

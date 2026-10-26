@@ -1,19 +1,48 @@
 # Vec
 
-`Vec<T>` 是核心集合类型，`vec[...]` 是公开且固定的集合字面量语法，基础操作由 runtime 提供：
+## 声明与元素类型
+
+动态集合使用元素类型参数。非空字面量可以从元素推导类型；空字面量使用显式声明提供元素类型。
 
 ```lency
-var values = vec[1, 2, 3]
-values.push(4)
-var size = values.len()
-var first = values.get(0)
-values.set(0, 10)
+int main() {
+    var values = vec[1, 2, 3]
+    Vec<int> pending = vec[]
+    pending.push(values[0])
+    return pending[0] - 1
+}
 ```
 
-`lib/std/collections.lcy` 还定义了 `reverse`、`range`、查找和整数聚合等辅助函数。
+动态集合与固定数组不同。固定数组的长度属于类型，见[变量与类型](../basics/variables.md)。
 
-## 实现边界
+## 基础操作
 
-- Rust 母体已有较完整的 Vec 与泛型回归。
-- selfhost 编译器内部会使用 vec-backed 数据结构，但这不等于任意 `Vec<T>` 程序都已能由 selfhost 端到端生成。
-- generic struct 包装和 impl 方法仍会阻塞标准库中部分抽象；推进时应以具体 runtime 用例为准。
+```lency
+int main() {
+    var values = vec[1, 2, 3]
+    values.push(4)
+    var size = values.len()
+    var first = values.get(0)
+    values.set(0, 10)
+    var last = values.pop()
+    return size + first + last - 9
+}
+```
+
+追加与设置元素需要符合元素类型；读取和弹出产生元素类型，长度操作产生整数。下标和读取方法的索引使用整数，方括号不是无类型指针访问。
+
+索引越界等程序错误按设计终止程序，不要求函数签名附加错误类型。具体运行行为必须由对应后端与 runtime 保证，不能仅凭语法可解析推断边界安全已经完整覆盖。
+
+## 自举元素检查
+
+自举 resolver 逐项检查非空字面量，拒绝不同命名类型、混合布尔与整数、混合字符串与整数，以及无值表达式。只检查首元素不能证明整个集合合法。
+
+自举语义与 LIR 类型传播覆盖算术和逻辑表达式、受支持内置调用、嵌套集合与结构体元素。无法推导元素类型的空字面量不能用于依赖具体元素类型的方法；显式类型声明可以提供该类型。
+
+两套实现仍有数值推导差异：母体的 Vec 字面量类型推导包含混合整数与浮点数的提升，自举当前要求元素类型一致。该差异是实现边界，不定义新的数值转换规则。
+
+## 标准库范围
+
+标准库集合源码还提供反转、范围生成、查找和整数聚合等辅助函数，位于 lib/std/collections.lcy。
+
+编译器内部使用动态集合，不代表完整泛型集合抽象已能自举运行。泛型结构体包装、完整实现块和 trait 仍限制部分标准库能力；当前整体状态见[自举状态](../development/status.md)。

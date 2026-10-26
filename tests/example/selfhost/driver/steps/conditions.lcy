@@ -1,0 +1,30 @@
+// tests/example/selfhost/driver/steps/conditions.lcy
+// Control-flow conditions require non-nullable bool values.
+import std.core
+import tests.example.selfhost.driver.test_support
+import lencyc.syntax.parser
+import lencyc.sema.resolver
+
+bool run_condition_type_tests() {
+    if !expect_shared_function_body_resolve_error(vec["flag"], "if flag { }\nreturn 0", "unknown condition type") { return false }
+    var parser = make_parser("if 1 { var value = missing }\nreturn 0")
+    var program = parser.parse_program()
+    var result = resolve_program(program)
+    if parser.has_error || result.error_count != 2 {
+        print("Condition error skipped branch body diagnostics.\n")
+        return false
+    }
+    if !expect_shared_resolve_error("if 1 { }\nreturn 0", "if integer condition") { return false }
+    if !expect_shared_resolve_error("if \"yes\" { }\nreturn 0", "if string condition") { return false }
+    if !expect_shared_resolve_error("while 0 { break }\nreturn 0", "while integer condition") { return false }
+    if !expect_shared_resolve_error("while null { break }\nreturn 0", "while null condition") { return false }
+    if !expect_shared_resolve_error("struct Flag { bool value }\nvar flag = Flag { value: true }\nif flag { }\nreturn 0", "struct condition") { return false }
+    if !expect_shared_resolve_error("bool? flag = null\nif flag { }\nreturn 0", "nullable bool condition") { return false }
+    if !expect_shared_resolve_error("void work() { }\nif work() { }\nreturn 0", "void call condition") { return false }
+    if !expect_shared_resolve_error("for var i = 0; 1; i = i + 1 { }\nreturn 0", "for integer condition") { return false }
+    if !expect_shared_resolve_error("bool? flag = null\nvar n = match (1) { _ if (flag) => 1, _ => 0 }\nreturn n", "nullable bool match guard") { return false }
+    if !expect_shared_resolve_success("var flag = true\nif flag { } else { }\nwhile false { break }\nfor var i = 0; i < 2; i = i + 1 { }\nreturn 0", "bool conditions and for comparison") { return false }
+    if !expect_shared_resolve_success("struct Flag { bool value }\nimpl Flag { bool enabled() { return this.value } }\nvar flag = Flag { value: true }\nif flag.enabled() { }\nif flag.value { }\nvar flags = vec[true, false]\nwhile flags[0] { break }\nreturn 0", "member and Vec bool conditions") { return false }
+    return true
+}
+
