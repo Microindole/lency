@@ -59,7 +59,7 @@ int main() {
 ```lency
 int main() {
     var values = vec[1, 2, 3]
-    Vec<int> pending = vec[]
+vec<int> pending = vec[]
     pending.push(values[0])
     return pending[0] - 1
 }
@@ -69,7 +69,7 @@ int main() {
 
 ```lency
 int main() {
-    int[3] values = [1, 2, 3]
+int values[3] = {1, 2, 3}
     return values[0] - 1
 }
 ```

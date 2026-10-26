@@ -1,0 +1,32 @@
+import std.{io, fs, str}
+
+struct Record {
+    int values[2]
+}
+
+int absolute(int value) {
+    if (value < 0) {
+        return -value
+    } else {
+        return value
+    }
+}
+
+int main() {
+    int data[2][3] = {{1, 2, 3}, {4, 5, 6}}
+    vec<int> pending = vec[]
+    pending.push(data[1][2])
+    var outside = 7
+    {
+        var outside = 2
+        pending.push(outside)
+    }
+    var total = 0
+    for (int i = 0; i < 3; i = i + 1) { total = total + i }
+    for int i = 0 i < 3 i = i + 1 { total = total + i }
+    for (var i = 0 i < 3 i = i + 1) { total = total + i }
+    for var i = 0; i < 3; i = i + 1 { total = total + i }
+    if !contains("Lency", "enc") { return 1 }
+    if total != 12 || outside != 7 || pending[0] != 6 { return 2 }
+    return absolute(-3) - 3
+}

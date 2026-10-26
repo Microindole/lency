@@ -374,7 +374,7 @@ pub fn check_call(
                             }
                             _ => {
                                 return Err(SemanticError::UndefinedMethod {
-                                    class: format!("Vec<{}>", inner_type),
+                                    class: format!("vec<{}>", inner_type),
                                     method: name.clone(),
                                     span: span.clone(),
                                 });

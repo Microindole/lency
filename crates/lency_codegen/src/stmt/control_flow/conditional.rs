@@ -40,7 +40,8 @@ pub fn gen_if<'ctx, 'a>(
     gen.generate_block(then_block)?;
     // 如果 then 分支没有返回，跳转到 merge
     let current_then = gen.ctx.builder.get_insert_block().unwrap();
-    if !gen.block_ends_with_terminator(current_then) {
+    let then_terminated = gen.block_ends_with_terminator(current_then);
+    if !then_terminated {
         gen.ctx
             .builder
             .build_unconditional_branch(merge_bb)
@@ -54,7 +55,8 @@ pub fn gen_if<'ctx, 'a>(
     }
     // 如果 else 分支没有返回，跳转到 merge
     let current_else = gen.ctx.builder.get_insert_block().unwrap();
-    if !gen.block_ends_with_terminator(current_else) {
+    let else_terminated = gen.block_ends_with_terminator(current_else);
+    if !else_terminated {
         gen.ctx
             .builder
             .build_unconditional_branch(merge_bb)
@@ -62,7 +64,14 @@ pub fn gen_if<'ctx, 'a>(
     }
 
     // 合并点
-    gen.ctx.builder.position_at_end(merge_bb);
+    if then_terminated && else_terminated {
+        merge_bb.remove_from_function().map_err(|_| {
+            CodegenError::LLVMBuildError("failed to remove unreachable if merge".to_string())
+        })?;
+        gen.ctx.builder.position_at_end(current_else);
+    } else {
+        gen.ctx.builder.position_at_end(merge_bb);
+    }
 
     Ok(())
 }

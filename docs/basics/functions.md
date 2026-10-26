@@ -52,8 +52,7 @@ int main() {
 
 自举编译器对普通函数和结构体方法共用返回规则。有值函数漏返回时产生诊断，LIR 发射失败；不会通过补默认返回值伪造成功。循环按可能不执行处理，循环体内含返回不能单独证明返回路径完整。
 
-母体后端在两个条件分支均直接返回的部分函数中，会生成未终止的合流块并导致构建失败。这是已验证的实现缺陷，不意味着语言要求额外默认返回；本页示例使用提前返回后接普通返回的等价形式。
-<!-- FIXME: 母体 codegen 的双分支直接返回路径仍生成未终止的合流块。 -->
+母体后端保留分支和基本块的终止状态。两侧分支均直接返回时，不需要额外默认返回，也不生成仍可继续执行的空合流块。
 
 ## 泛型
 
@@ -88,31 +87,21 @@ int main() {
 
 ## 错误与普通返回值
 
-函数签名不附加异常类型、错误效果或隐式传播标记。整数除零等程序错误按设计终止程序，不通过额外错误通道返回。可能发生且需要调用者处理的业务结果，通过普通可空值或自定义枚举返回。
+函数签名不增加错误声明或结果包装。检测到运行时错误时，使用 panic 报告原因并终止；没有捕获、恢复或传播语法。
 
 ```lency
-enum DivideOutcome {
-    Value(int),
-    DivisionByZero
-}
-
-DivideOutcome try_divide(int left, int right) {
-    if right == 0 {
-        return DivideOutcome.DivisionByZero
+int divide(int left, int right) {
+    if (right == 0) {
+        panic("除数不能为零")
     }
-    return DivideOutcome.Value(left / right)
+    return left / right
 }
 
 int main() {
-    var outcome = try_divide(10, 0)
-    var code = match outcome {
-        case DivideOutcome.Value(value) => value,
-        case DivideOutcome.DivisionByZero => 0
-    }
-    return code
+    return divide(10, 2) - 5
 }
 ```
 
-上例的类型和枚举项都是普通用户声明，没有编译器特权。类型名不要求使用某个包装名称，也没有独立的捕获流程。需要区分更多业务结果时扩展枚举，由正常控制流处理。
+主动 panic 和自动除零、越界检查使用统一诊断出口，输出到标准错误，并以非零状态退出。母体主动调用保留当前编译输入的行号，本机回溯只能提供可用的机器帧；原始多文件定位和完整 Lency 调用栈尚未完善。
 
-不提供内建结果类型、异常捕获或后缀问号传播。两套前端目前的枚举构造和匹配形式存在差异，详见[枚举与匹配](../types/enums.md)。
+正常的查询缺失仍可以通过可空返回值表达；这不等于将错误静默替换为空值。错误与正常业务结果的区别由 API 契约规定，不能使用未声明的全局错误状态。

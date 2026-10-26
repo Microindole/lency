@@ -6,6 +6,8 @@ pub mod enum_value;
 pub mod file;
 pub mod hashmap;
 pub mod hashmap_string;
+#[cfg(test)]
+mod panic_contract;
 pub mod string;
 use std::alloc::{alloc, dealloc, realloc, Layout};
 use std::ffi::{CStr, CString};
@@ -20,6 +22,19 @@ use std::os::raw::c_char;
 /// `msg` must be a valid null-terminated C string
 #[no_mangle]
 pub unsafe extern "C" fn lency_panic(msg: *const c_char) {
+    unsafe { lency_panic_at(msg, 0) }
+}
+
+/// 报告不可恢复错误和可用的本机调用栈后，以非零状态终止进程。
+///
+/// # Safety
+/// 非空消息必须指向有效的以空字符结束的 C 字符串。
+#[no_mangle]
+pub unsafe extern "C" fn lency_panic_at(msg: *const c_char, line: u32) -> ! {
+    let _ = io::stdout().flush();
+    if line > 0 {
+        eprintln!("panic at line {line}:");
+    }
     if msg.is_null() {
         eprintln!("panic: (null message)");
     } else {
@@ -29,6 +44,9 @@ pub unsafe extern "C" fn lency_panic(msg: *const c_char) {
             Err(_) => eprintln!("panic: (invalid UTF-8)"),
         }
     }
+    // TODO: 提供 Lency 函数名及原始文件映射；当前回溯只包含可用的本机帧。
+    eprintln!("{}", std::backtrace::Backtrace::force_capture());
+    let _ = io::stderr().flush();
     std::process::exit(1);
 }
 

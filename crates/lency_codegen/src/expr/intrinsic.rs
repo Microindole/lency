@@ -279,23 +279,24 @@ pub fn gen_panic<'ctx>(
     ctx: &CodegenContext<'ctx>,
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, lency_syntax::ast::Type)>,
     arg: &Expr,
+    line: u32,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     let arg_val = generate_expr(ctx, locals, arg)?;
     let msg_ptr = arg_val.value.into_pointer_value();
 
-    let i8_ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-
-    // 声明 C runtime 函数: void lency_panic(char* message)
-    let panic_fn = ctx.module.get_function("lency_panic").unwrap_or_else(|| {
-        let fn_type = ctx
-            .context
-            .void_type()
-            .fn_type(&[i8_ptr_type.into()], false);
-        ctx.module.add_function("lency_panic", fn_type, None)
-    });
+    let panic_fn = ctx.panic_func.ok_or_else(|| {
+        CodegenError::LLVMBuildError("panic runtime is not initialized".to_string())
+    })?;
 
     ctx.builder
-        .build_call(panic_fn, &[msg_ptr.into()], "panic_call")
+        .build_call(
+            panic_fn,
+            &[
+                msg_ptr.into(),
+                ctx.context.i32_type().const_int(line as u64, false).into(),
+            ],
+            "",
+        )
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     // panic 永远不返回，添加 unreachable 指令

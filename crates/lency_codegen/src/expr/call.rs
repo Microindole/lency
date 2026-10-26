@@ -51,7 +51,14 @@ pub(super) fn gen_call<'ctx>(
         ("format", [template, values]) => {
             return super::string_ops::gen_format(ctx, locals, template, values)
         }
-        ("panic", [message]) => return super::intrinsic::gen_panic(ctx, locals, message),
+        ("panic", [message]) => {
+            return super::intrinsic::gen_panic(
+                ctx,
+                locals,
+                message,
+                ctx.get_line(callee.span.start),
+            )
+        }
         (name, _) if is_intrinsic_name(name) => {
             return Err(CodegenError::UnsupportedFeature(format!(
                 "invalid argument count for intrinsic {name}"

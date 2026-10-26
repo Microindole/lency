@@ -2,7 +2,9 @@
 //!
 //! 声明解析：函数、类
 
-use super::helpers::{field_parser, generic_params_parser, ident_parser, type_parser};
+use super::helpers::{
+    field_parser, generic_params_parser, ident_parser, type_parser, typed_name_parser,
+};
 
 use super::stmt::stmt_parser;
 use crate::ast::stmt::ImportItem;
@@ -22,8 +24,7 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
             .then(ident_parser())
             .then(generic_params_parser()) // 解析 <T, U>
             .then(
-                type_parser()
-                    .then(ident_parser())
+                typed_name_parser()
                     .map(|(ty, name)| Param { name, ty })
                     .separated_by(just(Token::Comma))
                     .allow_trailing()
@@ -51,8 +52,7 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
             .then(ident_parser())
             .then(generic_params_parser()) // 解析 <T>
             .then(
-                type_parser()
-                    .then(ident_parser())
+                typed_name_parser()
                     .map(|(ty, name)| Param { name, ty })
                     .separated_by(just(Token::Comma))
                     .allow_trailing()
@@ -132,8 +132,7 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
         let trait_method = type_parser()
             .then(ident_parser())
             .then(
-                type_parser()
-                    .then(ident_parser())
+                typed_name_parser()
                     .map(|(ty, name)| Param { name, ty })
                     .separated_by(just(Token::Comma))
                     .allow_trailing()
@@ -194,12 +193,35 @@ pub fn decl_parser() -> impl Parser<Token, Decl, Error = ParserError> {
             .repeated()
             .delimited_by(just(Token::LBrace), just(Token::RBrace));
 
+        let grouped_import = ident_parser()
+            .then(just(Token::Dot).ignore_then(ident_parser()).repeated())
+            .then_ignore(just(Token::Dot))
+            .then(
+                import_item
+                    .clone()
+                    .separated_by(just(Token::Comma))
+                    .at_least(1)
+                    .allow_trailing()
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+            )
+            .map(|((root, rest), items)| {
+                let mut prefix = vec![root];
+                prefix.extend(rest);
+                items
+                    .into_iter()
+                    .map(|mut item| {
+                        let mut path = prefix.clone();
+                        path.extend(item.path);
+                        item.path = path;
+                        item
+                    })
+                    .collect::<Vec<_>>()
+            });
         let import_single = import_item.map(|item| vec![item]);
-
         let import_decl = just(Token::Import)
-            .ignore_then(import_block.or(import_single))
+            .ignore_then(grouped_import.or(import_block).or(import_single))
             .then_ignore(just(Token::Semicolon).or_not())
-            .map_with_span(|items, span| Decl::Import { span, items }); // Enum 定义: enum Option<T> { Some(T), None }
+            .map_with_span(|items, span| Decl::Import { span, items });
         let enum_decl = just(Token::Enum)
             .ignore_then(ident_parser())
             .then(generic_params_parser())

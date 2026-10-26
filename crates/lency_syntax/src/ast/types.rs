@@ -69,7 +69,7 @@ impl Display for Type {
             Type::Nullable(inner) => write!(f, "{}?", inner),
             Type::Array { element_type, size } => write!(f, "{}[{}]", element_type, size),
             Type::Struct(name) => write!(f, "{}", name),
-            Type::Vec(inner) => write!(f, "Vec<{}>", inner),
+            Type::Vec(inner) => write!(f, "vec<{}>", inner),
             Type::Function {
                 param_types,
                 return_type,
