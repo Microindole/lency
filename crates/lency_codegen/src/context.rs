@@ -44,8 +44,9 @@ pub struct CodegenContext<'ctx> {
 
     /// Runtime Panic Function
     pub panic_func: Option<inkwell::values::FunctionValue<'ctx>>,
-    /// Line starts for source mapping
-    line_starts: Vec<usize>,
+    pub source_map: lency_syntax::source_map::SourceMap,
+    pub(crate) trace_strings:
+        std::cell::RefCell<std::collections::HashMap<String, inkwell::values::PointerValue<'ctx>>>,
 }
 
 impl<'ctx> CodegenContext<'ctx> {
@@ -56,14 +57,6 @@ impl<'ctx> CodegenContext<'ctx> {
     /// * `module_name` - 模块名称
     /// * `source` - 源代码 (可选, 用于调试信息)
     pub fn new(context: &'ctx Context, module_name: &str, source: Option<&str>) -> Self {
-        let line_starts = if let Some(src) = source {
-            std::iter::once(0)
-                .chain(src.match_indices('\n').map(|(i, _)| i + 1))
-                .collect()
-        } else {
-            Vec::new()
-        };
-
         Self {
             context,
             module: context.create_module(module_name),
@@ -78,19 +71,17 @@ impl<'ctx> CodegenContext<'ctx> {
             enum_variants: std::collections::HashMap::new(),
             global_var_types: std::collections::HashMap::new(),
             panic_func: None,
-            line_starts,
+            source_map: lency_syntax::source_map::SourceMap::main(
+                module_name,
+                source.unwrap_or(""),
+            ),
+            trace_strings: std::cell::RefCell::new(std::collections::HashMap::new()),
         }
     }
 
     /// 获取字节偏移对应的行号 (1-based)
     pub fn get_line(&self, byte_offset: usize) -> u32 {
-        if self.line_starts.is_empty() {
-            return 0;
-        }
-        match self.line_starts.binary_search(&byte_offset) {
-            Ok(line) => (line + 1) as u32,
-            Err(next_line_idx) => next_line_idx as u32,
-        }
+        self.source_map.location(byte_offset).line
     }
 
     /// 获取模块的 LLVM IR 字符串表示

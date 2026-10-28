@@ -44,7 +44,7 @@ impl LencyHashMapString {
 /// 创建新的 HashMap<String, Int>
 #[no_mangle]
 pub extern "C" fn lency_hashmap_string_new() -> *mut LencyHashMapString {
-    Box::into_raw(Box::new(LencyHashMapString::new()))
+    crate::memory::own_box(Box::new(LencyHashMapString::new()))
 }
 
 /// 插入键值对
@@ -153,9 +153,7 @@ pub unsafe extern "C" fn lency_hashmap_string_len(map: *const LencyHashMapString
 /// - 释放后不能再使用该指针
 #[no_mangle]
 pub unsafe extern "C" fn lency_hashmap_string_free(map: *mut LencyHashMapString) {
-    if !map.is_null() {
-        let _ = Box::from_raw(map);
-    }
+    unsafe { crate::memory::lency_free(map.cast()) };
 }
 
 // ============== 测试 ==============

@@ -26,7 +26,7 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
 
     /// 生成整个程序
     pub fn generate(&mut self, program: &Program) -> CodegenResult<()> {
-        // 1. 注入运行时函数 (__lency_panic, printf, exit, malloc)
+        // 1. 注入运行时诊断、输出和分配函数。
         self.inject_runtime()?;
 
         // 2. 第零遍：注册类型 (opaque)

@@ -14,6 +14,8 @@
 | `string_ops.rs` | 字符串操作和边界检查 |
 | `file_io/`、`hashmap/` | runtime 支持的操作 |
 | `intrinsic.rs`、`conversion.rs` | 集中的原语与转换 lowering |
+| memory.rs | 浅层手动释放及可空引用的原始存储表示 |
+| place.rs | 单次求值的赋值位置、固定数组原址与集合槽写入 |
 
 所有源码调用在 AST 中都是普通调用。需要 runtime 特殊处理的名称只允许在集中 lowering 边界识别，并必须经过 resolver 与 type checker。
 

@@ -36,16 +36,23 @@ impl LencyHashMap {
     pub fn new(initial_capacity: i64) -> Box<Self> {
         let capacity = if initial_capacity > 0 {
             // 确保是 2 的幂次
-            (initial_capacity as usize).next_power_of_two() as i64
+            (initial_capacity as usize)
+                .checked_next_power_of_two()
+                .and_then(|value| i64::try_from(value).ok())
+                .unwrap_or_else(|| unsafe {
+                    crate::lency_panic_at(c"HashMap capacity overflow".as_ptr(), 0)
+                })
         } else {
             8
         };
 
-        let layout = Layout::array::<Entry>(capacity as usize).unwrap();
+        let layout = Layout::array::<Entry>(capacity as usize).unwrap_or_else(|_| unsafe {
+            crate::lency_panic_at(c"HashMap capacity overflow".as_ptr(), 0)
+        });
         let entries = unsafe { alloc_zeroed(layout) as *mut Entry };
 
         if entries.is_null() {
-            panic!("Failed to allocate HashMap");
+            unsafe { crate::lency_panic_at(c"Failed to allocate HashMap".as_ptr(), 0) }
         }
 
         Box::new(LencyHashMap {
@@ -68,12 +75,16 @@ impl LencyHashMap {
         let old_capacity = self.capacity;
         let old_entries = self.entries;
 
-        let new_capacity = old_capacity * 2;
-        let new_layout = Layout::array::<Entry>(new_capacity as usize).unwrap();
+        let new_capacity = old_capacity.checked_mul(2).unwrap_or_else(|| unsafe {
+            crate::lency_panic_at(c"HashMap capacity overflow".as_ptr(), 0)
+        });
+        let new_layout = Layout::array::<Entry>(new_capacity as usize).unwrap_or_else(|_| unsafe {
+            crate::lency_panic_at(c"HashMap capacity overflow".as_ptr(), 0)
+        });
         let new_entries = unsafe { alloc_zeroed(new_layout) as *mut Entry };
 
         if new_entries.is_null() {
-            panic!("Failed to grow HashMap");
+            unsafe { crate::lency_panic_at(c"Failed to grow HashMap".as_ptr(), 0) }
         }
 
         self.entries = new_entries;
@@ -100,29 +111,39 @@ impl LencyHashMap {
     /// 内部插入 (不检查负载因子)
     fn insert_internal(&mut self, key: i64, value: i64) {
         let mut index = self.hash(key);
-
-        loop {
+        let mut deleted = None;
+        for _ in 0..self.capacity {
             let entry = unsafe { &mut *self.entries.offset(index as isize) };
-
             match entry.state {
-                EntryState::Empty | EntryState::Deleted => {
-                    entry.key = key;
-                    entry.value = value;
-                    entry.state = EntryState::Occupied;
-                    self.len += 1;
+                EntryState::Empty => {
+                    self.write_entry(deleted.unwrap_or(index), key, value);
                     return;
+                }
+                EntryState::Deleted => {
+                    deleted.get_or_insert(index);
                 }
                 EntryState::Occupied if entry.key == key => {
                     // 更新已有键的值
                     entry.value = value;
                     return;
                 }
-                EntryState::Occupied => {
-                    // 线性探测
-                    index = (index + 1) & (self.capacity - 1);
-                }
+                EntryState::Occupied => {}
             }
+            index = (index + 1) & (self.capacity - 1);
         }
+        if let Some(index) = deleted {
+            self.write_entry(index, key, value);
+            return;
+        }
+        unsafe { crate::lency_panic_at(c"HashMap storage full".as_ptr(), 0) }
+    }
+
+    fn write_entry(&mut self, index: i64, key: i64, value: i64) {
+        let entry = unsafe { &mut *self.entries.offset(index as isize) };
+        entry.key = key;
+        entry.value = value;
+        entry.state = EntryState::Occupied;
+        self.len += 1;
     }
 
     /// 插入键值对
@@ -213,7 +234,7 @@ impl Drop for LencyHashMap {
 /// Create a new HashMap
 #[no_mangle]
 pub extern "C" fn lency_hashmap_new(initial_capacity: i64) -> *mut LencyHashMap {
-    Box::into_raw(LencyHashMap::new(initial_capacity))
+    crate::memory::own_box(LencyHashMap::new(initial_capacity))
 }
 
 /// Insert a key-value pair
@@ -282,9 +303,7 @@ pub unsafe extern "C" fn lency_hashmap_len(map: *const LencyHashMap) -> i64 {
 /// `map` must be a valid pointer returned by `lency_hashmap_new` and not already freed
 #[no_mangle]
 pub unsafe extern "C" fn lency_hashmap_free(map: *mut LencyHashMap) {
-    if !map.is_null() {
-        let _ = Box::from_raw(map);
-    }
+    unsafe { crate::memory::lency_free(map.cast()) };
 }
 
 // ============== Tests ==============
@@ -292,6 +311,22 @@ pub unsafe extern "C" fn lency_hashmap_free(map: *mut LencyHashMap) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn updating_a_collision_after_deletion_does_not_duplicate_the_key() {
+        let mut map = LencyHashMap::new(8);
+        let other = (1..10_000)
+            .find(|key| map.hash(*key) == map.hash(0))
+            .unwrap();
+        map.insert(0, 1);
+        map.insert(other, 2);
+        assert!(map.remove(0));
+        map.insert(other, 3);
+        assert_eq!(map.len(), 1);
+        assert_eq!(map.get(other), Some(3));
+        assert!(map.remove(other));
+        assert_eq!(map.get(other), None);
+    }
 
     #[test]
     fn test_hashmap_new() {

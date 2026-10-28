@@ -12,6 +12,39 @@ pub fn check_call(
     args: &mut [Expr],
     span: &std::ops::Range<usize>,
 ) -> Result<Type, SemanticError> {
+    if matches!(&callee.kind, ExprKind::Variable(name) if name == "free") {
+        if args.len() != 1 {
+            return Err(SemanticError::ArgumentCountMismatch {
+                name: "free".into(),
+                expected: 1,
+                found: args.len(),
+                span: span.clone(),
+            });
+        }
+        let inferred = checker.infer_type(&mut args[0])?;
+        // 释放使用声明存储类型；非空细化不能把堆上可空值单元变成标量。
+        let ty = if let ExprKind::Variable(name) = &args[0].kind {
+            checker
+                .scopes
+                .lookup(name)
+                .and_then(Symbol::ty)
+                .cloned()
+                .unwrap_or(inferred)
+        } else {
+            inferred
+        };
+        if !matches!(
+            ty,
+            Type::String | Type::Struct(_) | Type::Generic(_, _) | Type::Vec(_) | Type::Nullable(_)
+        ) {
+            return Err(SemanticError::TypeMismatch {
+                expected: "heap reference".into(),
+                found: ty.to_string(),
+                span: args[0].span.clone(),
+            });
+        }
+        return Ok(Type::Void);
+    }
     // 解析被调用者 (包括泛型实例化)
     let (func, is_method, subst_map) = match &mut callee.kind {
         ExprKind::GenericInstantiation {
@@ -391,8 +424,12 @@ pub fn check_call(
             }
         }
         _ => {
-            // 复杂调用表达式暂不支持
-            return Ok(Type::Error);
+            // 当前后端不支持任意表达式作为被调用者，不能用错误占位类型伪造成功。
+            let ty = checker.infer_type(callee)?;
+            return Err(SemanticError::NotCallable {
+                ty: format!("unsupported call target: {ty}"),
+                span: callee.span.clone(),
+            });
         }
     };
 
@@ -419,6 +456,13 @@ pub fn check_call(
 
     for (arg, (_, param_ty)) in args.iter_mut().zip(params_iter) {
         let arg_ty = checker.infer_type(arg)?;
+        if !is_method && func.name == "print" && arg_ty == Type::Void {
+            return Err(SemanticError::TypeMismatch {
+                expected: "printable value".into(),
+                found: "void".into(),
+                span: arg.span.clone(),
+            });
+        }
         // 关键：检查参数前先替换其中的泛型参数
         let expected_ty = substitute_type(param_ty, &subst_map);
 

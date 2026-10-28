@@ -164,27 +164,8 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
 
     /// 生成赋值语句
     fn gen_assignment(&mut self, target: &Expr, value: &Expr) -> CodegenResult<()> {
-        // 生成目标地址（LValue）
         let expr_gen = ExprGenerator::new(self.ctx, self.locals);
-        let (ptr, ty) = expr_gen.generate_lvalue_addr(target)?;
-
-        // 生成值
-        let val_wrapper = expr_gen.generate(value)?;
-        let val = crate::nullable::coerce(
-            self.ctx,
-            val_wrapper,
-            &ty,
-            self.ctx.get_line(value.span.start),
-        )?
-        .value;
-
-        // 存储
-        self.ctx
-            .builder
-            .build_store(ptr, val)
-            .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-        Ok(())
+        expr_gen.generate_assignment(target, value)
     }
 
     /// 生成 return 语句
@@ -203,12 +184,14 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
                 expected,
                 self.ctx.get_line(expr.span.start),
             )?;
+            crate::trace::leave(self.ctx)?;
 
             self.ctx
                 .builder
                 .build_return(Some(&val_wrapper.value))
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
         } else {
+            crate::trace::leave(self.ctx)?;
             self.ctx
                 .builder
                 .build_return(None)

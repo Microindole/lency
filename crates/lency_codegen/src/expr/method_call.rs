@@ -16,8 +16,9 @@ pub fn gen_method_call<'ctx>(
     object: &Expr,
     method_name: &str,
     args: &[Expr],
-    line: u32,
+    offset: usize,
 ) -> CodegenResult<CodegenValue<'ctx>> {
+    let line = ctx.get_line(offset);
     // 0. Check for Enum Constructor Call (Enum.Variant(args))
     let enum_check = match &object.kind {
         lency_syntax::ast::ExprKind::Variable(name) => Some((name.clone(), vec![])),
@@ -63,6 +64,7 @@ pub fn gen_method_call<'ctx>(
                 compiled_args.push(arg_val.value.into());
             }
 
+            crate::trace::location(ctx, offset)?;
             let call_site = ctx
                 .builder
                 .build_call(function, &compiled_args, "call_ctor")
@@ -98,6 +100,7 @@ pub fn gen_method_call<'ctx>(
             method_name,
             args,
             &inner,
+            offset,
         ),
         // Primitive types: int, string, bool
         Type::Int | Type::String | Type::Bool => {
@@ -146,6 +149,7 @@ pub fn gen_method_call<'ctx>(
                 .ok_or_else(|| CodegenError::FunctionNotFound(mangled_name.clone()))?;
 
             // 生成调用
+            crate::trace::location(ctx, offset)?;
             let call_site = ctx
                 .builder
                 .build_call(function, &compiled_args, "call_method")
@@ -234,6 +238,7 @@ pub fn gen_method_call<'ctx>(
                 .ok_or_else(|| CodegenError::FunctionNotFound(mangled_name.clone()))?;
 
             // 生成调用
+            crate::trace::location(ctx, offset)?;
             let call_site = ctx
                 .builder
                 .build_call(function, &compiled_args, "call_method")

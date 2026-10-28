@@ -1,4 +1,5 @@
 use inkwell::{context::Context, OptimizationLevel};
+mod support;
 
 thread_local! {
     static PROBE_CALLS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
@@ -24,6 +25,7 @@ fn run(source: &str) -> i64 {
     let engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .expect("JIT");
+    support::register_trace(&engine, &module);
     if let Some(panic) = module.get_function("lency_panic_at") {
         engine.add_global_mapping(&panic, unexpected_panic as *const () as usize);
     }

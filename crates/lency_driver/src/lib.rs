@@ -7,8 +7,8 @@ pub mod error;
 pub use error::{CompileError, CompileResult};
 
 use chumsky::Parser;
-use lency_codegen::compile_to_ir;
-use lency_sema::analyze;
+use lency_codegen::compile_to_ir_with_sources;
+use lency_sema::analyze_with_source_map;
 use lency_syntax::ast::Program;
 use lency_syntax::lexer::Token;
 use lency_syntax::parser::program_parser;
@@ -34,7 +34,7 @@ fn parse_source(source: &str) -> CompileResult<Program> {
         Err(_) => (Token::Error, span),
     });
 
-    let token_vec: Vec<(Token, std::ops::Range<usize>)> = token_iter.collect();
+    let token_vec = lency_syntax::parser::statement_boundaries(source, token_iter.collect());
     let len = source.len();
 
     // 2. 创建 Stream
@@ -131,18 +131,32 @@ fn parse_source(source: &str) -> CompileResult<Program> {
 /// println!("{}", output.ir);
 /// ```
 pub fn compile(source: &str) -> CompileResult<CompilationOutput> {
+    compile_named(source, "<source>")
+}
+
+fn compile_named(source: &str, path: &str) -> CompileResult<CompilationOutput> {
     // 1. 词法 + 语法分析
     let mut ast = parse_source(source)?;
 
     // 2. 语义分析
-    let _analysis_result = analyze(&mut ast).map_err(CompileError::SemanticErrors)?;
+    let analysis_result =
+        analyze_with_source_map(&mut ast, path, source).map_err(|(errors, source_map)| {
+            if errors
+                .iter()
+                .any(|error| source_map.is_imported(error.span().start))
+            {
+                CompileError::SemanticSources { errors, source_map }
+            } else {
+                CompileError::SemanticErrors(errors)
+            }
+        })?;
 
     // 3. 单态化 (Generic Monomorphization)
     let mut monomorphizer = lency_monomorph::Monomorphizer::new();
     let monomorphized_ast = monomorphizer.process(ast);
 
     // 4. 代码生成
-    let ir = compile_to_ir(&monomorphized_ast, "main", Some(source))?;
+    let ir = compile_to_ir_with_sources(&monomorphized_ast, "main", &analysis_result.source_map)?;
 
     Ok(CompilationOutput {
         ir,
@@ -156,7 +170,7 @@ pub fn compile(source: &str) -> CompileResult<CompilationOutput> {
 /// * `path` - 源文件路径
 pub fn compile_file(path: &str) -> CompileResult<CompilationOutput> {
     let source = std::fs::read_to_string(path)?;
-    compile(&source)
+    compile_named(&source, path)
 }
 
 #[cfg(test)]

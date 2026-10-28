@@ -48,6 +48,31 @@ pub fn resolve_impl(resolver: &mut Resolver, decl: &mut Decl) {
             return;
         }
 
+        let mut method_spans = match resolver.scopes.get_symbol(struct_id) {
+            Some(Symbol::Struct(target)) => target
+                .methods
+                .iter()
+                .map(|(name, method)| (name.clone(), method.span.clone()))
+                .collect::<std::collections::HashMap<_, _>>(),
+            Some(Symbol::Enum(target)) => target
+                .methods
+                .iter()
+                .map(|(name, method)| (name.clone(), method.span.clone()))
+                .collect(),
+            _ => std::collections::HashMap::new(),
+        };
+        for method in methods.iter() {
+            if let Decl::Function { name, span, .. } = method {
+                if let Some(previous_span) = method_spans.insert(name.clone(), span.clone()) {
+                    resolver.errors.push(SemanticError::DuplicateDefinition {
+                        name: format!("{}.{}", target_name, name),
+                        span: span.clone(),
+                        previous_span,
+                    });
+                }
+            }
+        }
+
         if let Some(trait_ty) = trait_ref {
             let trait_name_str = match trait_ty {
                 Type::Struct(name) => name.clone(),

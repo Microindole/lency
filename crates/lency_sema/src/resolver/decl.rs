@@ -139,6 +139,14 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
             );
 
             for field in fields {
+                if struct_symbol.fields.contains_key(&field.name) {
+                    resolver.errors.push(SemanticError::DuplicateDefinition {
+                        name: format!("{}.{}", name, field.name),
+                        span: span.clone(),
+                        previous_span: span.clone(),
+                    });
+                    continue;
+                }
                 let mut field_ty = field.ty.clone();
                 resolver.normalize_type_with_generics(&mut field_ty, &generic_param_symbols);
                 struct_symbol.add_field(field.name.clone(), field_ty, span.clone());
@@ -217,6 +225,18 @@ pub fn collect_decl(resolver: &mut Resolver, decl: &Decl) -> Vec<Decl> {
             };
 
             for variant in variants {
+                let variant_name = match variant {
+                    lency_syntax::ast::EnumVariant::Unit(name)
+                    | lency_syntax::ast::EnumVariant::Tuple(name, _) => name,
+                };
+                if enum_symbol.variants.contains_key(variant_name) {
+                    resolver.errors.push(SemanticError::DuplicateDefinition {
+                        name: format!("{}.{}", name, variant_name),
+                        span: span.clone(),
+                        previous_span: span.clone(),
+                    });
+                    continue;
+                }
                 match variant {
                     lency_syntax::ast::EnumVariant::Unit(n) => {
                         enum_symbol.add_variant(n.clone(), vec![])
@@ -315,6 +335,14 @@ pub fn collect_impl_methods(resolver: &mut Resolver, decl: &Decl) {
         let struct_id = struct_id.unwrap(); // allow: unwrap (logic guarantee)
         if let Some(Symbol::Struct(struct_sym)) = resolver.scopes.get_symbol_mut(struct_id) {
             for (name, func_symbol) in methods_to_add {
+                if let Some(previous) = struct_sym.methods.get(&name) {
+                    resolver.errors.push(SemanticError::DuplicateDefinition {
+                        name: format!("{}.{}", target_name, name),
+                        span: func_symbol.span.clone(),
+                        previous_span: previous.span.clone(),
+                    });
+                    continue;
+                }
                 struct_sym.add_method(name, func_symbol);
             }
         } else {

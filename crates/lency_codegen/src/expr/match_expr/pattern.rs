@@ -32,6 +32,66 @@ pub(crate) fn gen_pattern_check<'ctx>(
             Ok(())
         }
         MatchPattern::Literal(lit) => {
+            if matches!(lit, lency_syntax::ast::Literal::Null) {
+                let ptr_type = ctx
+                    .context
+                    .i8_type()
+                    .ptr_type(inkwell::AddressSpace::default());
+                let pointer = ctx
+                    .builder
+                    .build_load(ptr_type, subject_ptr, "pattern.null")
+                    .unwrap()
+                    .into_pointer_value();
+                let matches = ctx
+                    .builder
+                    .build_is_null(pointer, "pattern.is_null")
+                    .unwrap();
+                let function = ctx
+                    .builder
+                    .get_insert_block()
+                    .unwrap()
+                    .get_parent()
+                    .unwrap();
+                let success = ctx
+                    .context
+                    .append_basic_block(function, "pattern.null.success");
+                ctx.builder
+                    .build_conditional_branch(matches, success, mismatch_bb)
+                    .unwrap();
+                ctx.builder.position_at_end(success);
+                return Ok(());
+            }
+            if let lency_syntax::ast::Literal::Float(value) = lit {
+                let actual = ctx
+                    .builder
+                    .build_load(ctx.context.f64_type(), subject_ptr, "pattern.float")
+                    .unwrap()
+                    .into_float_value();
+                let expected = ctx.context.f64_type().const_float(*value);
+                let matches = ctx
+                    .builder
+                    .build_float_compare(
+                        inkwell::FloatPredicate::OEQ,
+                        actual,
+                        expected,
+                        "pattern.float.equal",
+                    )
+                    .unwrap();
+                let function = ctx
+                    .builder
+                    .get_insert_block()
+                    .unwrap()
+                    .get_parent()
+                    .unwrap();
+                let success = ctx
+                    .context
+                    .append_basic_block(function, "pattern.float.success");
+                ctx.builder
+                    .build_conditional_branch(matches, success, mismatch_bb)
+                    .unwrap();
+                ctx.builder.position_at_end(success);
+                return Ok(());
+            }
             // String Matching
             if matches!(subject_type, Type::String) {
                 if let lency_syntax::ast::Literal::String(s) = lit {
@@ -120,9 +180,14 @@ pub(crate) fn gen_pattern_check<'ctx>(
             // (Assuming int for now based on previous impl, but need to support others)
 
             let load_val = match subject_type {
-                Type::Int | Type::Bool => ctx
+                Type::Int => ctx
                     .builder
                     .build_load(ctx.context.i64_type(), subject_ptr, "lit_chk_load")
+                    .unwrap()
+                    .into_int_value(),
+                Type::Bool => ctx
+                    .builder
+                    .build_load(ctx.context.bool_type(), subject_ptr, "lit_chk_bool")
                     .unwrap()
                     .into_int_value(),
                 Type::Float => {
@@ -160,21 +225,10 @@ pub(crate) fn gen_pattern_check<'ctx>(
             // If Int, i64. If Bool, i1.
             // Adjust logic above.
 
-            let cmp = if *subject_type == Type::Bool {
-                let bload = ctx
-                    .builder
-                    .build_load(ctx.context.bool_type(), subject_ptr, "b_load")
-                    .unwrap()
-                    .into_int_value();
-                ctx.builder
-                    .build_int_compare(inkwell::IntPredicate::EQ, bload, lit_val, "lit_eq")
-                    .unwrap()
-            } else {
-                // Int
-                ctx.builder
-                    .build_int_compare(inkwell::IntPredicate::EQ, load_val, lit_val, "lit_eq")
-                    .unwrap()
-            };
+            let cmp = ctx
+                .builder
+                .build_int_compare(inkwell::IntPredicate::EQ, load_val, lit_val, "lit_eq")
+                .unwrap();
 
             let success_bb = ctx.context.append_basic_block(
                 ctx.builder
@@ -206,6 +260,15 @@ pub(crate) fn gen_pattern_check<'ctx>(
                 Type::Generic(n, _) => n, // Generic Enum
                 _ => return Err(CodegenError::TypeMismatch),
             };
+            // 所有模式接收值的存储地址；枚举模式先加载对象句柄。
+            let subject_ptr = ctx
+                .builder
+                .build_load(subject_type.to_llvm_type(ctx)?, subject_ptr, "pattern.enum")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?
+                .into_pointer_value();
+            if let Some(panic) = ctx.panic_func {
+                crate::runtime::gen_null_check(ctx.context, &ctx.builder, panic, subject_ptr, 0);
+            }
 
             // Look up variants info to find index
             let variants_info = ctx

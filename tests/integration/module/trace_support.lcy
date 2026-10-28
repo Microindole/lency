@@ -1,0 +1,6 @@
+int trace_failure(int depth) {
+    if depth > 0 {
+        return trace_failure(depth - 1)
+    }
+    panic("trace contract failure")
+}

@@ -78,11 +78,10 @@ pub(crate) fn coerce<'ctx>(
             payload.value.into_pointer_value()
         } else {
             // 不能使用栈地址：可空值可以作为函数结果或结构体字段逃逸。
-            // TODO: 值单元回收需接入与现有结构体堆对象一致的内存管理。
             let malloc = ctx
                 .module
-                .get_function("malloc")
-                .ok_or_else(|| CodegenError::FunctionNotFound("malloc".into()))?;
+                .get_function("lency_alloc")
+                .ok_or_else(|| CodegenError::FunctionNotFound("lency_alloc".into()))?;
             let size = llvm_type.size_of().ok_or(CodegenError::TypeMismatch)?;
             let allocation = ctx
                 .builder

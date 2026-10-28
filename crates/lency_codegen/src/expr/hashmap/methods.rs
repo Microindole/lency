@@ -26,6 +26,7 @@ pub fn gen_hashmap_extern_call<'ctx>(
         "hashmap_int_contains" => int::gen_contains(ctx, locals, args),
         "hashmap_int_remove" => int::gen_remove(ctx, locals, args),
         "hashmap_int_len" => int::gen_len(ctx, locals, args),
+        "hashmap_int_free" | "hashmap_string_free" => gen_free_handle(ctx, locals, args),
 
         // String Map
         "hashmap_string_new" => string::gen_new(ctx),
@@ -37,4 +38,36 @@ pub fn gen_hashmap_extern_call<'ctx>(
 
         _ => Err(CodegenError::FunctionNotFound(func_name.to_string())),
     }
+}
+
+fn gen_free_handle<'ctx>(
+    ctx: &CodegenContext<'ctx>,
+    locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)>,
+    args: &[Expr],
+) -> CodegenResult<CodegenValue<'ctx>> {
+    let value = crate::expr::generate_expr(ctx, locals, &args[0])?;
+    let pointer_type = ctx
+        .context
+        .i8_type()
+        .ptr_type(inkwell::AddressSpace::default());
+    let pointer = ctx
+        .builder
+        .build_int_to_ptr(value.value.into_int_value(), pointer_type, "map.free")
+        .map_err(|error| CodegenError::LLVMBuildError(error.to_string()))?;
+    let function = ctx.module.get_function("lency_free").unwrap_or_else(|| {
+        ctx.module.add_function(
+            "lency_free",
+            ctx.context
+                .void_type()
+                .fn_type(&[pointer_type.into()], false),
+            None,
+        )
+    });
+    ctx.builder
+        .build_call(function, &[pointer.into()], "")
+        .map_err(|error| CodegenError::LLVMBuildError(error.to_string()))?;
+    Ok(CodegenValue {
+        value: ctx.context.bool_type().const_zero().into(),
+        ty: Type::Void,
+    })
 }

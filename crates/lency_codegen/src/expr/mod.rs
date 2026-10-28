@@ -11,7 +11,9 @@ pub mod hashmap;
 mod intrinsic;
 mod literal;
 mod match_expr;
+mod memory;
 mod method_call;
+mod place;
 mod string_ops;
 mod struct_access;
 mod struct_init;
@@ -60,6 +62,10 @@ impl<'ctx, 'a> ExprGenerator<'ctx, 'a> {
         // Return Type too for verification if needed
         generate_lvalue_addr(self.ctx, self.locals, expr)
     }
+
+    pub fn generate_assignment(&self, target: &Expr, value: &Expr) -> CodegenResult<()> {
+        place::assign(self.ctx, self.locals, target, value)
+    }
 }
 
 /// 内部辅助函数：生成表达式代码
@@ -68,6 +74,7 @@ fn generate_expr<'ctx>(
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, lency_syntax::ast::Type)>,
     expr: &Expr,
 ) -> CodegenResult<CodegenValue<'ctx>> {
+    crate::trace::location(ctx, expr.span.start)?;
     match &expr.kind {
         ExprKind::Literal(lit) => literal::gen_literal(ctx, lit),
         ExprKind::Unit => Ok(CodegenValue {
@@ -96,8 +103,7 @@ fn generate_expr<'ctx>(
             if let ExprKind::Get { object, name } = &callee.kind {
                 // 尝试作为方法调用处理
                 // gen_method_call 内部会验证 object 是否为 Struct
-                let line = ctx.get_line(callee.span.start);
-                method_call::gen_method_call(ctx, locals, object, name, args, line)
+                method_call::gen_method_call(ctx, locals, object, name, args, callee.span.start)
             } else {
                 call::gen_call(ctx, locals, callee, args)
             }
@@ -160,6 +166,7 @@ fn generate_lvalue_addr<'ctx>(
             let line = ctx.get_line(expr.span.start);
             struct_access::gen_struct_member_ptr(ctx, locals, object, name, line)
         }
+        ExprKind::Index { .. } => place::index_address(ctx, locals, expr),
         _ => Err(CodegenError::UnsupportedExpression),
     }
 }

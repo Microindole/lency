@@ -44,75 +44,90 @@ void println_bool(bool b) {
 // 读取文件的所有行
 Vec<string> read_lines(string path) {
     var content = read_file(path)
-    return split(content, "\n")
+    var lines = split(content, "\n")
+    free(content)
+    return lines
 }
 
 // 写入多行到文件
 void write_lines(string path, Vec<string> lines) {
     var content = join(lines, "\n")
     write_file(path, content)
+    free(content)
 }
 
 // 追加内容到文件
 void append_file(string path, string content) {
     var existing = read_file(path)
-    write_file(path, existing + content)
+    var combined = existing + content
+    write_file(path, combined)
+    free(existing)
+    free(combined)
 }
 
 // ============== 路径操作 ==============
 
+// 路径输入为借用；路径查询和拼接始终返回独立字符串，由调用者释放。
 // 获取文件扩展名 (不含点)
 string get_extension(string path) {
-    var parts = split(path, ".")
-    if parts.len() <= 1 {
-        return ""
+    var start = 0
+    var dot = -1
+    var i = 0
+    while i < len(path) {
+        if path[i] == 47 || path[i] == 92 {
+            start = i + 1
+            dot = -1
+        } else {
+            if path[i] == 46 { dot = i }
+        }
+        i = i + 1
     }
-    return parts.get(parts.len() - 1)
+    if dot <= start { return substr("", 0, 0) }
+    return substr(path, dot + 1, len(path) - dot - 1)
 }
 
 // 获取文件名 (不含路径)
 string get_filename(string path) {
-    var parts = split(path, "/")
-    if parts.len() == 0 {
-        return path
+    var start = 0
+    var i = 0
+    while i < len(path) {
+        if path[i] == 47 || path[i] == 92 { start = i + 1 }
+        i = i + 1
     }
-    return parts.get(parts.len() - 1)
+    return substr(path, start, len(path) - start)
 }
 
 // 获取目录路径 (不含文件名)
 string get_directory(string path) {
-    var parts = split(path, "/")
-    if parts.len() <= 1 {
-        return ""
-    }
-    // 移除最后一个部分
-    var result = ""
+    var end = -1
     var i = 0
-    while i < parts.len() - 1 {
-        if i > 0 {
-            result = result + "/"
-        }
-        result = result + parts.get(i)
+    while i < len(path) {
+        if path[i] == 47 || path[i] == 92 { end = i }
         i = i + 1
     }
-    return result
+    if end < 0 { return substr("", 0, 0) }
+    if end == 0 { return substr(path, 0, 1) }
+    return substr(path, 0, end)
 }
 
 // 拼接路径
 string join_path(string base, string path) {
     if len(base) == 0 {
-        return path
+        return substr(path, 0, len(path))
     }
     if len(path) == 0 {
-        return base
+        return substr(base, 0, len(base))
     }
     // 检查 base 是否以 / 结尾
     var base_len = len(base)
     var last_char = base[base_len - 1]
-    if last_char == 47 {  // '/'
+    if last_char == 47 || last_char == 92 {
         return base + path
     }
-    return base + "/" + path
+    var prefix = base + "/"
+    var result = prefix + path
+    free(prefix)
+    return result
 }
 
 // ============== 已实现的内置函数 (供参考) ==============

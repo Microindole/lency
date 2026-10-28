@@ -1,4 +1,5 @@
 use inkwell::{context::Context, OptimizationLevel};
+mod support;
 use std::cell::Cell;
 
 thread_local! {
@@ -28,6 +29,7 @@ fn run(source: &str) -> (i64, i64, usize) {
     let engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .unwrap();
+    support::register_trace(&engine, &module);
     if let Some(function) = module.get_function("receiver") {
         engine.add_global_mapping(&function, receiver as *const () as usize);
     }

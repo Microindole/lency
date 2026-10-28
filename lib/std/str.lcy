@@ -1,5 +1,5 @@
 // Lency 标准库 - 字符串模块 (string.lcy)
-// 提供字符串操作函数
+// 输入均为借用；返回 string 的函数始终返回独立分配，由调用者释放。
 //
 // 核心字符串函数是编译器内置函数 (intrinsics)：
 //   int     len(string s)                       - 字符串长度
@@ -22,7 +22,9 @@ bool starts_with(string s, string prefix) {
         return false
     }
     var head = substr(s, 0, prefix_len)
-    return head == prefix
+    var matches = head == prefix
+    free(head)
+    return matches
 }
 
 // 检查字符串是否以指定后缀结尾
@@ -33,7 +35,9 @@ bool ends_with(string s, string suffix) {
         return false
     }
     var tail = substr(s, s_len - suffix_len, suffix_len)
-    return tail == suffix
+    var matches = tail == suffix
+    free(tail)
+    return matches
 }
 
 // 检查字符串是否包含子串
@@ -52,7 +56,9 @@ bool contains(string s, string sub) {
     var i = 0
     while i <= s_len - sub_len {
         var candidate = substr(s, i, sub_len)
-        if candidate == sub {
+        var matches = candidate == sub
+        free(candidate)
+        if matches {
             return true
         }
         i = i + 1
@@ -63,13 +69,15 @@ bool contains(string s, string sub) {
 // 重复字符串 n 次
 string repeat(string s, int n) {
     if n <= 0 {
-        return ""
+        return substr("", 0, 0)
     }
     
-    var result = s
-    var i = 1
+    var result = substr("", 0, 0)
+    var i = 0
     while i < n {
-        result = result + s
+        var next = result + s
+        free(result)
+        result = next
         i = i + 1
     }
     return result
@@ -79,24 +87,28 @@ string repeat(string s, int n) {
 string pad_right(string s, int target_len, string pad_char) {
     var current_len = len(s)
     if current_len >= target_len {
-        return s
+        return substr(s, 0, current_len)
     }
     
     var padding_needed = target_len - current_len
     var padding = repeat(pad_char, padding_needed)
-    return s + padding
+    var result = s + padding
+    free(padding)
+    return result
 }
 
 // 将字符串填充到指定长度 (左填充)
 string pad_left(string s, int target_len, string pad_char) {
     var current_len = len(s)
     if current_len >= target_len {
-        return s
+        return substr(s, 0, current_len)
     }
     
     var padding_needed = target_len - current_len
     var padding = repeat(pad_char, padding_needed)
-    return padding + s
+    var result = padding + s
+    free(padding)
+    return result
 }
 
 // 替换第一个匹配项
@@ -105,34 +117,48 @@ string replace_first(string s, string old, string new_str) {
     var old_len = len(old)
     
     if old_len == 0 {
-        return s
+        return substr(s, 0, s_len)
     }
     if s_len < old_len {
-        return s
+        return substr(s, 0, s_len)
     }
     
     // 找到 old 的第一个位置
     var i = 0
     while i <= s_len - old_len {
         var candidate = substr(s, i, old_len)
-        if candidate == old {
+        var matches = candidate == old
+        free(candidate)
+        if matches {
             // 找到了，拼接结果
             var before = substr(s, 0, i)
             var after = substr(s, i + old_len, s_len - i - old_len)
-            return before + new_str + after
+            var prefix = before + new_str
+            var result = prefix + after
+            free(before)
+            free(after)
+            free(prefix)
+            return result
         }
         i = i + 1
     }
-    return s
+    return substr(s, 0, s_len)
 }
 
 // 替换所有匹配项
 string replace_all(string s, string old, string new_str) {
     if len(old) == 0 {
-        return s
+        return substr(s, 0, len(s))
     }
     var parts = split(s, old)
-    return join(parts, new_str)
+    var result = join(parts, new_str)
+    var i = 0
+    while i < parts.len() {
+        free(parts[i])
+        i = i + 1
+    }
+    free(parts)
+    return result
 }
 
 // 查找子串的位置 (返回 -1 表示未找到)
@@ -150,7 +176,9 @@ int index_of(string s, string sub) {
     var i = 0
     while i <= s_len - sub_len {
         var candidate = substr(s, i, sub_len)
-        if candidate == sub {
+        var matches = candidate == sub
+        free(candidate)
+        if matches {
             return i
         }
         i = i + 1
@@ -160,7 +188,7 @@ int index_of(string s, string sub) {
 
 // 将字符串转为大写 (仅 ASCII)
 string to_upper(string s) {
-    var result = ""
+    var result = substr("", 0, 0)
     var i = 0
     while i < len(s) {
         var c = s[i]
@@ -170,7 +198,11 @@ string to_upper(string s) {
                 c = c - 32
             }
         }
-        result = result + char_to_string(c)
+        var character = char_to_string(c)
+        var next = result + character
+        free(character)
+        free(result)
+        result = next
         i = i + 1
     }
     return result
@@ -178,7 +210,7 @@ string to_upper(string s) {
 
 // 将字符串转为小写 (仅 ASCII)
 string to_lower(string s) {
-    var result = ""
+    var result = substr("", 0, 0)
     var i = 0
     while i < len(s) {
         var c = s[i]
@@ -188,7 +220,11 @@ string to_lower(string s) {
                 c = c + 32
             }
         }
-        result = result + char_to_string(c)
+        var character = char_to_string(c)
+        var next = result + character
+        free(character)
+        free(result)
+        result = next
         i = i + 1
     }
     return result
@@ -196,10 +232,14 @@ string to_lower(string s) {
 
 // 反转字符串
 string reverse(string s) {
-    var result = ""
+    var result = substr("", 0, 0)
     var i = len(s) - 1
     while i >= 0 {
-        result = result + char_to_string(s[i])
+        var character = char_to_string(s[i])
+        var next = result + character
+        free(character)
+        free(result)
+        result = next
         i = i - 1
     }
     return result
@@ -221,7 +261,9 @@ int count(string s, string sub) {
     var i = 0
     while i <= s_len - sub_len {
         var candidate = substr(s, i, sub_len)
-        if candidate == sub {
+        var matches = candidate == sub
+        free(candidate)
+        if matches {
             n = n + 1
             i = i + sub_len // 不重叠计数
         } else {
@@ -242,7 +284,7 @@ string trim_left(string s) {
         }
         i = i + 1
     }
-    return ""
+    return substr("", 0, 0)
 }
 
 // 去除右侧空白
@@ -256,14 +298,11 @@ string trim_right(string s) {
         }
         i = i - 1
     }
-    return ""
+    return substr("", 0, 0)
 }
 
-// 获取指定位置的字符 (返回 ASCII int，越界返回 -1)
+// 获取指定位置的 UTF-8 字节；越界由统一运行时检查报告 panic。
 int char_at(string s, int index) {
-    if index < 0 || index >= len(s) {
-        return -1
-    }
     return s[index]
 }
 
@@ -280,7 +319,9 @@ int last_index_of(string s, string sub) {
     var i = s_len - sub_len
     while i >= 0 {
         var candidate = substr(s, i, sub_len)
-        if candidate == sub {
+        var matches = candidate == sub
+        free(candidate)
+        if matches {
             return i
         }
         i = i - 1

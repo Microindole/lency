@@ -16,6 +16,8 @@ fn is_rust_change(path: &str) -> bool {
     path.starts_with("crates/")
         || path.starts_with("xtask/")
         || path.starts_with("tests/integration/")
+        || path.starts_with("tests/stage0/")
+        || path.starts_with("lib/")
         || path.starts_with(".cargo/")
         || path.starts_with("scripts/check_")
         || path == "Cargo.toml"
@@ -137,6 +139,22 @@ mod tests {
     fn scope_docs_only() {
         let status = " M docs/development/status.md\n?? docs/notes.md\n";
         assert_eq!(detect_check_scope_from_status(status), CheckScope::DocsOnly);
+    }
+
+    #[test]
+    fn stage0_fixtures_require_the_rust_runtime_contract_checks() {
+        assert_eq!(
+            detect_check_scope_from_status(" M tests/stage0/control.lcy\n"),
+            CheckScope::RustOnly
+        );
+    }
+
+    #[test]
+    fn standard_library_changes_also_run_stage0_contracts() {
+        assert_eq!(
+            detect_check_scope_from_status(" M lib/std/str.lcy\n"),
+            CheckScope::Both
+        );
     }
 
     #[test]

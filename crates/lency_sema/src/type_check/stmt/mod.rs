@@ -144,6 +144,22 @@ fn check_var_decl(
         }
     };
 
+    if value_ty == Type::Void || declared_ty == Some(&Type::Void) {
+        checker.errors.push(SemanticError::TypeMismatch {
+            expected: "value type".into(),
+            found: "void".into(),
+            span: span.clone(),
+        });
+        return;
+    }
+    if declared_ty.is_none() && needs_annotation(&value_ty) {
+        checker.errors.push(SemanticError::CannotInferType {
+            name: name.into(),
+            span: span.clone(),
+        });
+        return;
+    }
+
     // 如果有显式类型声明，检查兼容性
     if let Some(expected) = declared_ty {
         if !is_compatible(expected, &value_ty) {
@@ -170,6 +186,15 @@ fn check_var_decl(
                 var_sym.ty = value_ty;
             }
         }
+    }
+}
+
+fn needs_annotation(ty: &Type) -> bool {
+    match ty {
+        Type::Error | Type::Void => true,
+        Type::Vec(inner) | Type::Nullable(inner) => needs_annotation(inner),
+        Type::Array { element_type, .. } => needs_annotation(element_type),
+        _ => false,
     }
 }
 
@@ -223,10 +248,22 @@ fn is_assignment_target(checker: &mut TypeChecker, target: &mut Expr) -> bool {
             Ok(Type::Struct(name) | Type::Generic(name, _)) => {
                 matches!(checker.scopes.lookup(&name), Some(Symbol::Struct(_)))
             }
-            Ok(Type::Nullable(_)) | Err(_) => true,
+            Ok(Type::Nullable(_)) => true,
+            Err(error) => {
+                checker.errors.push(error);
+                false
+            }
             _ => false,
         },
-        ExprKind::Index { .. } => true,
+        ExprKind::Index { array, .. } => match checker.infer_type(array) {
+            Ok(Type::Array { .. }) => is_assignment_target(checker, array),
+            Ok(Type::Vec(_) | Type::Nullable(_)) => true,
+            Err(error) => {
+                checker.errors.push(error);
+                false
+            }
+            _ => false,
+        },
         _ => false,
     }
 }

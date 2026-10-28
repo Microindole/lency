@@ -16,21 +16,17 @@ impl<'a> TypeInferer<'a> {
         }
 
         match self.lookup(name) {
-            Some(symbol) => {
-                match symbol.ty() {
-                    Some(ty) => Ok(ty.clone()),
-                    None => {
-                        // 函数名不是值类型
-                        if let Symbol::Function(func) = symbol {
-                            // 返回函数类型的占位（暂时用 Void 表示）
-                            // 未来可扩展为 FunctionType
-                            Ok(func.return_type.clone())
-                        } else {
-                            Ok(Type::Error)
-                        }
-                    }
-                }
-            }
+            Some(symbol) => match symbol.ty() {
+                Some(ty) => Ok(ty.clone()),
+                None => Err(SemanticError::TypeMismatch {
+                    expected: "value expression".into(),
+                    found: match symbol {
+                        Symbol::Function(_) => format!("function name '{name}' without a call"),
+                        _ => format!("type name '{name}'"),
+                    },
+                    span: span.clone(),
+                }),
+            },
             None => {
                 // 尝试隐式 this 访问
                 if let Some(this_sym) = self.lookup("this") {

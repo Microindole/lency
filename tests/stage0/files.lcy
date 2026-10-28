@@ -1,0 +1,22 @@
+import std.io
+extern int lency_memory_live_allocations();
+
+int main() {
+    int baseline = lency_memory_live_allocations()
+    var path = arg_at(1)
+    write_file(path, "first")
+    append_file(path, "\nsecond")
+    var lines = read_lines(path)
+    if lines.len() != 2 || lines[0] != "first" || lines[1] != "second" { return 1 }
+    write_lines(path, lines)
+    free(lines[0])
+    free(lines[1])
+    free(lines)
+    var text = read_file(path)
+    if text != "first\nsecond" { return 2 }
+    free(text)
+    free(path)
+    if lency_memory_live_allocations() != baseline { return 3 }
+    print("stage0 files ok")
+    return 0
+}

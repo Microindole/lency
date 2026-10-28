@@ -29,6 +29,7 @@ pub(super) fn gen_call<'ctx>(
     // Intrinsics keep ordinary Call AST nodes. Their names are registered as
     // global function symbols by sema; only this lowering boundary is special.
     match (func_name.as_str(), args) {
+        ("free", [arg]) => return super::memory::gen_free(ctx, locals, arg, callee.span.start),
         ("print", [arg]) => return super::intrinsic::gen_print(ctx, locals, arg),
         ("read_file", [path]) => return super::intrinsic::gen_read_file(ctx, locals, path),
         ("write_file", [path, content]) => {
@@ -52,12 +53,7 @@ pub(super) fn gen_call<'ctx>(
             return super::string_ops::gen_format(ctx, locals, template, values)
         }
         ("panic", [message]) => {
-            return super::intrinsic::gen_panic(
-                ctx,
-                locals,
-                message,
-                ctx.get_line(callee.span.start),
-            )
+            return super::intrinsic::gen_panic(ctx, locals, message, callee.span.start)
         }
         (name, _) if is_intrinsic_name(name) => {
             return Err(CodegenError::UnsupportedFeature(format!(
@@ -126,6 +122,16 @@ pub(super) fn gen_call<'ctx>(
             };
 
             // 间接调用
+            crate::trace::location(ctx, callee.span.start)?;
+            if let Some(panic) = ctx.panic_func {
+                crate::runtime::gen_null_check(
+                    ctx.context,
+                    &ctx.builder,
+                    panic,
+                    fn_ptr,
+                    ctx.get_line(callee.span.start),
+                );
+            }
             let call_site = ctx
                 .builder
                 .build_indirect_call(fn_type, fn_ptr, &arg_values, "function_pointer_call")
@@ -162,6 +168,7 @@ pub(super) fn gen_call<'ctx>(
         .ok_or_else(|| CodegenError::FunctionNotFound(func_name.clone()))?;
 
     // 调用函数
+    crate::trace::location(ctx, callee.span.start)?;
     let call_site = ctx
         .builder
         .build_call(function, &arg_values, "calltmp")
@@ -187,6 +194,7 @@ fn is_intrinsic_name(name: &str) -> bool {
     matches!(
         name,
         "print"
+            | "free"
             | "read_file"
             | "write_file"
             | "len"

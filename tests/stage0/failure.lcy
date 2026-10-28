@@ -1,0 +1,30 @@
+import std.str
+struct Worker { int code }
+int identity(int value) { return value }
+impl Worker {
+    int run(int input) {
+        if this.code == 0 { return 10 / input }
+        if this.code == 1 { int data[1] = {7} return data[input] }
+        if this.code == 2 { var data = vec[7] return data[input] }
+        if this.code == 3 { return parse_int("not a number") }
+        if this.code == 4 { free("static") }
+        if this.code == 5 { var text = int_to_string(7) free(text) free(text) }
+        if this.code == 7 { vec<int> data = vec[] return data.pop() }
+        if this.code == 8 { int data[1] = {7} return data[input - input - 1] }
+        if this.code == 9 { return input % (input - 9) }
+        if this.code == 10 { var low = -9223372036854775807 - 1 return low / (input - 11) }
+        if this.code == 11 { return char_at("x", input) }
+        if this.code == 12 { var value = parse_float("invalid") return 0 }
+        if this.code == 13 { var text = read_file("target/stage0_check") free(text) return 0 }
+        panic("explicit stage0 failure")
+    }
+}
+int main() {
+    var argument = arg_at(1)
+    int code = parse_int(argument)
+    free(argument)
+    var worker = Worker { code: code }
+    return worker.run(
+        identity(code)
+    )
+}

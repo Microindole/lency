@@ -10,6 +10,7 @@ mod adt;
 mod call;
 mod control;
 mod literal;
+mod match_coverage;
 mod operators;
 
 #[cfg(test)]

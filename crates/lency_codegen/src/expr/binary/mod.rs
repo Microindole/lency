@@ -73,7 +73,11 @@ pub(super) fn gen_binary<'ctx>(
 
     let result_ty = match op {
         BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div | BinaryOp::Mod => {
-            lhs_wrapper.ty
+            if lhs_wrapper.ty == Type::Float || rhs_wrapper.ty == Type::Float {
+                Type::Float
+            } else {
+                lhs_wrapper.ty
+            }
         }
         _ => Type::Bool,
     };

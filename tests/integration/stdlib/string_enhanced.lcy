@@ -29,10 +29,8 @@ int main() {
     print(c)
     print("\n")
 
-    var c2 = char_at("hello", 10) // out of bounds = -1
-    print("char_at(hello, 10) = ")
-    print(c2)
-    print("\n")
+    // 越界 panic 由 stage0 的失败用例验证。
+    if char_at("hello", 4) != 111 { return 1 }
 
     // 5. last_index_of
     var idx = last_index_of("abcabc", "abc")
@@ -41,5 +39,7 @@ int main() {
     print("\n")
 
     print("String enhanced tests passed!\n")
+    free(s1)
+    free(s2)
     return 0
 }

@@ -31,6 +31,12 @@ pub enum CompileError {
     #[error("Semantic errors:\n{}", format_semantic_errors(.0))]
     SemanticErrors(Vec<SemanticError>),
 
+    #[error("Semantic errors:\n{}", format_semantic_errors(.errors))]
+    SemanticSources {
+        errors: Vec<SemanticError>,
+        source_map: lency_syntax::source_map::SourceMap,
+    },
+
     /// 代码生成错误
     #[error("Code generation error: {0}")]
     CodegenError(#[from] CodegenError),
@@ -43,6 +49,17 @@ pub enum CompileError {
 impl CompileError {
     /// 转换为诊断列表并收集到 DiagnosticSink
     pub fn collect_to_sink(&self, sink: &mut DiagnosticSink, file_path: Option<&str>) {
+        if let Self::SemanticSources { errors, source_map } = self {
+            for error in errors {
+                let mut diagnostic = error.to_diagnostic();
+                if let Some((path, _, span)) = source_map.resolve_span(error.span()) {
+                    diagnostic.file_path = Some(path.to_string());
+                    diagnostic.span = Some(span);
+                }
+                sink.add(diagnostic);
+            }
+            return;
+        }
         let mut add_diag = |diag: Diagnostic| {
             if let Some(path) = file_path {
                 sink.add(diag.with_file(path));
@@ -85,11 +102,28 @@ impl CompileError {
             CompileError::IoError(err) => {
                 add_diag(Diagnostic::error(format!("IO error: {}", err)));
             }
+            CompileError::SemanticSources { .. } => {
+                unreachable!("mapped diagnostics handled above")
+            }
         }
     }
 
     /// 使用统一诊断系统输出错误
     pub fn emit(&self, file_path: Option<&str>, source: Option<&str>) {
+        if let Self::SemanticSources { errors, source_map } = self {
+            let emitter = Emitter::new();
+            for error in errors {
+                let mut diagnostic = error.to_diagnostic();
+                if let Some((path, text, span)) = source_map.resolve_span(error.span()) {
+                    diagnostic.file_path = Some(path.to_string());
+                    diagnostic.span = Some(span);
+                    emitter.emit_with_source(&diagnostic, text);
+                } else {
+                    emitter.emit(&diagnostic);
+                }
+            }
+            return;
+        }
         let mut sink = DiagnosticSink::new();
         self.collect_to_sink(&mut sink, file_path);
 

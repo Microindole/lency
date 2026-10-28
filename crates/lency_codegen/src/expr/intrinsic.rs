@@ -309,9 +309,11 @@ pub fn gen_panic<'ctx>(
     ctx: &CodegenContext<'ctx>,
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, lency_syntax::ast::Type)>,
     arg: &Expr,
-    line: u32,
+    offset: usize,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     let arg_val = generate_expr(ctx, locals, arg)?;
+    crate::trace::location(ctx, offset)?;
+    let line = ctx.get_line(offset);
     let msg_ptr = arg_val.value.into_pointer_value();
 
     let panic_fn = ctx.panic_func.ok_or_else(|| {

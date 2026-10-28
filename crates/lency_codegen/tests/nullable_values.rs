@@ -1,4 +1,5 @@
 use inkwell::{context::Context, OptimizationLevel};
+mod support;
 
 extern "C" fn unexpected_panic(_: *const u8, _: u32) -> ! {
     std::process::abort()
@@ -13,6 +14,7 @@ fn run(source: &str) -> i64 {
     let engine = module
         .create_jit_execution_engine(OptimizationLevel::None)
         .unwrap();
+    support::register_trace(&engine, &module);
     if let Some(function) = module.get_function("lency_panic_at") {
         engine.add_global_mapping(&function, unexpected_panic as *const () as usize);
     }

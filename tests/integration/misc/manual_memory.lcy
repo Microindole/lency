@@ -1,0 +1,50 @@
+struct Node {
+    int value
+    Node? next
+}
+
+enum State { Idle, Value(int) }
+
+Node make_node(int value) {
+    return Node { value: value, next: null }
+}
+
+int main() {
+    var first = make_node(3)
+    var second = make_node(4)
+    first.next = second
+    second.next = first
+    var values = vec[first, second]
+    int result = values[0].value + values[1].value
+    free(values)
+    free(first)
+    free(second)
+
+    int? optional = 0
+    if optional != null {
+        result = result + optional
+        free(optional)
+    }
+    optional = null
+    free(optional)
+
+    var text = "manual" + " memory"
+    var parts = split(text, " ")
+    var joined = join(parts, "-")
+    free(parts[0])
+    free(parts[1])
+    free(parts)
+    free(joined)
+    free(text)
+    var number = int_to_string(7)
+    free(number)
+    var state = State.Value(7)
+    free(state)
+
+    var map = hashmap_int_new()
+    hashmap_int_insert(map, 1, result)
+    result = hashmap_int_get(map, 1)
+    hashmap_int_free(map)
+    free(null)
+    return result - 7
+}

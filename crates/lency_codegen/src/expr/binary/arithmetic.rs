@@ -252,8 +252,57 @@ pub fn gen_mod<'ctx>(
                 "Integer Remainder by Zero",
                 line,
             );
+            // 最小整数除以 -1 的商不可表示，但余数为零；避免交给 LLVM 的未定义路径。
+            let minimum = l.get_type().const_int(1_u64 << 63, false);
+            let is_minimum = ctx
+                .builder
+                .build_int_compare(inkwell::IntPredicate::EQ, l, minimum, "rem.minimum")
+                .unwrap();
+            let is_minus_one = ctx
+                .builder
+                .build_int_compare(
+                    inkwell::IntPredicate::EQ,
+                    r,
+                    r.get_type().const_all_ones(),
+                    "rem.minus_one",
+                )
+                .unwrap();
+            let special = ctx
+                .builder
+                .build_and(is_minimum, is_minus_one, "rem.special")
+                .unwrap();
+            let divisor = ctx
+                .builder
+                .build_select(special, r.get_type().const_int(1, false), r, "rem.divisor")
+                .unwrap()
+                .into_int_value();
             ctx.builder
-                .build_int_signed_rem(l, r, "modtmp")
+                .build_int_signed_rem(l, divisor, "modtmp")
+                .map(Into::into)
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))
+        }
+        (BasicValueEnum::FloatValue(l), BasicValueEnum::FloatValue(r)) => ctx
+            .builder
+            .build_float_rem(l, r, "modtmp")
+            .map(Into::into)
+            .map_err(|e| CodegenError::LLVMBuildError(e.to_string())),
+        (BasicValueEnum::IntValue(l), BasicValueEnum::FloatValue(r)) => {
+            let l = ctx
+                .builder
+                .build_signed_int_to_float(l, ctx.context.f64_type(), "rem.promoted")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            ctx.builder
+                .build_float_rem(l, r, "modtmp")
+                .map(Into::into)
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))
+        }
+        (BasicValueEnum::FloatValue(l), BasicValueEnum::IntValue(r)) => {
+            let r = ctx
+                .builder
+                .build_signed_int_to_float(r, ctx.context.f64_type(), "rem.promoted")
+                .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+            ctx.builder
+                .build_float_rem(l, r, "modtmp")
                 .map(Into::into)
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))
         }

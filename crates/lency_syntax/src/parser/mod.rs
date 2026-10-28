@@ -2,11 +2,13 @@
 //!
 //! 模块化的 Parser 实现，遵循开闭原则
 
+mod boundaries;
 pub mod decl;
 pub mod expr;
 pub mod helpers;
 pub mod pattern;
 pub mod stmt;
+pub use boundaries::statement_boundaries;
 
 use crate::ast::Program;
 use crate::lexer::Token;
@@ -32,6 +34,6 @@ pub fn parse(code: &str) -> Result<Program, Vec<ParserError>> {
 
     program_parser().parse(chumsky::Stream::from_iter(
         code.len()..code.len(),
-        tokens.into_iter(),
+        statement_boundaries(code, tokens).into_iter(),
     ))
 }

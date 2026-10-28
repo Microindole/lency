@@ -47,6 +47,7 @@ use lency_syntax::ast::Program;
 pub struct AnalysisResult {
     /// 符号表（包含所有定义的符号）
     pub scopes: ScopeStack,
+    pub source_map: lency_syntax::source_map::SourceMap,
 }
 
 /// 分析整个程序
@@ -60,15 +61,33 @@ pub struct AnalysisResult {
 ///
 /// 返回所有收集到的语义错误
 pub fn analyze(program: &mut Program) -> Result<AnalysisResult, Vec<SemanticError>> {
+    analyze_with_source(program, "<source>", "")
+}
+
+pub fn analyze_with_source(
+    program: &mut Program,
+    path: &str,
+    source: &str,
+) -> Result<AnalysisResult, Vec<SemanticError>> {
+    analyze_with_source_map(program, path, source).map_err(|(errors, _)| errors)
+}
+
+pub fn analyze_with_source_map(
+    program: &mut Program,
+    path: &str,
+    source: &str,
+) -> Result<AnalysisResult, (Vec<SemanticError>, lency_syntax::source_map::SourceMap)> {
     let mut all_errors: Vec<SemanticError> = Vec::new();
 
     // Pass 1: 名称解析
     let mut resolver = Resolver::new();
+    resolver.source_map = lency_syntax::source_map::SourceMap::main(path, source);
     if let Err(errors) = resolver.resolve(program) {
         all_errors.extend(errors);
     }
 
     // 即使有错误也继续，收集尽可能多的错误信息
+    let source_map = resolver.source_map.clone();
     let mut scopes = resolver.into_scopes();
 
     // Pass 2: 类型检查
@@ -84,9 +103,9 @@ pub fn analyze(program: &mut Program) -> Result<AnalysisResult, Vec<SemanticErro
     }
 
     if all_errors.is_empty() {
-        Ok(AnalysisResult { scopes })
+        Ok(AnalysisResult { scopes, source_map })
     } else {
-        Err(all_errors)
+        Err((all_errors, source_map))
     }
 }
 

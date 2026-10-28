@@ -33,16 +33,23 @@ pub fn gen_vec_literal<'ctx>(
         .left()
         .ok_or_else(|| CodegenError::LLVMBuildError("vec_new returned void".to_string()))?;
 
-    let mut inner_type = Type::Int;
+    let compiled = elements
+        .iter()
+        .map(|elem| generate_expr(ctx, locals, elem))
+        .collect::<CodegenResult<Vec<_>>>()?;
+    let inner_type = if compiled.iter().any(|elem| elem.ty == Type::Float) {
+        Type::Float
+    } else {
+        compiled
+            .first()
+            .map(|elem| elem.ty.clone())
+            .unwrap_or(Type::Int)
+    };
 
-    // 4. For each element, call lency_vec_push(vec, element)
-    for (index, elem) in elements.iter().enumerate() {
-        let elem_val = generate_expr(ctx, locals, elem)?;
-
-        if index == 0 {
-            inner_type = elem_val.ty.clone();
-        }
-
+    // 与语义分析一致，所有元素使用统一类型后再进入运行时槽位。
+    for (elem, elem_val) in elements.iter().zip(compiled) {
+        let elem_val =
+            crate::nullable::coerce(ctx, elem_val, &inner_type, ctx.get_line(elem.span.start))?;
         let elem_i64 = cast_to_i64(ctx, elem_val.value)?;
 
         ctx.builder
@@ -100,6 +107,7 @@ pub fn gen_vec_method_call<'ctx>(
     method_name: &str,
     args: &[Expr],
     inner_type: &Type,
+    offset: usize,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     let vec_ptr = object_val.value.into_pointer_value();
 
@@ -115,6 +123,7 @@ pub fn gen_vec_method_call<'ctx>(
             )?;
             // Cast arg to i64
             let val_i64 = cast_to_i64(ctx, arg_val.value)?;
+            crate::trace::location(ctx, offset)?;
             ctx.builder
                 .build_call(func, &[vec_ptr.into(), val_i64.into()], "")
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
@@ -127,6 +136,7 @@ pub fn gen_vec_method_call<'ctx>(
         }
         "pop" => {
             let func = get_or_declare_vec_pop(ctx)?;
+            crate::trace::location(ctx, offset)?;
             let call = ctx
                 .builder
                 .build_call(func, &[vec_ptr.into()], "pop_res")
@@ -142,6 +152,7 @@ pub fn gen_vec_method_call<'ctx>(
         }
         "len" => {
             let func = get_or_declare_vec_len(ctx)?;
+            crate::trace::location(ctx, offset)?;
             let call = ctx
                 .builder
                 .build_call(func, &[vec_ptr.into()], "len_res")
@@ -157,6 +168,7 @@ pub fn gen_vec_method_call<'ctx>(
             let index_val =
                 crate::nullable::unwrap(ctx, index_val, ctx.get_line(args[0].span.start))?;
             let index_i64 = index_val.value.into_int_value(); // Assume int
+            crate::trace::location(ctx, offset)?;
 
             let call = ctx
                 .builder
@@ -182,6 +194,7 @@ pub fn gen_vec_method_call<'ctx>(
             let val =
                 crate::nullable::coerce(ctx, val, inner_type, ctx.get_line(args[1].span.start))?;
             let val_i64 = cast_to_i64(ctx, val.value)?;
+            crate::trace::location(ctx, offset)?;
 
             ctx.builder
                 .build_call(

@@ -14,7 +14,7 @@ pub fn cmd_check(input: &str) -> Result<()> {
     }
 
     let source = fs::read_to_string(input)?;
-    match lency_driver::compile(&source) {
+    match lency_driver::compile_file(input) {
         Ok(_) => {
             println!("No errors found");
             Ok(())

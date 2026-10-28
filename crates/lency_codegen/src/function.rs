@@ -52,6 +52,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
             params,
             return_type,
             body,
+            span,
             ..
         } = decl
         else {
@@ -66,14 +67,13 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
             .get_function(llvm_name)
             .ok_or_else(|| CodegenError::FunctionNotFound(llvm_name.to_string()))?;
 
-        // 如果函数体为空（extern 函数），直接返回
-        if body.is_empty() {
-            return Ok(function);
-        }
-
         // 创建入口基本块
         let entry = self.ctx.context.append_basic_block(function, "entry");
         self.ctx.builder.position_at_end(entry);
+        let display_name = struct_name_context
+            .map(|owner| format!("{}.{}", owner, name))
+            .unwrap_or_else(|| name.clone());
+        crate::trace::enter(self.ctx, &display_name, span.start)?;
 
         // 局部变量表
         let mut locals: HashMap<String, (inkwell::values::PointerValue<'ctx>, Type)> =
@@ -187,6 +187,7 @@ impl<'ctx, 'a> FunctionGenerator<'ctx, 'a> {
             let last_bb = self.ctx.builder.get_insert_block();
             if let Some(bb) = last_bb {
                 if bb.get_terminator().is_none() {
+                    crate::trace::leave(self.ctx)?;
                     self.ctx
                         .builder
                         .build_return(None)

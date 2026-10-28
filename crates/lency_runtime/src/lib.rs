@@ -6,9 +6,11 @@ pub mod enum_value;
 pub mod file;
 pub mod hashmap;
 pub mod hashmap_string;
+pub mod memory;
 #[cfg(test)]
 mod panic_contract;
 pub mod string;
+pub mod trace;
 use std::alloc::{alloc, dealloc, realloc, Layout};
 use std::ffi::{CStr, CString};
 use std::io::{self, Write};
@@ -25,7 +27,7 @@ pub unsafe extern "C" fn lency_panic(msg: *const c_char) {
     unsafe { lency_panic_at(msg, 0) }
 }
 
-/// 报告不可恢复错误和可用的本机调用栈后，以非零状态终止进程。
+/// 报告不可恢复错误和已登记的源码调用栈后，以非零状态终止进程。
 ///
 /// # Safety
 /// 非空消息必须指向有效的以空字符结束的 C 字符串。
@@ -44,8 +46,10 @@ pub unsafe extern "C" fn lency_panic_at(msg: *const c_char, line: u32) -> ! {
             Err(_) => eprintln!("panic: (invalid UTF-8)"),
         }
     }
-    // TODO: 提供 Lency 函数名及原始文件映射；当前回溯只包含可用的本机帧。
-    eprintln!("{}", std::backtrace::Backtrace::force_capture());
+    let _ = trace::report(&mut io::stderr().lock(), line);
+    if std::env::var_os("LENCY_NATIVE_BACKTRACE").is_some() {
+        eprintln!("{}", std::backtrace::Backtrace::force_capture());
+    }
     let _ = io::stderr().flush();
     std::process::exit(1);
 }
@@ -83,11 +87,12 @@ impl LencyVec {
         } else {
             4
         };
-        let layout = Layout::array::<i64>(capacity as usize).unwrap();
+        let layout = Layout::array::<i64>(capacity as usize)
+            .unwrap_or_else(|_| unsafe { lency_panic_at(c"Vec capacity overflow".as_ptr(), 0) });
 
         let data = unsafe { alloc(layout) as *mut i64 };
         if data.is_null() {
-            panic!("Failed to allocate Vec");
+            unsafe { lency_panic_at(c"Failed to allocate Vec".as_ptr(), 0) }
         }
 
         Box::new(LencyVec {
@@ -99,15 +104,19 @@ impl LencyVec {
 
     /// 扩容
     fn grow(&mut self) {
-        let new_capacity = self.capacity * 2;
+        let new_capacity = self
+            .capacity
+            .checked_mul(2)
+            .unwrap_or_else(|| unsafe { lency_panic_at(c"Vec capacity overflow".as_ptr(), 0) });
         let old_layout = Layout::array::<i64>(self.capacity as usize).unwrap();
-        let new_layout = Layout::array::<i64>(new_capacity as usize).unwrap();
+        let new_layout = Layout::array::<i64>(new_capacity as usize)
+            .unwrap_or_else(|_| unsafe { lency_panic_at(c"Vec capacity overflow".as_ptr(), 0) });
 
         let new_data =
             unsafe { realloc(self.data as *mut u8, old_layout, new_layout.size()) as *mut i64 };
 
         if new_data.is_null() {
-            panic!("Failed to grow Vec");
+            unsafe { lency_panic_at(c"Failed to grow Vec".as_ptr(), 0) }
         }
 
         self.data = new_data;
@@ -128,8 +137,7 @@ impl LencyVec {
     /// 弹出元素
     pub fn pop(&mut self) -> i64 {
         if self.len == 0 {
-            eprintln!("Cannot pop from empty Vec");
-            return 0;
+            unsafe { lency_panic_at(c"Cannot pop from empty Vec".as_ptr(), 0) }
         }
         self.len -= 1;
         unsafe { *self.data.offset(self.len as isize) }
@@ -149,7 +157,7 @@ impl LencyVec {
     /// 获取元素
     pub fn get(&self, index: i64) -> i64 {
         if index < 0 || index >= self.len {
-            panic!("Vec index out of bounds: {} (len: {})", index, self.len);
+            unsafe { lency_panic_at(c"Vec index out of bounds".as_ptr(), 0) }
         }
         unsafe { *self.data.offset(index as isize) }
     }
@@ -157,7 +165,7 @@ impl LencyVec {
     /// 设置元素
     pub fn set(&mut self, index: i64, value: i64) {
         if index < 0 || index >= self.len {
-            panic!("Vec index out of bounds: {} (len: {})", index, self.len);
+            unsafe { lency_panic_at(c"Vec index out of bounds".as_ptr(), 0) }
         }
         unsafe {
             *self.data.offset(index as isize) = value;
@@ -181,7 +189,7 @@ impl Drop for LencyVec {
 /// Create a new Vec
 #[no_mangle]
 pub extern "C" fn lency_vec_new(initial_capacity: i64) -> *mut LencyVec {
-    Box::into_raw(LencyVec::new(initial_capacity))
+    memory::own_box(LencyVec::new(initial_capacity))
 }
 
 /// Push an element to the Vec
@@ -258,11 +266,7 @@ pub unsafe extern "C" fn lency_vec_set(vec: *mut LencyVec, index: i64, value: i6
 /// `vec` must be a valid pointer returned by `lency_vec_new` and not already freed
 #[no_mangle]
 pub unsafe extern "C" fn lency_vec_free(vec: *mut LencyVec) {
-    if !vec.is_null() {
-        unsafe {
-            let _ = Box::from_raw(vec);
-        }
-    }
+    unsafe { memory::lency_free(vec.cast()) };
 }
 
 // ============== Type Conversion FFI ==============
@@ -273,7 +277,7 @@ pub unsafe extern "C" fn lency_vec_free(vec: *mut LencyVec) {
 pub extern "C" fn lency_int_to_string(n: i64) -> *mut c_char {
     let s = n.to_string();
     match CString::new(s) {
-        Ok(cs) => cs.into_raw(),
+        Ok(cs) => memory::own_string(cs),
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -283,7 +287,7 @@ pub extern "C" fn lency_int_to_string(n: i64) -> *mut c_char {
 pub extern "C" fn lency_float_to_string(f: f64) -> *mut c_char {
     let s = format!("{}", f);
     match CString::new(s) {
-        Ok(cs) => cs.into_raw(),
+        Ok(cs) => memory::own_string(cs),
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -365,15 +369,13 @@ pub unsafe extern "C" fn lency_parse_float(s: *const c_char, is_ok: *mut i32) ->
     }
 }
 
-/// Free a string allocated by lency_int_to_string or lency_float_to_string
+/// 释放由 Lency runtime 分配的动态字符串，使用登记的匹配分配器。
 ///
 /// # Safety
 /// `s` must be a valid pointer returned by one of the above functions
 #[no_mangle]
 pub unsafe extern "C" fn lency_free_string(s: *mut c_char) {
-    if !s.is_null() {
-        let _ = CString::from_raw(s);
-    }
+    unsafe { memory::lency_free(s.cast()) };
 }
 
 #[cfg(windows)]
@@ -432,7 +434,7 @@ pub unsafe extern "C" fn lency_arg_at(index: i64) -> *mut c_char {
     }
     match process_args().into_iter().nth(index as usize) {
         Some(s) => match CString::new(s) {
-            Ok(cs) => cs.into_raw(),
+            Ok(cs) => memory::own_string(cs),
             Err(_) => std::ptr::null_mut(),
         },
         None => std::ptr::null_mut(),

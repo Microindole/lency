@@ -12,6 +12,7 @@ Lency 是一门强调简洁、显式和静态类型的编译语言。设计方�
 4. [函数](./basics/functions.md)：签名、返回路径、泛型、外部函数与业务错误结果。
 5. [控制流](./basics/control-flow.md)：条件、循环、跳转和匹配。
 6. [模块](./basics/modules.md)：源码导入与两套前端的差异。
+7. [内存管理](./basics/memory.md)：手动释放、归属、借用和共享引用边界。
 
 示例会标明自举专用写法；不要将语法可解析等同于自举后端已可运行。实现与设计不一致时，应确认偏差来源，不能直接将偏差写成语言规则。
 
@@ -26,6 +27,7 @@ Lency 是一门强调简洁、显式和静态类型的编译语言。设计方�
 - [实现分层](./development/implementations.md)
 - [自举路线](./development/bootstrap.md)
 - [当前状态](./development/status.md)
+- [Rust 母体固化基线](./development/stage0.md)
 - [贡献与维护规则](./development/contributing.md)
 - [工具与脚本](./tools/scripts.md)
 - [持续集成](./development/ci.md)

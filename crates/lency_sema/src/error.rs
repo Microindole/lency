@@ -51,6 +51,20 @@ pub enum SemanticError {
     #[error("invalid assignment target: expected a variable, writable field or element")]
     InvalidAssignmentTarget { span: Span },
 
+    #[error("struct '{class}' initializer is missing field '{field}'")]
+    MissingField {
+        class: String,
+        field: String,
+        span: Span,
+    },
+
+    #[error("struct '{class}' initializer repeats field '{field}'")]
+    DuplicateField {
+        class: String,
+        field: String,
+        span: Span,
+    },
+
     /// 二元操作类型错误
     #[error("operator '{op}' cannot be applied to types '{left}' and '{right}'")]
     InvalidBinaryOp {
@@ -209,6 +223,7 @@ impl SemanticError {
             Self::TypeMismatch { span, .. } => span,
             Self::CannotInferType { span, .. } => span,
             Self::InvalidAssignmentTarget { span } => span,
+            Self::MissingField { span, .. } | Self::DuplicateField { span, .. } => span,
             Self::InvalidBinaryOp { span, .. } => span,
             Self::InvalidUnaryOp { span, .. } => span,
             Self::NullAssignmentToNonNullable { span, .. } => span,

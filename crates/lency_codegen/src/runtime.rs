@@ -19,6 +19,28 @@ pub fn inject_runtime_functions<'ctx>(
 
     // 2. Declare exit: void exit(i32)
     let void_type = context.void_type();
+    module.add_function(
+        "lency_trace_enter",
+        void_type.fn_type(
+            &[
+                i8_ptr_type.into(),
+                i8_ptr_type.into(),
+                i32_type.into(),
+                i32_type.into(),
+            ],
+            false,
+        ),
+        None,
+    );
+    module.add_function(
+        "lency_trace_location",
+        void_type.fn_type(
+            &[i8_ptr_type.into(), i32_type.into(), i32_type.into()],
+            false,
+        ),
+        None,
+    );
+    module.add_function("lency_trace_leave", void_type.fn_type(&[], false), None);
     let exit_type = void_type.fn_type(&[i32_type.into()], false);
     module.add_function("exit", exit_type, None);
 
