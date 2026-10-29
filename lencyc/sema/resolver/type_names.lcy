@@ -60,12 +60,25 @@ impl Resolver {
             if expr.literal_value.kind == T_NULL() {
                 return "null"
             }
+            if expr.literal_value.kind == T_CHAR_LITERAL() { return "int" }
         }
         if expr.kind == EXPR_VARIABLE() {
             return this.lookup_typed_symbol_name(expr.literal_value.lexeme)
         }
         if expr.kind == EXPR_STRUCT() {
             return expr.literal_value.lexeme
+        }
+        if expr.kind == EXPR_UNARY() && expr.children.len() > 0 {
+            if expr.operator.kind == T_BANG() { return "bool" }
+            return this.infer_expr_type_name(expr.children[0], resolved_ty)
+        }
+        if (expr.kind == EXPR_BINARY() || expr.kind == EXPR_LOGICAL()) && expr.children.len() >= 2 {
+            var op = expr.operator.kind
+            if op == T_GREATER() || op == T_GREATER_EQUAL() || op == T_LESS() || op == T_LESS_EQUAL() ||
+               op == T_EQUAL_EQUAL() || op == T_BANG_EQUAL() || op == T_AND_AND() || op == T_OR_OR() {
+                return "bool"
+            }
+            return this.infer_expr_type_name(expr.children[0], resolved_ty)
         }
         if expr.kind == EXPR_VEC() {
             if expr.children.len() > 0 {
@@ -79,6 +92,13 @@ impl Resolver {
         if expr.kind == EXPR_CALL() {
             if expr.children.len() > 0 {
                 var callee_name = this.extract_callee_name(expr.children[0])
+                var callee = expr.children[0]
+                while callee.kind == EXPR_GROUPING() && callee.children.len() > 0 {
+                    callee = callee.children[0]
+                }
+                if callee.kind == EXPR_GET() && callee.children.len() > 0 {
+                    return this.infer_member_call_type_name(callee)
+                }
                 if callee_name != "" {
                     var ctor_enum_name = this.lookup_enum_constructor_name(callee_name)
                     if ctor_enum_name != "" {
@@ -88,6 +108,8 @@ impl Resolver {
                     if fn_ret_name != "" {
                         return fn_ret_name
                     }
+                    var builtin_ty = this.lookup_builtin_type(callee_name)
+                    if builtin_ty != TYPE_UNKNOWN() { return this.type_to_string(builtin_ty) }
                 }
             }
         }

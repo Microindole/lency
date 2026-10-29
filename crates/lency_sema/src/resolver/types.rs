@@ -6,7 +6,7 @@ use lency_syntax::ast::{Span, Type};
 /// Normalize types (e.g., Vec<T> -> Type::Vec(T))
 pub fn normalize_type(resolver: &mut Resolver, ty: &mut Type) {
     match ty {
-        Type::Generic(name, args) if name == "Vec" => {
+        Type::Generic(name, args) if name == "vec" || name == "Vec" => {
             if args.len() != 1 {
                 return;
             }
@@ -46,7 +46,7 @@ pub fn normalize_type_with_generics(
     generics: &[GenericParamSymbol],
 ) {
     match ty {
-        Type::Generic(name, args) if name == "Vec" => {
+        Type::Generic(name, args) if name == "vec" || name == "Vec" => {
             if args.len() != 1 {
                 return;
             }

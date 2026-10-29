@@ -16,8 +16,9 @@ pub fn gen_method_call<'ctx>(
     object: &Expr,
     method_name: &str,
     args: &[Expr],
-    line: u32,
+    offset: usize,
 ) -> CodegenResult<CodegenValue<'ctx>> {
+    let line = ctx.get_line(offset);
     // 0. Check for Enum Constructor Call (Enum.Variant(args))
     let enum_check = match &object.kind {
         lency_syntax::ast::ExprKind::Variable(name) => Some((name.clone(), vec![])),
@@ -48,11 +49,22 @@ pub fn gen_method_call<'ctx>(
                 .ok_or_else(|| CodegenError::FunctionNotFound(ctor_name.clone()))?;
 
             let mut compiled_args = Vec::with_capacity(args.len());
-            for arg in args {
+            for (index, arg) in args.iter().enumerate() {
                 let arg_val = generate_expr(ctx, locals, arg)?;
+                let expected = ctx
+                    .enum_variants
+                    .get(&struct_name)
+                    .and_then(|variants| {
+                        variants.iter().find(|(variant, _)| variant == method_name)
+                    })
+                    .and_then(|(_, fields)| fields.get(index))
+                    .ok_or(CodegenError::TypeMismatch)?;
+                let arg_val =
+                    crate::nullable::coerce(ctx, arg_val, expected, ctx.get_line(arg.span.start))?;
                 compiled_args.push(arg_val.value.into());
             }
 
+            crate::trace::location(ctx, offset)?;
             let call_site = ctx
                 .builder
                 .build_call(function, &compiled_args, "call_ctor")
@@ -74,6 +86,7 @@ pub fn gen_method_call<'ctx>(
 
     // 1. 计算对象表达式
     let object_val = generate_expr(ctx, locals, object)?;
+    let object_val = crate::nullable::unwrap(ctx, object_val, line)?;
 
     // 2. 根据对象类型分发
     // Clone type to avoid borrowing object_val, so we can move it
@@ -87,6 +100,7 @@ pub fn gen_method_call<'ctx>(
             method_name,
             args,
             &inner,
+            offset,
         ),
         // Primitive types: int, string, bool
         Type::Int | Type::String | Type::Bool => {
@@ -115,8 +129,15 @@ pub fn gen_method_call<'ctx>(
             compiled_args.push(object_val.value.into());
 
             // 添加其他参数
-            for arg in args {
+            for (index, arg) in args.iter().enumerate() {
                 let arg_val = generate_expr(ctx, locals, arg)?;
+                let expected = ctx
+                    .function_param_types
+                    .get(&mangled_name)
+                    .and_then(|types| types.get(index + 1))
+                    .ok_or(CodegenError::TypeMismatch)?;
+                let arg_val =
+                    crate::nullable::coerce(ctx, arg_val, expected, ctx.get_line(arg.span.start))?;
                 compiled_args.push(arg_val.value.into());
             }
 
@@ -128,6 +149,7 @@ pub fn gen_method_call<'ctx>(
                 .ok_or_else(|| CodegenError::FunctionNotFound(mangled_name.clone()))?;
 
             // 生成调用
+            crate::trace::location(ctx, offset)?;
             let call_site = ctx
                 .builder
                 .build_call(function, &compiled_args, "call_method")
@@ -196,8 +218,15 @@ pub fn gen_method_call<'ctx>(
             compiled_args.push(this_ptr.into());
 
             // 添加其他参数
-            for arg in args {
+            for (index, arg) in args.iter().enumerate() {
                 let arg_val = generate_expr(ctx, locals, arg)?;
+                let expected = ctx
+                    .function_param_types
+                    .get(&mangled_name)
+                    .and_then(|types| types.get(index + 1))
+                    .ok_or(CodegenError::TypeMismatch)?;
+                let arg_val =
+                    crate::nullable::coerce(ctx, arg_val, expected, ctx.get_line(arg.span.start))?;
                 compiled_args.push(arg_val.value.into());
             }
 
@@ -209,6 +238,7 @@ pub fn gen_method_call<'ctx>(
                 .ok_or_else(|| CodegenError::FunctionNotFound(mangled_name.clone()))?;
 
             // 生成调用
+            crate::trace::location(ctx, offset)?;
             let call_site = ctx
                 .builder
                 .build_call(function, &compiled_args, "call_method")

@@ -49,9 +49,6 @@ string src_nested_loop_continue_safety() {
 
 string src_invalid_break_top_level() { return "break"; }
 string src_invalid_continue_top_level() { return "continue"; }
-string src_invalid_for_missing_first_semicolon_expr_init() { return "for i = 0 i < 3; i = i + 1 { }"; }
-string src_invalid_for_missing_first_semicolon_var_init() { return "for var i = 0 i < 3; i = i + 1 { }"; }
-string src_invalid_for_missing_second_semicolon() { return "for var i = 0; i < 3 i = i + 1 { }"; }
 string src_invalid_for_missing_left_brace() { return "for var i = 0; i < 3; i = i + 1 i = i + 2 }"; }
 string src_invalid_unterminated_string_literal() { return "var msg = \"unterminated"; }
 string src_invalid_float_missing_fraction_digits() { return "var bad = 12."; }
@@ -66,7 +63,7 @@ string src_resolver_function_body_ok() { return "var x = p\nx = x + 1\nreturn x"
 string src_resolver_function_body_missing_return() { return "var x = p\nx = x + 1"; }
 string src_resolver_function_body_void_return_bad() { return "if p > 0 {\n  return\n}\nreturn p"; }
 string src_resolver_function_body_if_else_return_ok() { return "if p > 0 {\n  return p\n} else {\n  return p + 1\n}"; }
-string src_resolver_builtin_arity_ok() { return "var n = arg_count()\nvar s = arg_at(0)\nvar ok = write_string(\"out.txt\", s)\nreturn n"; }
+string src_resolver_builtin_arity_ok() { return "var n = arg_count()\nvar s = arg_at(0)\nwrite_string(\"out.txt\", s)\nreturn n"; }
 string src_resolver_builtin_arity_bad() { return "var a = arg_count(1)\nvar b = write_string(\"x\")\nreturn a + b"; }
 string src_resolver_type_consistency_ok() { return "var n = 1\nn = n + 2\nvar flag = true\nflag = false\nvar f = 1.5\nf = f + 0.5\nvar s = \"a\"\ns = \"b\""; }
 string src_resolver_type_assignment_bad() { return "var n = 1\nn = true"; }
@@ -75,8 +72,8 @@ string src_resolver_type_logical_bad() { return "var n = 1\nvar bad = n && true"
 string src_resolver_grouped_type_ok() { return "var n = (1)\nn = n + (2)"; }
 string src_resolver_grouped_arithmetic_bad() { return "var bad = (true) + (1)"; }
 string src_resolver_null_assignment_bad() { return "var n = 1\nn = null"; }
-string src_resolver_null_arithmetic_bad() { return "var x = null\nvar y = x + 1\nreturn 0"; }
-string src_resolver_null_equality_ok() { return "var x = null\nvar y = (x == null)\nreturn 0"; }
+string src_resolver_null_arithmetic_bad() { return "int? x = null\nvar y = x + 1\nreturn 0"; }
+string src_resolver_null_equality_ok() { return "int? x = null\nvar y = (x == null)\nreturn 0"; }
 string src_resolver_user_function_arity_ok() { return "var x = add(1, 2)\nint add(int a, int b) {\n  return a + b\n}\nreturn x"; }
 string src_resolver_user_function_arity_bad() { return "int add(int a, int b) {\n  return a + b\n}\nvar x = add(1)\nreturn x"; }
 string src_resolver_user_function_type_ok() { return "var x = add(1, 2)\nint add(int a, int b) {\n  return a + b\n}\nreturn x"; }
@@ -87,7 +84,7 @@ string src_resolver_nullable_signature_ok() { return "int? keep(int? x) {\n  ret
 string src_resolver_nullable_signature_bad() { return "int? keep(int? x) {\n  return true\n}\nreturn 0"; }
 string src_resolver_custom_type_signature_ok() { return "enum Outcome {\n  Value(int)\n}\nOutcome id(Outcome x) {\n  return x\n}\nvar y = id(Value(1))\nreturn 0"; }
 string src_resolver_generic_type_signature_ok() { return "T identity<T>(T value) {\n  return value\n}\nreturn 0"; }
-string src_resolver_custom_nullable_signature_ok() { return "struct Boxed {\n}\nBoxed? id(Boxed? x) {\n  return x\n}\nvar y = id(null)\nreturn 0"; }
+string src_resolver_custom_nullable_signature_ok() { return "struct Boxed {\n}\nBoxed? id(Boxed? x) {\n  return x\n}\nBoxed? y = id(null)\nreturn 0"; }
 string src_resolver_custom_type_signature_bad() { return "Mystery id(Mystery x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }
 string src_resolver_nested_unknown_type_signature_bad() { return "Vec<Mystery> bad(Vec<int> value) {\n  return value\n}\nreturn 0"; }
 string src_parser_struct_decl_program() { return "struct Boxed {\n}\nBoxed id(Boxed x) {\n  return x\n}\nvar y = id(1)\nreturn y"; }

@@ -1,0 +1,13 @@
+int main() {
+    int values[1] = {7}
+    var zero = 0
+    var invalid = 10
+    if zero != 0 && 10 / zero > 1 { return 1 }
+    if !(zero == 0 || values[invalid] == 0) { return 2 }
+    if !((zero == 0 || false) && (false || values[0] == 7)) { return 3 }
+    var i = 0
+    while i < 1 && values[i] == 7 {
+        i = i + 1
+    }
+    return i - 1
+}

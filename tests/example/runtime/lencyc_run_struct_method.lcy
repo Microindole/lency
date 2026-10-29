@@ -1,0 +1,19 @@
+// Struct methods resolve by receiver type and execute through selfhost LIR.
+// @expect-exit: 0
+struct Counter {
+    int value
+}
+impl Counter {
+    int add(int amount) {
+        this.value = this.value + amount
+        return this.value
+    }
+    Counter copy() {
+        return Counter { value: this.value }
+    }
+}
+var counter = Counter { value: 2 }
+var total = counter.add(3)
+var duplicate = counter.copy()
+return total + duplicate.add(1) - 11
+

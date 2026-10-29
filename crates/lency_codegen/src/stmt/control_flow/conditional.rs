@@ -1,6 +1,6 @@
 use crate::error::{CodegenError, CodegenResult};
 use crate::expr::ExprGenerator;
-use lency_syntax::ast::{Expr, Stmt};
+use lency_syntax::ast::{BinaryOp, Expr, ExprKind, Literal, Stmt};
 
 use crate::stmt::StmtGenerator;
 
@@ -14,6 +14,11 @@ pub fn gen_if<'ctx, 'a>(
     // 生成条件
     let expr_gen = ExprGenerator::new(gen.ctx, gen.locals);
     let cond_wrapper = expr_gen.generate(condition)?;
+    let cond_wrapper = crate::nullable::unwrap(
+        gen.ctx,
+        cond_wrapper,
+        gen.ctx.get_line(condition.span.start),
+    )?;
     let cond_int = cond_wrapper.value.into_int_value();
 
     // 获取当前函数
@@ -37,10 +42,34 @@ pub fn gen_if<'ctx, 'a>(
 
     // Then 分支
     gen.ctx.builder.position_at_end(then_bb);
-    gen.generate_block(then_block)?;
+    gen.with_local_scope(|gen| {
+        if let ExprKind::Binary(left, BinaryOp::Neq, right) = &condition.kind {
+            let name = match (&left.kind, &right.kind) {
+                (ExprKind::Variable(name), ExprKind::Literal(Literal::Null))
+                | (ExprKind::Literal(Literal::Null), ExprKind::Variable(name)) => Some(name),
+                _ => None,
+            };
+            if let Some(name) = name {
+                let storage = gen.locals.get(name).map(|(ptr, _)| *ptr).or_else(|| {
+                    gen.ctx
+                        .module
+                        .get_global(name)
+                        .map(|global| global.as_pointer_value())
+                });
+                if let Some(storage) = storage {
+                    gen.ctx
+                        .read_refinements
+                        .borrow_mut()
+                        .insert(name.clone(), storage);
+                }
+            }
+        }
+        gen.generate_block(then_block)
+    })?;
     // 如果 then 分支没有返回，跳转到 merge
     let current_then = gen.ctx.builder.get_insert_block().unwrap();
-    if !gen.block_ends_with_terminator(current_then) {
+    let then_terminated = gen.block_ends_with_terminator(current_then);
+    if !then_terminated {
         gen.ctx
             .builder
             .build_unconditional_branch(merge_bb)
@@ -54,7 +83,8 @@ pub fn gen_if<'ctx, 'a>(
     }
     // 如果 else 分支没有返回，跳转到 merge
     let current_else = gen.ctx.builder.get_insert_block().unwrap();
-    if !gen.block_ends_with_terminator(current_else) {
+    let else_terminated = gen.block_ends_with_terminator(current_else);
+    if !else_terminated {
         gen.ctx
             .builder
             .build_unconditional_branch(merge_bb)
@@ -62,7 +92,14 @@ pub fn gen_if<'ctx, 'a>(
     }
 
     // 合并点
-    gen.ctx.builder.position_at_end(merge_bb);
+    if then_terminated && else_terminated {
+        merge_bb.remove_from_function().map_err(|_| {
+            CodegenError::LLVMBuildError("failed to remove unreachable if merge".to_string())
+        })?;
+        gen.ctx.builder.position_at_end(current_else);
+    } else {
+        gen.ctx.builder.position_at_end(merge_bb);
+    }
 
     Ok(())
 }

@@ -1,0 +1,85 @@
+extern int lency_memory_live_allocations();
+
+struct Point { int x int y }
+impl Point {
+    int sum() { return this.x + this.y }
+    void move(int dx) { this.x = this.x + dx }
+}
+struct Scene { Point point int cells[2][2] }
+enum Value { Empty, Number(int), Flag(bool), Text(string) }
+struct Box<T> { T value }
+T identity<T>(T value) { return value }
+Point make_point() { return Point { x: 3, y: 4 } }
+int score(Value value) {
+    return match value {
+        case Value.Empty => 0,
+        case Value.Number(n) => n,
+        case Value.Flag(true) => 1,
+        case Value.Flag(false) => 2,
+        case Value.Text("hello") => 3,
+        case Value.Text(_) => 4
+    }
+}
+
+int main() {
+    int baseline = lency_memory_live_allocations()
+    var point = make_point()
+    var scene = Scene { point: point, cells: [[1, 2], [3, 4]] }
+    scene.cells[1][0] = 9
+    point.move(2)
+    if scene.cells[1][0] != 9 || scene.point.sum() != 9 { return 1 }
+    var points = vec[point]
+    points.push(point)
+    if points.pop().sum() != 9 || points.len() != 1 { return 2 }
+    points[0] = point
+    free(points)
+    free(scene)
+    free(point)
+    int? number = 0
+    bool? flag = false
+    if (number ?? 7) != 0 { return 3 }
+    if flag ?? true { return 4 }
+    if number != null { if identity<int>(number) != 0 { return 5 } }
+    free(number)
+    free(flag)
+    number = null
+    free(number)
+    var a = Value.Empty
+    var b = Value.Number(7)
+    var c = Value.Flag(false)
+    var d = Value.Text("hello")
+    if score(a) != 0 || score(b) != 7 || score(c) != 2 || score(d) != 3 { return 6 }
+    free(a)
+    free(b)
+    free(c)
+    free(d)
+    var floating = vec[1, 2.5]
+    if floating[0] + floating[1] != 3.5 { return 7 }
+    free(floating)
+    float nan = parse_float("NaN")
+    if nan == nan || !(nan != nan) { return 11 }
+    var boxed = Box<int> { value: 7 }
+    if boxed.value != 7 { return 9 }
+    free(boxed)
+    int integers[3] = {1, 2, 3}
+    int sum = 0
+    for item in integers { sum = sum + item }
+    if sum != 6 { return 10 }
+    var map = hashmap_int_new()
+    int key = 0
+    while key < 100 {
+        hashmap_int_insert(map, key, key * 2)
+        key = key + 1
+    }
+    key = 0
+    while key < 100 {
+        if hashmap_int_get(map, key) != key * 2 { return 12 }
+        hashmap_int_remove(map, key)
+        key = key + 1
+    }
+    if hashmap_int_len(map) != 0 { return 13 }
+    hashmap_int_free(map)
+    if lency_memory_live_allocations() != baseline { return 8 }
+    print("stage0 values ok")
+    return 0
+}

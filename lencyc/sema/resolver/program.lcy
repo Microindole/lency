@@ -110,6 +110,9 @@ impl Resolver {
             if decl.kind == DECL_UNKNOWN() {
                 this.error("unsupported declaration kind in preload: DECL_UNKNOWN")
             }
+            if decl.kind == DECL_IMPL() {
+                this.preload_method_signatures(decl)
+            }
             j = j + 1
         }
     }

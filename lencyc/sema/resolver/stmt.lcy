@@ -7,12 +7,27 @@ import lencyc.syntax.token
 import lencyc.sema.resolver
 
 impl Resolver {
+    void resolve_bool_condition(Expr expr, string context) {
+        var ty = this.resolve_expr(expr)
+        if ty != TYPE_BOOL() {
+            var name = this.infer_expr_type_name(expr, ty)
+            if name == "" { name = this.type_to_string(ty) }
+            this.error(context + " must be bool, got " + name)
+        }
+    }
+
     void resolve_stmt(Stmt stmt) {
         if stmt.kind == STMT_VAR_DECL() {
             var value_ty = this.resolve_expr(stmt.expr)
             var value_ty_name = this.infer_expr_type_name(stmt.expr, value_ty)
             var symbol_ty = value_ty
             var symbol_ty_name = value_ty_name
+            if value_ty == TYPE_VOID() {
+                this.error("void expression cannot initialize a variable")
+            }
+            if !stmt.has_declared_type && (value_ty_name == "null" || value_ty_name == "Vec") {
+                this.error("cannot infer variable type from " + value_ty_name + "; add an explicit type")
+            }
             if stmt.has_declared_type {
                 symbol_ty = this.resolve_signature_type_or_error(stmt.declared_type)
                 symbol_ty_name = this.resolve_signature_type_name(stmt.declared_type)
@@ -46,6 +61,9 @@ impl Resolver {
             return
         }
         if stmt.kind == STMT_RETURN() {
+            if this.in_function && this.current_function_return_type == TYPE_VOID() {
+                this.error("value return is not allowed in void function")
+            }
             var ret_ty = this.resolve_expr(stmt.expr)
             var ret_ty_name = this.infer_expr_type_name(stmt.expr, ret_ty)
             var expected_ret_name = this.current_function_return_type_name
@@ -76,12 +94,12 @@ impl Resolver {
             return
         }
         if stmt.kind == STMT_WHILE() {
-            this.resolve_expr(stmt.expr)
+            this.resolve_bool_condition(stmt.expr, "while condition")
             this.resolve_in_new_scope(stmt.body)
             return
         }
         if stmt.kind == STMT_IF() {
-            this.resolve_expr(stmt.expr)
+            this.resolve_bool_condition(stmt.expr, "if condition")
             this.resolve_in_new_scope(stmt.body)
             this.resolve_in_new_scope(stmt.else_body)
             return

@@ -1,0 +1,53 @@
+// lencyc/codegen/lir/locals.lcy
+// 局部绑定使用唯一 LIR 名称，离开词法作用域后恢复可见绑定与类型元数据。
+
+import std.core
+import lencyc.codegen.lir
+
+struct LirLocalScope {
+    int locals
+    int enums
+    int types
+}
+
+impl LirBuilder {
+    LirLocalScope local_scope() {
+        return LirLocalScope {
+            locals: this.local_names.len(),
+            enums: this.enum_var_names.len(),
+            types: this.typed_var_names.len()
+        }
+    }
+
+    void restore_local_scope(LirLocalScope scope) {
+        while this.local_names.len() > scope.locals {
+            this.local_names.pop()
+            this.local_values.pop()
+        }
+        while this.enum_var_names.len() > scope.enums {
+            this.enum_var_names.pop()
+            this.enum_var_types.pop()
+        }
+        while this.typed_var_names.len() > scope.types {
+            this.typed_var_names.pop()
+            this.typed_var_types.pop()
+        }
+    }
+
+    string declare_local(string name) {
+        var value = "%$local" + int_to_string(this.temp_counter)
+        this.temp_counter = this.temp_counter + 1
+        this.local_names.push(name)
+        this.local_values.push(value)
+        return value
+    }
+
+    string local_value(string name) {
+        var i = this.local_names.len() - 1
+        while i >= 0 {
+            if this.local_names[i] == name { return this.local_values[i] }
+            i = i - 1
+        }
+        return "%" + name
+    }
+}

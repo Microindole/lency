@@ -1,0 +1,54 @@
+struct Sample {
+    int? count
+    bool enabled
+    float ratio
+}
+
+int? keep(int? value) {
+    return value
+}
+
+int? make(int value) {
+    return value
+}
+
+int main() {
+    int? missing = null
+    int? zero = keep(0)
+    int? count = make(7)
+    if (missing ?? 9) != 9 { return 1 }
+    if (zero ?? 9) != 0 { return 2 }
+    if count != null {
+        if count + 1 != 8 { return 3 }
+        if int_to_string(count) != "7" { return 4 }
+        int numbers[2] = {count, count}
+        vec<int> checked = vec[count, count]
+        if numbers[0] != 7 || checked[1] != 7 { return 14 }
+    }
+    var sample = Sample { count: 0, enabled: false, ratio: 0.0 }
+    Sample? absent = null
+    if absent?.count != null { return 5 }
+    if (sample?.count ?? 9) != 0 { return 6 }
+    if sample?.enabled ?? true { return 7 }
+    if (sample?.ratio ?? 9.0) != 0.0 { return 8 }
+    sample.count = null
+    if sample?.count != null { return 9 }
+    vec<int?> values = vec[]
+    values.push(null)
+    values.push(0)
+    values.push(count)
+    values.set(0, 4)
+    if (values.get(0) ?? 9) != 4 { return 10 }
+    if (values[1] ?? 9) != 0 { return 11 }
+    if (values.pop() ?? 9) != 7 { return 12 }
+    int? same = make(7)
+    if count != same { return 13 }
+    print(missing)
+    print("|")
+    print(zero)
+    print("|")
+    print(sample?.enabled)
+    print("|")
+    print(sample?.ratio)
+    return 0
+}

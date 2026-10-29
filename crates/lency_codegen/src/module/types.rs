@@ -175,7 +175,7 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
 
                     // 1. Malloc Enum (Heap) 而不是 Alloca，以便返回指针
                     let size = enum_type.size_of().unwrap();
-                    let malloc = self.ctx.module.get_function("malloc").unwrap();
+                    let malloc = self.ctx.module.get_function("lency_alloc").unwrap();
                     let malloc_call = self
                         .ctx
                         .builder

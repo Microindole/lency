@@ -7,10 +7,9 @@ import lencyc.syntax.ast
 import lencyc.syntax.parser
 
 impl Parser {
-    Vec<Stmt> rewrite_continue_for_increment(Vec<Stmt> statements, Expr increment) {
-        Vec<Stmt> rewritten = vec[]
-        var i = 0
-        while i < statements.len() {
+    vec<Stmt> rewrite_continue_for_increment(vec<Stmt> statements, Expr increment) {
+        vec<Stmt> rewritten = vec[]
+        for (int i = 0 i < statements.len() i = i + 1) {
             var stmt = statements[i]
             if stmt.kind == STMT_CONTINUE() {
                 var with_increment = vec[make_stmt_expr(increment), make_stmt_continue()]
@@ -30,20 +29,19 @@ impl Parser {
                     }
                 }
             }
-            i = i + 1
         }
         return rewritten
     }
 
-    Stmt lower_for_statement(Stmt initializer, Expr condition, Expr increment, Vec<Stmt> body) {
+    Stmt lower_for_statement(Stmt initializer, Expr condition, Expr increment, vec<Stmt> body) {
         body = this.rewrite_continue_for_increment(body, increment)
         body.push(make_stmt_expr(increment))
         var while_stmt = make_stmt_while(condition, body)
         return make_stmt_block(vec[initializer, while_stmt])
     }
 
-    Vec<Stmt> block() {
-        Vec<Stmt> statements = vec[]
+    vec<Stmt> block() {
+        vec<Stmt> statements = vec[]
         while !this.check(T_RIGHT_BRACE()) && !this.is_at_end() {
             if this.match_token(T_SEMICOLON()) {
                 continue
@@ -62,7 +60,7 @@ impl Parser {
         this.consume(T_LEFT_BRACE(), "Expect '{' before then block.")
         var then_branch = this.block()
         
-        Vec<Stmt> else_branch = vec[]
+        vec<Stmt> else_branch = vec[]
         if this.match_token(T_ELSE()) {
             if this.match_token(T_LEFT_BRACE()) {
                 else_branch = this.block()
@@ -91,7 +89,7 @@ impl Parser {
     }
 
     Stmt for_statement() {
-        // 支持 C 风格 for 的三种初始化：`var` / `const` 声明或表达式初始化。
+        var parenthesized = this.match_token(T_LEFT_PAREN())
         var initializer = make_stmt_block(vec[])
         if this.match_token(T_VAR()) {
             initializer = this.var_declaration(false)
@@ -99,16 +97,29 @@ impl Parser {
             if this.match_token(T_CONST()) {
                 initializer = this.var_declaration(true)
             } else {
-                var init_expr = this.expression()
-                initializer = make_stmt_expr(init_expr)
+                if this.is_function_return_type_start() {
+                    var declared_type = this.parse_signature_type_ref()
+                    this.consume(T_IDENTIFIER(), "Expect variable name after for initializer type.")
+                    initializer = this.typed_var_declaration_after_name(declared_type, this.previous, false)
+                } else {
+                    var init_expr = this.expression()
+                    initializer = make_stmt_expr(init_expr)
+                }
             }
         }
-        this.consume(T_SEMICOLON(), "Expect ';' after for initializer.")
+        if this.match_token(T_SEMICOLON()) {
+            // 三段完整时，两个分隔符分别可选。
+        }
 
         var condition = this.expression()
-        this.consume(T_SEMICOLON(), "Expect ';' after for condition.")
+        if this.match_token(T_SEMICOLON()) {
+            // 更新表达式仍必须存在。
+        }
 
         var increment = this.expression()
+        if parenthesized {
+            this.consume(T_RIGHT_PAREN(), "Expect ')' after for increment.")
+        }
         this.consume(T_LEFT_BRACE(), "Expect '{' before for body.")
 
         this.loop_depth = this.loop_depth + 1

@@ -91,7 +91,9 @@ pub fn gen_index_access<'ctx>(
 ) -> CodegenResult<CodegenValue<'ctx>> {
     // 生成数组和索引
     let array_wrapper = generate_expr(ctx, locals, array_expr)?;
+    let array_wrapper = crate::nullable::unwrap(ctx, array_wrapper, line)?;
     let index_wrapper = generate_expr(ctx, locals, index_expr)?;
+    let index_wrapper = crate::nullable::unwrap(ctx, index_wrapper, line)?;
 
     let array_val = array_wrapper.value;
     let index_val = index_wrapper.value;

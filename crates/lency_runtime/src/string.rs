@@ -21,10 +21,9 @@ pub unsafe extern "C" fn lency_string_eq(lhs: *const c_char, rhs: *const c_char)
     if lhs.is_null() || rhs.is_null() {
         return if lhs == rhs { 1 } else { 0 };
     }
-    // FIXME: This low-address guard is a defensive stopgap for self-host runtime
-    // crashes when a scalar payload is misused as a string handle on Linux.
+    // 明显非法的标量句柄必须终止，不能伪装成字符串不相等。
     if is_obviously_invalid_c_string_ptr(lhs) || is_obviously_invalid_c_string_ptr(rhs) {
-        return 0;
+        unsafe { crate::lency_panic_at(c"invalid string handle".as_ptr(), 0) }
     }
 
     let lhs_str = unsafe { CStr::from_ptr(lhs) };
@@ -114,7 +113,7 @@ pub unsafe extern "C" fn lency_string_concat(
     bytes.extend_from_slice(left);
     bytes.extend_from_slice(right);
     match CString::new(bytes) {
-        Ok(value) => value.into_raw(),
+        Ok(value) => crate::memory::own_string(value),
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -155,7 +154,7 @@ pub unsafe extern "C" fn lency_string_trim(ptr: *const c_char) -> *mut c_char {
 
     // 分配新内存并复制
     let len = trimmed.len();
-    let result = unsafe { libc::malloc(len + 1) as *mut c_char };
+    let result = crate::memory::lency_alloc((len + 1) as u64) as *mut c_char;
     if result.is_null() {
         return std::ptr::null_mut();
     }
@@ -195,12 +194,12 @@ pub unsafe extern "C" fn lency_string_split(
     };
 
     let parts: Vec<&str> = s.split(delim).collect();
-    let vec = Box::into_raw(LencyVec::new(parts.len() as i64));
+    let vec = crate::memory::own_box(LencyVec::new(parts.len() as i64));
 
     for part in parts {
         // 分配每个子串
         let len = part.len();
-        let part_ptr = unsafe { libc::malloc(len + 1) as *mut c_char };
+        let part_ptr = crate::memory::lency_alloc((len + 1) as u64) as *mut c_char;
         if !part_ptr.is_null() {
             unsafe {
                 std::ptr::copy_nonoverlapping(part.as_ptr(), part_ptr as *mut u8, len);
@@ -240,7 +239,7 @@ pub unsafe extern "C" fn lency_string_join(
 
     if len == 0 {
         // 返回空字符串
-        let result = unsafe { libc::malloc(1) as *mut c_char };
+        let result = crate::memory::lency_alloc(1) as *mut c_char;
         if !result.is_null() {
             unsafe { *result = 0 };
         }
@@ -261,7 +260,7 @@ pub unsafe extern "C" fn lency_string_join(
 
     let joined = parts.join(sep);
     let result_len = joined.len();
-    let result = unsafe { libc::malloc(result_len + 1) as *mut c_char };
+    let result = crate::memory::lency_alloc((result_len + 1) as u64) as *mut c_char;
     if result.is_null() {
         return std::ptr::null_mut();
     }
@@ -300,7 +299,7 @@ pub unsafe extern "C" fn lency_string_substr(
 
     if start_idx >= s.len() {
         // 返回空字符串
-        let result = unsafe { libc::malloc(1) as *mut c_char };
+        let result = crate::memory::lency_alloc(1) as *mut c_char;
         if !result.is_null() {
             unsafe { *result = 0 };
         }
@@ -319,7 +318,7 @@ pub unsafe extern "C" fn lency_string_substr(
     }
     let substr = &s[safe_start..safe_end];
     let substr_len = substr.len();
-    let result = unsafe { libc::malloc(substr_len + 1) as *mut c_char };
+    let result = crate::memory::lency_alloc((substr_len + 1) as u64) as *mut c_char;
     if result.is_null() {
         return std::ptr::null_mut();
     }
@@ -340,7 +339,7 @@ pub unsafe extern "C" fn lency_string_substr(
 #[no_mangle]
 pub unsafe extern "C" fn lency_char_to_string(char_code: i64) -> *mut c_char {
     // 分配2字节: 1个字符 + null terminator
-    let result = unsafe { libc::malloc(2) as *mut c_char };
+    let result = crate::memory::lency_alloc(2) as *mut c_char;
     if result.is_null() {
         return std::ptr::null_mut();
     }
@@ -424,7 +423,7 @@ pub unsafe extern "C" fn lency_string_format(
     }
 
     let result_len = result.len();
-    let buf = unsafe { libc::malloc(result_len + 1) as *mut c_char };
+    let buf = crate::memory::lency_alloc((result_len + 1) as u64) as *mut c_char;
     if buf.is_null() {
         return std::ptr::null_mut();
     }
@@ -460,7 +459,7 @@ mod tests {
         let trimmed = unsafe { CStr::from_ptr(result) }.to_str().unwrap();
         assert_eq!(trimmed, "hello world");
 
-        unsafe { libc::free(result as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(result as *mut libc::c_void) };
     }
 
     #[test]
@@ -491,22 +490,22 @@ mod tests {
 
             // 清理
             for i in 0..(*vec).len() {
-                libc::free((*vec).get(i) as *mut libc::c_void);
+                crate::memory::lency_free((*vec).get(i) as *mut libc::c_void);
             }
-            let _ = Box::from_raw(vec);
+            crate::memory::lency_free(vec.cast());
         }
     }
 
     #[test]
     fn test_string_join() {
         // 创建 vec 并填充
-        let vec = Box::into_raw(LencyVec::new(3));
+        let vec = crate::memory::own_box(LencyVec::new(3));
         let parts = ["hello", "world", "test"];
 
         unsafe {
             for part in &parts {
                 let cs = CString::new(*part).unwrap();
-                let ptr = libc::malloc(part.len() + 1) as *mut c_char;
+                let ptr = crate::memory::lency_alloc((part.len() + 1) as u64) as *mut c_char;
                 std::ptr::copy_nonoverlapping(cs.as_ptr(), ptr, part.len() + 1);
                 (*vec).push(ptr as i64);
             }
@@ -519,11 +518,11 @@ mod tests {
             assert_eq!(joined, "hello-world-test");
 
             // 清理
-            libc::free(result as *mut libc::c_void);
+            crate::memory::lency_free(result as *mut libc::c_void);
             for i in 0..(*vec).len() {
-                libc::free((*vec).get(i) as *mut libc::c_void);
+                crate::memory::lency_free((*vec).get(i) as *mut libc::c_void);
             }
-            let _ = Box::from_raw(vec);
+            crate::memory::lency_free(vec.cast());
         }
     }
 
@@ -535,12 +534,12 @@ mod tests {
         assert!(!result.is_null());
         let substr = unsafe { CStr::from_ptr(result) }.to_str().unwrap();
         assert_eq!(substr, "hello");
-        unsafe { libc::free(result as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(result as *mut libc::c_void) };
 
         let result2 = unsafe { lency_string_substr(s.as_ptr(), 6, 5) };
         let substr2 = unsafe { CStr::from_ptr(result2) }.to_str().unwrap();
         assert_eq!(substr2, "world");
-        unsafe { libc::free(result2 as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(result2 as *mut libc::c_void) };
     }
 
     #[test]
@@ -553,12 +552,12 @@ mod tests {
             unsafe { CStr::from_ptr(whole_char) }.to_bytes(),
             "自".as_bytes()
         );
-        unsafe { libc::free(whole_char as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(whole_char as *mut libc::c_void) };
 
         let inner_byte = unsafe { lency_string_substr(s.as_ptr(), 2, 1) };
         assert!(!inner_byte.is_null());
         assert_eq!(unsafe { CStr::from_ptr(inner_byte) }.to_bytes(), b"");
-        unsafe { libc::free(inner_byte as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(inner_byte as *mut libc::c_void) };
     }
 
     #[test]
@@ -580,15 +579,34 @@ mod tests {
         let ptr1 = std::ptr::with_exposed_provenance::<c_char>(1usize);
         let ptr4095 = std::ptr::with_exposed_provenance::<c_char>(4095usize);
         let ptr4096 = std::ptr::with_exposed_provenance::<c_char>(4096usize);
-        let ptr8 = std::ptr::with_exposed_provenance::<c_char>(8usize);
 
         assert!(is_obviously_invalid_c_string_ptr(ptr1));
         assert!(is_obviously_invalid_c_string_ptr(ptr4095));
         assert!(!is_obviously_invalid_c_string_ptr(std::ptr::null()));
         assert!(!is_obviously_invalid_c_string_ptr(ptr4096));
+    }
 
-        let rhs = CString::new("hello").unwrap();
-        assert_eq!(unsafe { lency_string_eq(ptr8, rhs.as_ptr()) }, 0);
+    #[test]
+    fn invalid_handle_child() {
+        if std::env::var_os("LENCY_TEST_INVALID_STRING").is_some() {
+            let pointer = std::ptr::with_exposed_provenance::<c_char>(8usize);
+            unsafe { lency_string_eq(pointer, c"text".as_ptr()) };
+        }
+    }
+
+    #[test]
+    fn invalid_string_handle_does_not_masquerade_as_unequal() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "string::tests::invalid_handle_child",
+                "--nocapture",
+            ])
+            .env("LENCY_TEST_INVALID_STRING", "1")
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&output.stderr).contains("invalid string handle"));
     }
 
     #[test]
@@ -606,7 +624,7 @@ mod tests {
         assert!(!result.is_null());
         let formatted = unsafe { CStr::from_ptr(result) }.to_str().unwrap();
         assert_eq!(formatted, "hello world!");
-        unsafe { libc::free(result as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(result as *mut libc::c_void) };
 
         // 测试多参数替换
         let template2 = CString::new("{} + {} = {}").unwrap();
@@ -623,7 +641,7 @@ mod tests {
         assert!(!result2.is_null());
         let formatted2 = unsafe { CStr::from_ptr(result2) }.to_str().unwrap();
         assert_eq!(formatted2, "1 + 2 = 3");
-        unsafe { libc::free(result2 as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(result2 as *mut libc::c_void) };
 
         // 测试无占位符
         let template3 = CString::new("no placeholders").unwrap();
@@ -633,6 +651,6 @@ mod tests {
         assert!(!result3.is_null());
         let formatted3 = unsafe { CStr::from_ptr(result3) }.to_str().unwrap();
         assert_eq!(formatted3, "no placeholders");
-        unsafe { libc::free(result3 as *mut libc::c_void) };
+        unsafe { crate::memory::lency_free(result3 as *mut libc::c_void) };
     }
 }

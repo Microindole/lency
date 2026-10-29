@@ -15,6 +15,7 @@ import lencyc.sema.resolver.program
 import lencyc.sema.resolver.expr.visitor
 import lencyc.sema.resolver.expr.core
 import lencyc.sema.resolver.expr.call
+import lencyc.sema.resolver.expr.member
 import lencyc.sema.resolver.expr.match_pattern
 import lencyc.sema.resolver.expr.match_expr
 import lencyc.sema.resolver.stmt

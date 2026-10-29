@@ -17,6 +17,7 @@ Windows ARM64 暂不属于支持矩阵。Windows 工具链依赖项目发布的
 
 ## 工作流职责
 
+- personal-rules.yml：禁止 Git 跟踪根目录的 AGENTS.md 和 CLAUDE.md；子目录同名文件不受此规则限制，本地未跟踪文件不参与检查。
 - `tests.yml`：按变更范围运行 Rust 门禁和多平台 Lency 端到端门禁。
 - `bootstrap.yml`：验证 stage2/stage3 LIR 收敛；影响编译器、自举源码、runtime 或测试的 PR 必须运行。
 - `lints.yml`：格式、Clippy、Rustdoc 和仓库静态规则。

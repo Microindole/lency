@@ -11,7 +11,9 @@ pub mod hashmap;
 mod intrinsic;
 mod literal;
 mod match_expr;
+mod memory;
 mod method_call;
+mod place;
 mod string_ops;
 mod struct_access;
 mod struct_init;
@@ -60,6 +62,10 @@ impl<'ctx, 'a> ExprGenerator<'ctx, 'a> {
         // Return Type too for verification if needed
         generate_lvalue_addr(self.ctx, self.locals, expr)
     }
+
+    pub fn generate_assignment(&self, target: &Expr, value: &Expr) -> CodegenResult<()> {
+        place::assign(self.ctx, self.locals, target, value)
+    }
 }
 
 /// 内部辅助函数：生成表达式代码
@@ -68,13 +74,28 @@ fn generate_expr<'ctx>(
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, lency_syntax::ast::Type)>,
     expr: &Expr,
 ) -> CodegenResult<CodegenValue<'ctx>> {
+    crate::trace::location(ctx, expr.span.start)?;
     match &expr.kind {
         ExprKind::Literal(lit) => literal::gen_literal(ctx, lit),
         ExprKind::Unit => Ok(CodegenValue {
             value: ctx.context.bool_type().const_int(0, false).into(),
             ty: lency_syntax::ast::Type::Void,
         }),
-        ExprKind::Variable(name) => variable::gen_variable(ctx, locals, name),
+        ExprKind::Variable(name) => {
+            let value = variable::gen_variable(ctx, locals, name)?;
+            let storage = locals.get(name).map(|(ptr, _)| *ptr).or_else(|| {
+                ctx.module
+                    .get_global(name)
+                    .map(|global| global.as_pointer_value())
+            });
+            let refined =
+                storage.is_some() && ctx.read_refinements.borrow().get(name).copied() == storage;
+            if refined {
+                crate::nullable::unwrap(ctx, value, ctx.get_line(expr.span.start))
+            } else {
+                Ok(value)
+            }
+        }
         ExprKind::Binary(left, op, right) => binary::gen_binary(ctx, locals, left, op, right),
         ExprKind::Unary(op, operand) => unary::gen_unary(ctx, locals, op, operand),
         ExprKind::Call { callee, args } => {
@@ -82,8 +103,7 @@ fn generate_expr<'ctx>(
             if let ExprKind::Get { object, name } = &callee.kind {
                 // 尝试作为方法调用处理
                 // gen_method_call 内部会验证 object 是否为 Struct
-                let line = ctx.get_line(callee.span.start);
-                method_call::gen_method_call(ctx, locals, object, name, args, line)
+                method_call::gen_method_call(ctx, locals, object, name, args, callee.span.start)
             } else {
                 call::gen_call(ctx, locals, callee, args)
             }
@@ -144,53 +164,9 @@ fn generate_lvalue_addr<'ctx>(
         }
         ExprKind::Get { object, name } => {
             let line = ctx.get_line(expr.span.start);
-            let ptr = struct_access::gen_struct_member_ptr(ctx, locals, object, name, line)?;
-            // Need to return type of field for verification?
-            // Currently generate_lvalue_addr returns (ptr, type).
-            // We need to look up field type.
-            // Re-implement logic or use helper?
-            // Hacking: Use struct_access logic again roughly?
-            // Or better: Let gen_struct_member_ptr return (ptr, type)?
-            // Changing gen_struct_member_ptr signature would affect others?
-            // No, gen_member_access calls it.
-            // But gen_member_access ignored return type there?
-            // Let's look up type here.
-
-            // We need struct name. Parse expr again?
-            // Or just trust caller?
-            // This is getting complicated.
-            // Let's assume for now we can get it.
-
-            // To get type, we need object type.
-            // generate_expr(object) -> type.
-            // But we might want address of object?
-            // generate_lvalue_addr is for assignment: a.x = 1.
-
-            let obj_val = generate_expr(ctx, locals, object)?;
-            let struct_name = match obj_val.ty {
-                lency_syntax::ast::Type::Struct(n) => n,
-                _ => return Err(CodegenError::TypeMismatch),
-            };
-
-            let field_names = ctx
-                .struct_fields
-                .get(&struct_name)
-                .ok_or(CodegenError::TypeMismatch)?;
-            let idx = field_names
-                .iter()
-                .position(|n| n == name)
-                .ok_or(CodegenError::TypeMismatch)?;
-            let field_types = ctx
-                .struct_field_types
-                .get(&struct_name)
-                .ok_or(CodegenError::TypeMismatch)?;
-            let field_ty = field_types
-                .get(idx)
-                .cloned()
-                .ok_or(CodegenError::TypeMismatch)?;
-
-            Ok((ptr, field_ty))
+            struct_access::gen_struct_member_ptr(ctx, locals, object, name, line)
         }
+        ExprKind::Index { .. } => place::index_address(ctx, locals, expr),
         _ => Err(CodegenError::UnsupportedExpression),
     }
 }

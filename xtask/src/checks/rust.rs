@@ -69,6 +69,10 @@ pub(crate) fn check_rust() -> Result<()> {
             }
         },
     )?;
+    step(
+        "Running Rust stage0 executable contracts",
+        super::stage0_check,
+    )?;
 
     step("Checking file sizes (rust scope)", || {
         run_python(

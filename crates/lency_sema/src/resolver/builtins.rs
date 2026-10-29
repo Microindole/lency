@@ -29,6 +29,8 @@ pub fn register_builtins(scopes: &mut ScopeStack) {
     // parser does not recognize these names specially; only lowering is
     // intrinsic. Type::Error is the deliberate "any printable value" slot.
     define_extern_fn("print", vec![("value", Type::Error)], Type::Void);
+    // free 的引用类型约束由统一调用检查入口验证。
+    define_extern_fn("free", vec![("value", Type::Error)], Type::Void);
     define_extern_fn("read_file", vec![("path", Type::String)], Type::String);
     define_extern_fn(
         "write_file",
@@ -93,6 +95,8 @@ pub fn register_builtins(scopes: &mut ScopeStack) {
         Type::Bool,
     );
     define_extern_fn("hashmap_int_len", vec![("map", Type::Int)], Type::Int);
+    define_extern_fn("hashmap_int_free", vec![("map", Type::Int)], Type::Void);
+    define_extern_fn("hashmap_string_free", vec![("map", Type::Int)], Type::Void);
 
     // Type conversion FFI functions
     define_extern_fn("int_to_string", vec![("n", Type::Int)], Type::String);

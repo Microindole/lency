@@ -49,6 +49,8 @@ jobs:
               - 'crates/**'
               - 'xtask/**'
               - 'tests/integration/**'
+              - 'tests/stage0/**'
+              - 'lib/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
               - '.cargo/**'

@@ -5,20 +5,22 @@ use crate::types::ToLLVMType;
 use lency_syntax::ast::{Decl, Program};
 
 impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
-    /// 注入运行时函数 (__lency_panic, printf, exit, malloc)
+    /// 注入诊断、输出及手动管理的分配入口。
     pub(crate) fn inject_runtime(&mut self) -> CodegenResult<()> {
         let panic_func =
             crate::runtime::inject_runtime_functions(self.ctx.context, &self.ctx.module);
         self.ctx.panic_func = Some(panic_func);
 
-        // 预定义 malloc: declare i8* @malloc(i64)
+        // 分配与释放均经过 runtime，避免跨分配器释放。
         let malloc_type = self
             .ctx
             .context
             .i8_type()
             .ptr_type(inkwell::AddressSpace::default())
             .fn_type(&[self.ctx.context.i64_type().into()], false);
-        self.ctx.module.add_function("malloc", malloc_type, None);
+        self.ctx
+            .module
+            .add_function("lency_alloc", malloc_type, None);
 
         Ok(())
     }
@@ -37,6 +39,11 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     if !generic_params.is_empty() {
                         continue;
                     }
+
+                    self.ctx.function_param_types.insert(
+                        name.clone(),
+                        params.iter().map(|param| param.ty.clone()).collect(),
+                    );
 
                     self.ctx
                         .function_signatures
@@ -58,6 +65,10 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
                     return_type,
                     ..
                 } => {
+                    self.ctx.function_param_types.insert(
+                        name.clone(),
+                        params.iter().map(|param| param.ty.clone()).collect(),
+                    );
                     self.ctx
                         .function_signatures
                         .insert(name.clone(), return_type.clone());
@@ -91,6 +102,10 @@ impl<'ctx, 'a> ModuleGenerator<'ctx, 'a> {
 
                             let mut method_params = vec![this_param];
                             method_params.extend_from_slice(params);
+                            self.ctx.function_param_types.insert(
+                                mangled_name.clone(),
+                                method_params.iter().map(|param| param.ty.clone()).collect(),
+                            );
 
                             let func_gen = FunctionGenerator::new(&*self.ctx);
                             func_gen.declare(&mangled_name, &method_params, return_type)?;

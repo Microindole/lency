@@ -50,52 +50,17 @@ impl<'a> TypeInferer<'a> {
             }
         }
 
-        // Exhaustiveness check
-        // 1. Check for Wildcard/Variable (always exhaust)
-        let has_catch_all = cases.iter().any(|c| {
-            matches!(
-                c.pattern,
-                MatchPattern::Wildcard | MatchPattern::Variable(_)
-            )
-        });
-
-        if !has_catch_all {
-            // 2. If matching on an Enum, check all variants are covered
-            let enum_name = match &value_ty {
-                Type::Struct(n) => Some(n.clone()),
-                Type::Generic(n, _) => Some(n.clone()),
-                _ => None,
-            };
-
-            if let Some(ref name) = enum_name {
-                if let Some(Symbol::Enum(e)) = self.lookup(name) {
-                    let all_variants: std::collections::HashSet<String> =
-                        e.variants.keys().cloned().collect();
-
-                    let matched_variants: std::collections::HashSet<String> = cases
-                        .iter()
-                        .filter_map(|c| {
-                            if let MatchPattern::Variant { name, .. } = &c.pattern {
-                                Some(name.clone())
-                            } else {
-                                None
-                            }
-                        })
-                        .collect();
-
-                    let missing: Vec<String> = all_variants
-                        .difference(&matched_variants)
-                        .cloned()
-                        .collect();
-
-                    if !missing.is_empty() {
-                        return Err(SemanticError::PatternNotExhaustive {
-                            missing_variants: missing,
-                            span: span.clone(),
-                        });
-                    }
-                }
-            }
+        let missing = super::match_coverage::missing(
+            self.scopes,
+            self.current_scope,
+            &value_ty,
+            cases.iter().map(|case| case.pattern.clone()),
+        );
+        if !missing.is_empty() {
+            return Err(SemanticError::PatternNotExhaustive {
+                missing_variants: missing,
+                span: span.clone(),
+            });
         }
 
         if cases.is_empty() {
@@ -118,6 +83,11 @@ impl<'a> TypeInferer<'a> {
         match pattern {
             MatchPattern::Literal(lit) => {
                 let pat_ty = self.infer_literal(lit);
+                if matches!(lit, lency_syntax::ast::Literal::Null)
+                    && matches!(target_ty, Type::Nullable(_))
+                {
+                    return Ok(());
+                }
                 if pat_ty != *target_ty {
                     return Err(SemanticError::TypeMismatch {
                         expected: target_ty.to_string(),

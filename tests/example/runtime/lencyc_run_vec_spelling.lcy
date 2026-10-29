@@ -1,0 +1,36 @@
+// 小写集合类型与兼容拼写共享签名、元素检查和 LIR ABI。
+// @expect-exit: 0
+struct VecBucket {
+    vec<int> values
+}
+impl VecBucket {
+    vec<int> items() { return this.values }
+}
+vec<int> make_values() {
+    vec<int> values = vec[]
+    values.push(4)
+    values.push(5)
+    return values
+}
+Vec<vec<int>> wrap_values(vec<int> values) {
+    return vec[values]
+}
+int main() {
+    vec<int> values = make_values()
+    Vec<int> compatible = values
+    compatible.set(0, 6)
+    if values[0] != 6 || values.pop() != 5 { return 1 }
+    vec<Vec<int>> nested = wrap_values(values)
+    vec<int> first = nested[0]
+    if first.get(0) != 6 { return 2 }
+    var bucket = VecBucket { values: first }
+    vec<int> from_method = bucket.items()
+    from_method.push(7)
+    if first.len() != 2 || from_method[1] != 7 { return 3 }
+    vec<string> words = vec["ab", "cd"]
+    if words[0] != "ab" || words.pop() != "cd" { return 4 }
+    vec<bool> flags = vec[true, false]
+    if !flags[0] || flags.pop() { return 5 }
+    vec[1, 2]
+    return 0
+}

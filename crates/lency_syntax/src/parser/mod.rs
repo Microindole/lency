@@ -2,11 +2,13 @@
 //!
 //! 模块化的 Parser 实现，遵循开闭原则
 
+mod boundaries;
 pub mod decl;
 pub mod expr;
 pub mod helpers;
 pub mod pattern;
 pub mod stmt;
+pub use boundaries::statement_boundaries;
 
 use crate::ast::Program;
 use crate::lexer::Token;
@@ -25,10 +27,13 @@ pub fn program_parser() -> impl Parser<Token, Program, Error = ParserError> {
 /// 辅助函数：解析源码字符串
 pub fn parse(code: &str) -> Result<Program, Vec<ParserError>> {
     use logos::Logos;
-    let tokens: Vec<Token> = Token::lexer(code)
+    let tokens: Vec<_> = Token::lexer(code)
         .spanned()
-        .map(|(tok, _span)| tok.unwrap_or(Token::Error))
+        .map(|(tok, span)| (tok.unwrap_or(Token::Error), span))
         .collect();
 
-    program_parser().parse(tokens)
+    program_parser().parse(chumsky::Stream::from_iter(
+        code.len()..code.len(),
+        statement_boundaries(code, tokens).into_iter(),
+    ))
 }

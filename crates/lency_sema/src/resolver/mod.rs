@@ -18,6 +18,7 @@ use lency_syntax::ast::{Decl, Expr, Program, Span, Stmt, Type};
 
 /// 名称解析器
 pub struct Resolver {
+    pub source_map: lency_syntax::source_map::SourceMap,
     pub(crate) scopes: ScopeStack,
     pub(crate) errors: Vec<SemanticError>,
     /// 已访问的模块路径（防止循环导入）
@@ -50,6 +51,7 @@ impl Resolver {
         builtins::register_builtins(&mut scopes);
 
         Self {
+            source_map: lency_syntax::source_map::SourceMap::default(),
             scopes,
             errors: Vec::new(),
             visited_modules: std::collections::HashSet::new(),
@@ -79,6 +81,13 @@ impl Resolver {
 
     /// 解析整个程序
     pub fn resolve(&mut self, program: &mut Program) -> Result<(), Vec<SemanticError>> {
+        let extent = program
+            .decls
+            .iter()
+            .map(|decl| lency_syntax::source_map::decl_span(decl).end)
+            .max()
+            .unwrap_or(0);
+        self.source_map.reserve_main(extent);
         // Pass 1: 收集顶层声明
         let mut synthetics_to_add = Vec::new();
         for decl in &program.decls {

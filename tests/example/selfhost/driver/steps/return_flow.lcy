@@ -1,0 +1,54 @@
+// tests/example/selfhost/driver/steps/return_flow.lcy
+// Verify return coverage both through resolver and direct LIR emission.
+import std.core
+import std.str
+import lencyc.syntax.parser
+import lencyc.codegen.lir
+import tests.example.selfhost.driver.test_support
+
+bool expect_return_lowering_error(string source, string label) {
+    if !expect_shared_resolve_error(source, label) { return false }
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    if parser.has_error { return false }
+    var result = emit_lir_program(program.statements)
+    if !result.has_error || result.text != "" {
+        print("Return lowering negative test failed: " + label + "\n")
+        return false
+    }
+    return true
+}
+
+bool run_return_flow_tests() {
+    if !expect_return_lowering_error("int main() { var n = 1 }", "function missing return") { return false }
+    if !expect_return_lowering_error("int main() { if true { return 1 } }", "one branch return") { return false }
+    if !expect_return_lowering_error("int main() { while true { return 1 } }", "loop is not guaranteed return") { return false }
+    if !expect_return_lowering_error("int main() { return }", "void return in value function") { return false }
+    if !expect_return_lowering_error("void work() { return 1 }\nint main() { return 0 }", "value return in void function") { return false }
+    if !expect_return_lowering_error("struct Item { }\nimpl Item { int value() { if true { return 1 } } }\nreturn 0", "method missing return") { return false }
+    if !expect_return_lowering_error("struct Item { }\nimpl Item { int value() { return } }\nreturn 0", "void return in value method") { return false }
+    var source = "int main() { if true { { return 1 } } else { if false { return 2 } else { return 3 } } }"
+    if !expect_shared_resolve_success(source, "nested branches return") { return false }
+    var parser = make_parser(source)
+    var program = parser.parse_program()
+    var result = emit_lir_program(program.statements)
+    if result.has_error || contains(result.text, "if_end") || contains(result.text, "ret 0") || contains(result.text, "jmp") {
+        print("Fully returning branches emitted an unnecessary join/default return.\n")
+        return false
+    }
+    var dead_parser = make_parser("int main() { return 1\nprint(999) }")
+    var dead_program = dead_parser.parse_program()
+    var dead_result = emit_lir_program(dead_program.statements)
+    if dead_result.has_error || contains(dead_result.text, "999") {
+        print("Unreachable statement emitted after return.\n")
+        return false
+    }
+    var void_source = "void work() { if true { return } }\nstruct Item { }\nimpl Item { void work() { if true { return } } }\nint main() { return 0 }"
+    if !expect_shared_resolve_success(void_source, "void function and method implicit return") { return false }
+    var void_parser = make_parser(void_source)
+    var void_program = void_parser.parse_program()
+    var void_result = emit_lir_program(void_program.statements)
+    if void_result.has_error || !contains(void_result.text, "  ret\n}") { return false }
+    return true
+}
+

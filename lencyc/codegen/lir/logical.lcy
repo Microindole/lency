@@ -1,0 +1,38 @@
+// lencyc/codegen/lir/logical.lcy
+// 逻辑运算通过条件分支控制右操作数求值，合流后读取结果。
+
+import std.core
+import lencyc.syntax.ast
+import lencyc.codegen.lir
+
+impl LirBuilder {
+    string emit_expr_logical(Expr expr) {
+        if expr.children.len() != 2 {
+            this.error("logical expression requires two operands")
+            return "0"
+        }
+        var op = expr.operator.lexeme
+        if op != "&&" && op != "||" {
+            this.error("unsupported logical operator: " + op)
+            return "0"
+        }
+        var lhs = this.emit_expr(expr.children[0])
+        var result = "%$logic" + int_to_string(this.temp_counter)
+        this.temp_counter = this.temp_counter + 1
+        var rhs_label = this.new_label("logic_rhs")
+        var end_label = this.new_label("logic_end")
+        if op == "&&" {
+            this.emit_line("  var " + result + " = 0")
+            this.emit_line("  br " + lhs + ", " + rhs_label + ", " + end_label)
+        } else {
+            this.emit_line("  var " + result + " = 1")
+            this.emit_line("  br " + lhs + ", " + end_label + ", " + rhs_label)
+        }
+        this.emit_line(rhs_label + ":")
+        var rhs = this.emit_expr(expr.children[1])
+        this.emit_line("  store " + result + ", " + rhs)
+        this.emit_line("  jmp " + end_label)
+        this.emit_line(end_label + ":")
+        return result
+    }
+}

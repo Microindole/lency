@@ -97,6 +97,7 @@ fn gen_arg_at<'ctx>(
     };
 
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::Int {
         return Err(CodegenError::TypeMismatch);
     }
@@ -138,6 +139,7 @@ fn gen_int_to_string<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::Int {
         return Err(CodegenError::TypeMismatch);
     }
@@ -181,6 +183,7 @@ fn gen_float_to_string<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::Float {
         return Err(CodegenError::TypeMismatch);
     }
@@ -223,11 +226,12 @@ fn gen_parse_int<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }
 
-    // Allocate is_ok flag (we ignore it for now, assume success)
+    // FFI 状态必须检查，不能把转换失败返回的占位零当作成功值。
     let _i32_type = ctx.context.i32_type();
     let is_ok_ptr = ctx
         .builder
@@ -245,6 +249,12 @@ fn gen_parse_int<'ctx>(
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     let result = call.try_as_basic_value().left().unwrap();
+    check_parse_status(
+        ctx,
+        is_ok_ptr,
+        "Invalid integer conversion",
+        args[0].span.start,
+    )?;
 
     Ok(CodegenValue {
         value: result,
@@ -276,11 +286,12 @@ fn gen_parse_float<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }
 
-    // Allocate is_ok flag (we ignore it for now, assume success)
+    // 浮点转换遵循与整数转换相同的失败契约。
     let _i32_type = ctx.context.i32_type();
     let is_ok_ptr = ctx
         .builder
@@ -298,11 +309,52 @@ fn gen_parse_float<'ctx>(
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     let result = call.try_as_basic_value().left().unwrap();
+    check_parse_status(
+        ctx,
+        is_ok_ptr,
+        "Invalid float conversion",
+        args[0].span.start,
+    )?;
 
     Ok(CodegenValue {
         value: result,
         ty: Type::Float,
     })
+}
+
+/// 检查显式数值解析的 FFI 状态，失败时进入统一 panic 出口。
+fn check_parse_status<'ctx>(
+    ctx: &CodegenContext<'ctx>,
+    status: inkwell::values::PointerValue<'ctx>,
+    message: &str,
+    offset: usize,
+) -> CodegenResult<()> {
+    let flag = ctx
+        .builder
+        .build_load(ctx.context.i32_type(), status, "parse_status")
+        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?
+        .into_int_value();
+    let failed = ctx
+        .builder
+        .build_int_compare(
+            inkwell::IntPredicate::EQ,
+            flag,
+            ctx.context.i32_type().const_zero(),
+            "parse_failed",
+        )
+        .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
+    let panic = ctx.panic_func.ok_or_else(|| {
+        CodegenError::LLVMBuildError("panic runtime is not initialized".to_string())
+    })?;
+    crate::runtime::gen_panic_if(
+        ctx.context,
+        &ctx.builder,
+        panic,
+        failed,
+        message,
+        ctx.get_line(offset),
+    );
+    Ok(())
 }
 
 /// Generate code for file_exists(string) -> bool
@@ -329,6 +381,7 @@ fn gen_file_exists<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }
@@ -382,6 +435,7 @@ fn gen_is_dir<'ctx>(
 
     // Evaluate argument
     let arg_val = generate_expr(ctx, locals, &args[0])?;
+    let arg_val = crate::nullable::unwrap(ctx, arg_val, ctx.get_line(args[0].span.start))?;
     if arg_val.ty != Type::String {
         return Err(CodegenError::TypeMismatch);
     }

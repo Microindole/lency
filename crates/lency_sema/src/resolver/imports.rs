@@ -47,7 +47,11 @@ pub fn resolve_import(
 
     // 5. Parse
     match lency_syntax::parser::parse(&source) {
-        Ok(prog) => {
+        Ok(mut prog) => {
+            let offset = resolver
+                .source_map
+                .add(&path_buf.to_string_lossy(), &source);
+            lency_syntax::source_map::shift_program(&mut prog, offset);
             // 6. 递归收集 (Pass 1)
             let mut all_synthetics = Vec::new();
             for decl in &prog.decls {
@@ -113,7 +117,11 @@ pub fn resolve_import_as(
     };
 
     match lency_syntax::parser::parse(&source) {
-        Ok(prog) => {
+        Ok(mut prog) => {
+            let offset = resolver
+                .source_map
+                .add(&path_buf.to_string_lossy(), &source);
+            lency_syntax::source_map::shift_program(&mut prog, offset);
             // Synthesize Wrapper
             let mut synthetic_decls = Vec::new();
             let struct_name = format!("{}__Module", alias);

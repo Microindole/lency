@@ -14,22 +14,22 @@ impl LencyEnumValue {
 
 #[no_mangle]
 pub extern "C" fn lency_enum_new0(tag: i64) -> i64 {
-    Box::into_raw(LencyEnumValue::new(tag, vec![])) as i64
+    crate::memory::own_box(LencyEnumValue::new(tag, vec![])) as i64
 }
 
 #[no_mangle]
 pub extern "C" fn lency_enum_new1(tag: i64, payload0: i64) -> i64 {
-    Box::into_raw(LencyEnumValue::new(tag, vec![payload0])) as i64
+    crate::memory::own_box(LencyEnumValue::new(tag, vec![payload0])) as i64
 }
 
 #[no_mangle]
 pub extern "C" fn lency_enum_new2(tag: i64, payload0: i64, payload1: i64) -> i64 {
-    Box::into_raw(LencyEnumValue::new(tag, vec![payload0, payload1])) as i64
+    crate::memory::own_box(LencyEnumValue::new(tag, vec![payload0, payload1])) as i64
 }
 
 #[no_mangle]
 pub extern "C" fn lency_enum_new3(tag: i64, payload0: i64, payload1: i64, payload2: i64) -> i64 {
-    Box::into_raw(LencyEnumValue::new(tag, vec![payload0, payload1, payload2])) as i64
+    crate::memory::own_box(LencyEnumValue::new(tag, vec![payload0, payload1, payload2])) as i64
 }
 
 #[no_mangle]
@@ -40,7 +40,7 @@ pub extern "C" fn lency_enum_new4(
     payload2: i64,
     payload3: i64,
 ) -> i64 {
-    Box::into_raw(LencyEnumValue::new(
+    crate::memory::own_box(LencyEnumValue::new(
         tag,
         vec![payload0, payload1, payload2, payload3],
     )) as i64

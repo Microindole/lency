@@ -26,8 +26,11 @@ Linux/macOS：
 | `cargo run -p xtask -- bootstrap-check` | stage1/stage2/stage3 自举收敛 |
 | `cargo run -p xtask -- check-rust` | Rust 母体格式、Clippy、测试和 `.lcy` 集成用例 |
 | `cargo run -p xtask -- auto-check` | 按 Git 未提交文件选择检查范围 |
+| cargo run -p xtask -- stage0-check | Rust 母体普通与优化构建的可执行契约、错误诊断与手动分配余额 |
 
 首次搭建环境应显式运行 `check-lency`；修改 Rust 母体时再运行 `check-rust`。干净工作区的 `auto-check` 会回退到 `check-lency`。
+
+Rust 检查包含 stage0-check。它会构建 release 母体和 runtime，再将验收源码分别编译为普通及优化程序，核对退出码、预期输出和源码调用栈。语义负例必须包含对应诊断，不能把后端崩溃视为拒绝成功。生成程序、输入与日志位于 target/stage0_check，子进程超时直接失败。
 
 ## 普通程序使用 Rust 母体
 

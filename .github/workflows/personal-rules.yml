@@ -1,0 +1,31 @@
+name: Personal Rules Check
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: personal-rules-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-personal-rules:
+    name: Reject Root Personal Rules
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check tracked root personal rules
+        shell: bash
+        run: |
+          files=$(git ls-files -- ':(top,literal)AGENTS.md' ':(top,literal)CLAUDE.md')
+          if [ -n "$files" ]; then
+            echo "::error::Root AGENTS.md and CLAUDE.md must remain local and untracked."
+            printf '%s\n' "$files"
+            exit 1
+          fi

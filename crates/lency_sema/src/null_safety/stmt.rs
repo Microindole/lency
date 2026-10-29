@@ -130,6 +130,7 @@ fn check_assignment(
     value: &mut Expr,
     span: &std::ops::Range<usize>,
 ) {
+    checker.check_expr(target);
     // 获取目标类型
     let mut inferer = TypeInferer::with_scope(checker.scopes, checker.current_scope);
     if let Ok(target_ty) = inferer.infer(target) {

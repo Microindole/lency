@@ -63,7 +63,7 @@ pub unsafe extern "C" fn lency_file_open(path: *const c_char, mode: i64) -> *mut
     };
 
     match file_result {
-        Ok(f) => Box::into_raw(LencyFile::new(f)),
+        Ok(f) => crate::memory::own_box(LencyFile::new(f)),
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -86,7 +86,7 @@ pub unsafe extern "C" fn lency_file_read_string(path: *const c_char) -> *mut c_c
         Err(_) => return std::ptr::null_mut(),
     };
     match CString::new(bytes) {
-        Ok(content) => content.into_raw(),
+        Ok(content) => crate::memory::own_string(content),
         Err(_) => std::ptr::null_mut(),
     }
 }
@@ -117,11 +117,7 @@ pub unsafe extern "C" fn lency_file_write_string(path: *const c_char, data: *con
 /// `handle` must be a valid pointer returned by `lency_file_open` or NULL.
 #[no_mangle]
 pub unsafe extern "C" fn lency_file_close(handle: *mut LencyFile) {
-    if !handle.is_null() {
-        unsafe {
-            let _ = Box::from_raw(handle);
-        }
-    }
+    unsafe { crate::memory::lency_free(handle.cast()) };
 }
 
 /// 读取文件全部内容到缓冲区
@@ -288,7 +284,7 @@ mod tests {
             unsafe { CStr::from_ptr(result) }.to_bytes(),
             content.as_bytes()
         );
-        unsafe { drop(CString::from_raw(result)) };
+        unsafe { crate::lency_free_string(result) };
 
         let _ = std::fs::remove_file(test_file);
     }

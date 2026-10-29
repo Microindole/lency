@@ -1,7 +1,7 @@
 use super::TypeChecker;
 use crate::error::SemanticError;
 use crate::type_infer::is_compatible;
-use lency_syntax::ast::{Expr, Stmt, Type};
+use lency_syntax::ast::{Expr, ExprKind, Stmt, Type};
 
 pub mod control_flow;
 use control_flow::{check_for, check_for_in, check_if, check_while};
@@ -144,6 +144,22 @@ fn check_var_decl(
         }
     };
 
+    if value_ty == Type::Void || declared_ty == Some(&Type::Void) {
+        checker.errors.push(SemanticError::TypeMismatch {
+            expected: "value type".into(),
+            found: "void".into(),
+            span: span.clone(),
+        });
+        return;
+    }
+    if declared_ty.is_none() && needs_annotation(&value_ty) {
+        checker.errors.push(SemanticError::CannotInferType {
+            name: name.into(),
+            span: span.clone(),
+        });
+        return;
+    }
+
     // 如果有显式类型声明，检查兼容性
     if let Some(expected) = declared_ty {
         if !is_compatible(expected, &value_ty) {
@@ -173,12 +189,27 @@ fn check_var_decl(
     }
 }
 
+fn needs_annotation(ty: &Type) -> bool {
+    match ty {
+        Type::Error | Type::Void => true,
+        Type::Vec(inner) | Type::Nullable(inner) => needs_annotation(inner),
+        Type::Array { element_type, .. } => needs_annotation(element_type),
+        _ => false,
+    }
+}
+
 fn check_assignment(
     checker: &mut TypeChecker,
     target: &mut Expr,
     value: &mut Expr,
     span: &std::ops::Range<usize>,
 ) {
+    if !is_assignment_target(checker, target) {
+        checker.errors.push(SemanticError::InvalidAssignmentTarget {
+            span: target.span.clone(),
+        });
+        return;
+    }
     let target_ty = match checker.infer_type(target) {
         Ok(ty) => ty,
         Err(e) => {
@@ -201,6 +232,39 @@ fn check_assignment(
             found: value_ty.to_string(),
             span: span.clone(),
         });
+    }
+}
+
+fn is_assignment_target(checker: &mut TypeChecker, target: &mut Expr) -> bool {
+    use crate::symbol::Symbol;
+    match &mut target.kind {
+        ExprKind::Variable(name) => match checker.scopes.lookup(name) {
+            Some(Symbol::Variable(_) | Symbol::Parameter(_)) => true,
+            // 未定义名称和隐式接收者字段由普通推导提供具体诊断。
+            None => true,
+            _ => false,
+        },
+        ExprKind::Get { object, .. } => match checker.infer_type(object) {
+            Ok(Type::Struct(name) | Type::Generic(name, _)) => {
+                matches!(checker.scopes.lookup(&name), Some(Symbol::Struct(_)))
+            }
+            Ok(Type::Nullable(_)) => true,
+            Err(error) => {
+                checker.errors.push(error);
+                false
+            }
+            _ => false,
+        },
+        ExprKind::Index { array, .. } => match checker.infer_type(array) {
+            Ok(Type::Array { .. }) => is_assignment_target(checker, array),
+            Ok(Type::Vec(_) | Type::Nullable(_)) => true,
+            Err(error) => {
+                checker.errors.push(error);
+                false
+            }
+            _ => false,
+        },
+        _ => false,
     }
 }
 

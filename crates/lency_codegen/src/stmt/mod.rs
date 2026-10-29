@@ -44,6 +44,14 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
 
     /// 生成语句代码
     pub fn generate(&mut self, stmt: &Stmt) -> CodegenResult<()> {
+        if self
+            .ctx
+            .builder
+            .get_insert_block()
+            .is_some_and(|bb| self.block_ends_with_terminator(bb))
+        {
+            return Ok(());
+        }
         match stmt {
             Stmt::VarDecl {
                 name, ty, value, ..
@@ -65,13 +73,15 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
                 update,
                 body,
                 ..
-            } => control_flow::gen_for(
-                self,
-                init.as_deref(),
-                condition.as_ref(),
-                update.as_deref(),
-                body,
-            ),
+            } => self.with_local_scope(|gen| {
+                control_flow::gen_for(
+                    gen,
+                    init.as_deref(),
+                    condition.as_ref(),
+                    update.as_deref(),
+                    body,
+                )
+            }),
             Stmt::Break { .. } => control_flow::gen_break(self),
             Stmt::Continue { .. } => control_flow::gen_continue(self),
             Stmt::Expression(expr) => {
@@ -84,17 +94,28 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
                 iterable,
                 body,
                 ..
-            } => control_flow::gen_for_in(self, iterator, iterable, body),
+            } => {
+                self.with_local_scope(|gen| control_flow::gen_for_in(gen, iterator, iterable, body))
+            }
             Stmt::Block(stmts) => self.generate_block(stmts),
         }
     }
 
     /// 生成代码块
     pub fn generate_block(&mut self, stmts: &[Stmt]) -> CodegenResult<()> {
-        for stmt in stmts {
-            self.generate(stmt)?;
-        }
-        Ok(())
+        self.with_local_scope(|gen| stmts.iter().try_for_each(|stmt| gen.generate(stmt)))
+    }
+
+    fn with_local_scope(
+        &mut self,
+        body: impl FnOnce(&mut Self) -> CodegenResult<()>,
+    ) -> CodegenResult<()> {
+        let outer_locals = self.locals.clone();
+        let outer_refinements = self.ctx.read_refinements.borrow().clone();
+        let result = body(self);
+        *self.ctx.read_refinements.borrow_mut() = outer_refinements;
+        *self.locals = outer_locals;
+        result
     }
 
     /// 生成变量声明
@@ -106,7 +127,6 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
     ) -> CodegenResult<()> {
         let expr_gen = ExprGenerator::new(self.ctx, self.locals);
         let val_wrapper = expr_gen.generate(value)?;
-        let val = val_wrapper.value;
 
         // 若有显式类型声明，优先使用（这里假定类型检查已通过）
         // 若无，使用推导类型
@@ -115,6 +135,13 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
         } else {
             val_wrapper.ty.clone()
         };
+        let val = crate::nullable::coerce(
+            self.ctx,
+            val_wrapper,
+            &var_ty,
+            self.ctx.get_line(value.span.start),
+        )?
+        .value;
 
         // 分配栈空间
         let alloca = self
@@ -137,21 +164,8 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
 
     /// 生成赋值语句
     fn gen_assignment(&mut self, target: &Expr, value: &Expr) -> CodegenResult<()> {
-        // 生成目标地址（LValue）
         let expr_gen = ExprGenerator::new(self.ctx, self.locals);
-        let (ptr, _ty) = expr_gen.generate_lvalue_addr(target)?;
-
-        // 生成值
-        let val_wrapper = expr_gen.generate(value)?;
-        let val = val_wrapper.value;
-
-        // 存储
-        self.ctx
-            .builder
-            .build_store(ptr, val)
-            .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
-
-        Ok(())
+        expr_gen.generate_assignment(target, value)
     }
 
     /// 生成 return 语句
@@ -159,12 +173,25 @@ impl<'ctx, 'a> StmtGenerator<'ctx, 'a> {
         if let Some(expr) = value {
             let expr_gen = ExprGenerator::new(self.ctx, self.locals);
             let val_wrapper = expr_gen.generate(expr)?;
+            let expected = &self
+                .locals
+                .get("__return_type")
+                .ok_or(CodegenError::TypeMismatch)?
+                .1;
+            let val_wrapper = crate::nullable::coerce(
+                self.ctx,
+                val_wrapper,
+                expected,
+                self.ctx.get_line(expr.span.start),
+            )?;
+            crate::trace::leave(self.ctx)?;
 
             self.ctx
                 .builder
                 .build_return(Some(&val_wrapper.value))
                 .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
         } else {
+            crate::trace::leave(self.ctx)?;
             self.ctx
                 .builder
                 .build_return(None)

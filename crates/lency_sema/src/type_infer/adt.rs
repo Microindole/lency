@@ -46,6 +46,28 @@ impl<'a> TypeInferer<'a> {
                     }
 
                     // 检查所有字段
+                    let mut provided = std::collections::HashSet::new();
+                    for (name, value) in fields.iter() {
+                        if !provided.insert(name.as_str()) {
+                            return Err(SemanticError::DuplicateField {
+                                class: type_name.clone(),
+                                field: name.clone(),
+                                span: value.span.clone(),
+                            });
+                        }
+                    }
+                    let mut missing: Vec<_> = struct_fields
+                        .keys()
+                        .filter(|name| !provided.contains(name.as_str()))
+                        .collect();
+                    missing.sort();
+                    if let Some(name) = missing.first() {
+                        return Err(SemanticError::MissingField {
+                            class: type_name.clone(),
+                            field: (*name).clone(),
+                            span: expr.span.clone(),
+                        });
+                    }
                     for (field_name, field_expr) in fields {
                         // 验证字段存在
                         if let Some(field_info) = struct_fields.get(field_name) {

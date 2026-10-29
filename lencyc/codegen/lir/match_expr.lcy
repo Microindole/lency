@@ -114,7 +114,14 @@ impl LirBuilder {
             return
         }
         if this.is_binder_pattern(expected_ty_name, pattern) {
-            this.emit_line("  var %" + pattern.tag.lexeme + " = " + value)
+            var binding = this.declare_local(pattern.tag.lexeme)
+            this.emit_line("  var " + binding + " = " + value)
+            this.track_typed_variable(pattern.tag.lexeme, expected_ty_name)
+            if this.is_enum_type_name(expected_ty_name) {
+                this.track_enum_variable(pattern.tag.lexeme, expected_ty_name)
+            } else {
+                this.clear_enum_variable(pattern.tag.lexeme)
+            }
             return
         }
         if expected_ty_name != "" && this.is_enum_variant_pattern(expected_ty_name, pattern) {
@@ -183,6 +190,7 @@ impl LirBuilder {
                 this.emit_line("  br " + cond + ", " + arm_value_label + ", " + next_label)
             }
             this.emit_line(arm_value_label + ":")
+            var scope = this.local_scope()
             if target_enum_name != "" {
                 this.emit_match_pattern_bindings(target, pattern, target_enum_name)
             }
@@ -194,6 +202,7 @@ impl LirBuilder {
             }
             var arm_val = this.emit_expr(expr.children[i + 1])
             this.emit_line("  store " + result_var + ", " + arm_val)
+            this.restore_local_scope(scope)
             this.emit_line("  jmp " + end_label)
             this.emit_line(next_label + ":")
             if i + 1 >= expr.arm_patterns.len() {

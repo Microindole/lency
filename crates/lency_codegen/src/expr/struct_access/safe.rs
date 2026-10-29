@@ -115,6 +115,11 @@ pub fn gen_safe_member_access<'ctx>(
     };
 
     let valid_val = access_res?;
+    let result_ty = match &valid_val.ty {
+        Type::Nullable(_) => valid_val.ty.clone(),
+        ty => Type::Nullable(Box::new(ty.clone())),
+    };
+    let valid_val = crate::nullable::coerce(ctx, valid_val, &result_ty, line)?;
     let valid_bb = ctx.builder.get_insert_block().unwrap();
     ctx.builder
         .build_unconditional_branch(merge_bb)
@@ -122,11 +127,8 @@ pub fn gen_safe_member_access<'ctx>(
 
     // Null Block
     ctx.builder.position_at_end(safe_null_bb);
-    // Return null of correct type.
-    // valid_val.ty is T. We need Nullable(T) compatible.
-    // LLVM null pointer matches.
-    let null_val = valid_val.value.get_type().const_zero(); // Correct logic for ptrs/ints(0).
-                                                            // For Int? we might need special handling if boxed. Assuming pointers.
+    // 非空标量已转换为值单元指针；此处统一使用空指针而不是标量零。
+    let null_val = valid_val.value.get_type().const_zero();
     let null_end_bb = ctx.builder.get_insert_block().unwrap();
     ctx.builder
         .build_unconditional_branch(merge_bb)
@@ -139,11 +141,6 @@ pub fn gen_safe_member_access<'ctx>(
         .build_phi(valid_val.value.get_type(), "safe_phi")
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
     phi.add_incoming(&[(&valid_val.value, valid_bb), (&null_val, null_end_bb)]);
-
-    let result_ty = match valid_val.ty {
-        Type::Nullable(_) => valid_val.ty,
-        t => Type::Nullable(Box::new(t)),
-    };
 
     Ok(CodegenValue {
         value: phi.as_basic_value(),

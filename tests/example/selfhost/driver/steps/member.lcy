@@ -1,0 +1,38 @@
+// tests/example/selfhost/driver/steps/member.lcy
+// Receiver/signature regression cases for selfhost member access.
+import std.core
+import tests.example.selfhost.driver.test_support
+
+bool run_member_type_tests() {
+    var prefix = "struct Boxed { int value }\nimpl Boxed { int add(int n) { return this.value + n } }\nvar b = Boxed { value: 2 }\n"
+    if !expect_shared_resolve_success(prefix + "int n = b.add(3)\nreturn n", "method receiver and result type") { return false }
+    if !expect_shared_resolve_error(prefix + "b.add()\nreturn 0", "method missing argument") { return false }
+    if !expect_shared_resolve_error(prefix + "b.add(1, 2)\nreturn 0", "method extra argument") { return false }
+    if !expect_shared_resolve_error(prefix + "b.add(true)\nreturn 0", "method argument type") { return false }
+    if !expect_shared_resolve_error(prefix + "bool n = b.add(3)\nreturn 0", "method result type") { return false }
+    if !expect_shared_resolve_error(prefix + "b.missing()\nreturn 0", "unknown method") { return false }
+    if !expect_shared_resolve_error(prefix + "var n = b.missing\nreturn 0", "unknown field") { return false }
+    if !expect_shared_resolve_error("var n = 1\nvar x = n.missing\nreturn 0", "primitive unknown field") { return false }
+    if !expect_shared_resolve_error(prefix + "struct Other { }\nvar o = Other { }\no.add(1)\nreturn 0", "method belongs to receiver") { return false }
+    if !expect_shared_resolve_error("struct Boxed { int value }\nimpl Boxed { int read() { return this.missing } }\nreturn 0", "typed this field") { return false }
+    var same_name = "struct A { int x }\nstruct B { int x }\nimpl A { int read(int n) { return this.x + n } }\nimpl B { bool read(bool n) { return n } }\nvar a = A { x: 1 }\nvar b = B { x: 2 }\nint x = a.read(2)\nbool y = b.read(true)\nreturn x"
+    if !expect_shared_resolve_success(same_name, "same method name on distinct receivers") { return false }
+    var vectors = "Vec<int> ns = vec[1, 2]\n"
+    var imported = "import tests.example.modules.member_signatures\nvar counter = ImportedCounter { value: 1 }\nvar flag = ImportedFlag { value: true }\n"
+    if !expect_shared_resolve_success(imported + "int n = counter.read(2)\nbool b = flag.read(true)\nreturn n", "imported receiver signatures") { return false }
+    if !expect_shared_resolve_error(imported + "counter.read(true)\nreturn 0", "imported method argument type") { return false }
+    if !expect_shared_resolve_error(imported + "read(1)\nreturn 0", "method is not a global function") { return false }
+    if !expect_shared_resolve_success(vectors + "ns.push(3)\nns.set(0, 4)\nint n = ns.get(0) + ns.pop() + ns.len() + ns[0]\nreturn n", "Vec method signatures") { return false }
+    if !expect_shared_resolve_error(vectors + "ns.push(true)\nreturn 0", "Vec element argument") { return false }
+    if !expect_shared_resolve_error(vectors + "ns.get(true)\nreturn 0", "Vec index argument") { return false }
+    if !expect_shared_resolve_error(vectors + "ns.len(1)\nreturn 0", "Vec len arity") { return false }
+    if !expect_shared_resolve_error(vectors + "bool x = ns[0]\nreturn 0", "Vec index result") { return false }
+    if !expect_shared_resolve_error(vectors + "ns.missing()\nreturn 0", "unknown Vec method") { return false }
+    if !expect_shared_resolve_error("Vec<int> ns = vec[]\nns.set(0, true)\nreturn 0", "Vec set element type") { return false }
+    if !expect_shared_resolve_error("var ns = vec[]\nns.push(true)\nreturn 0", "untyped empty Vec method") { return false }
+    if !expect_shared_resolve_error("var s = \"abc\"\ns.substr(true, 1)\nreturn 0", "string method argument") { return false }
+    if !expect_shared_resolve_error("var s = \"abc\"\ns.missing()\nreturn 0", "unknown string method") { return false }
+    if !expect_shared_resolve_error("var s = \"abc\"\ns[true]\nreturn 0", "string index argument") { return false }
+    if !expect_shared_resolve_success("import std.str\nvar s = \"abc\"\nbool yes = s.contains(\"a\")\nVec<string> words = s.split(\"b\")\nstring word = words[0]\nreturn s.len()", "string extension signature and nested result") { return false }
+    return true
+}

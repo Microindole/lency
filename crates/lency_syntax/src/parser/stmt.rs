@@ -3,7 +3,7 @@
 //! 语句解析：变量声明、赋值、return、if、while、block等
 
 use super::expr::expr_parser;
-use super::helpers::{ident_parser, type_parser};
+use super::helpers::{ident_parser, initializer_parser, typed_name_parser};
 use crate::ast::*;
 use crate::lexer::Token;
 use chumsky::prelude::*;
@@ -13,7 +13,7 @@ pub type ParserError = Simple<Token>;
 /// 解析语句 (公共接口)
 pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParserError> + Clone {
     let expr = expr_parser();
-    let type_p = type_parser();
+    let typed_name = typed_name_parser();
     let ident = ident_parser();
 
     recursive(|stmt| {
@@ -37,11 +37,10 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParserError> + Clone {
             });
 
         // 显式变量声明: int x = 1
-        let typed_var_decl = type_p
+        let typed_var_decl = typed_name
             .clone()
-            .then(ident.clone())
             .then_ignore(just(Token::Eq))
-            .then(expr.clone())
+            .then(initializer_parser(expr.clone()))
             .then_ignore(just(Token::Semicolon).or_not())
             .map_with_span(|((ty, name), value), span| Stmt::VarDecl {
                 span,
@@ -104,83 +103,82 @@ pub fn stmt_parser() -> impl Parser<Token, Stmt, Error = ParserError> + Clone {
                 body,
             });
 
-        // For 循环: 支持 Classic For 和 For-In
-        let for_stmt = just(Token::For).ignore_then(
-            // 1. Try For-In first: for x in arr { ... }
-            ident
-                .clone()
-                .then_ignore(just(Token::In))
-                .then(expr.clone())
-                .then(raw_block.clone())
-                .map_with_span(|((iterator, iterable), body), span| Stmt::ForIn {
-                    span,
-                    iterator,
-                    iterable,
-                    body,
-                })
-                // 2. Fallback to Classic For: for var i = 0; ...
-                .or(just(Token::Var)
-                    .ignore_then(ident.clone())
-                    .then_ignore(just(Token::Eq))
-                    .then(expr.clone())
-                    .then_ignore(just(Token::Semicolon))
-                    .map_with_span(|(name, value), span| {
-                        Some(Box::new(Stmt::VarDecl {
-                            span,
-                            name,
-                            ty: None,
-                            value,
-                        }))
-                    })
-                    .or(type_p
-                        .clone()
-                        .then(ident.clone())
-                        .then_ignore(just(Token::Eq))
-                        .then(expr.clone())
-                        .then_ignore(just(Token::Semicolon))
-                        .map_with_span(|((ty, name), value), span| {
-                            Some(Box::new(Stmt::VarDecl {
-                                span,
-                                name,
-                                ty: Some(ty),
-                                value,
-                            }))
-                        }))
-                    .or(just(Token::Semicolon).to(None))
-                    .then(
-                        // Condition
-                        expr.clone().then_ignore(just(Token::Semicolon)).or_not(),
-                    )
-                    .then(
-                        // update
-                        ident
-                            .clone()
-                            .then_ignore(just(Token::Eq))
-                            .then(expr.clone())
-                            .map_with_span(|(name, value), span| {
-                                let target_span = span.clone();
-                                Stmt::Assignment {
-                                    span,
-                                    target: Expr {
-                                        kind: ExprKind::Variable(name),
-                                        span: target_span,
-                                    },
-                                    value,
-                                }
-                            })
-                            .map(|s| Some(Box::new(s)))
-                            .or_not()
-                            .map(|opt| opt.flatten()),
-                    )
-                    .then(raw_block.clone())
-                    .map_with_span(|(((init, condition), update), body), span| Stmt::For {
-                        span,
-                        init,
-                        condition,
-                        update,
-                        body,
-                    })),
-        );
+        let assignment = ident
+            .clone()
+            .then_ignore(just(Token::Eq))
+            .then(expr.clone())
+            .map_with_span(|(name, value), span| Stmt::Assignment {
+                target: Expr {
+                    kind: ExprKind::Variable(name),
+                    span: span.clone(),
+                },
+                span,
+                value,
+            });
+        let inferred_init = just(Token::Var)
+            .ignore_then(ident.clone())
+            .then_ignore(just(Token::Eq))
+            .then(expr.clone())
+            .map_with_span(|(name, value), span| Stmt::VarDecl {
+                span,
+                name,
+                ty: None,
+                value,
+            });
+        let typed_init = typed_name
+            .clone()
+            .then_ignore(just(Token::Eq))
+            .then(initializer_parser(expr.clone()))
+            .map_with_span(|((ty, name), value), span| Stmt::VarDecl {
+                span,
+                name,
+                ty: Some(ty),
+                value,
+            });
+        // 空段仍以分隔符标识；完整三段可省略分号。
+        let classic_head = inferred_init
+            .or(typed_init)
+            .or(assignment.clone())
+            .map(|init| Some(Box::new(init)))
+            .then_ignore(just(Token::Semicolon).or_not())
+            .or(just(Token::Semicolon).to(None))
+            .then(
+                expr.clone()
+                    .map(Some)
+                    .then_ignore(just(Token::Semicolon).or_not())
+                    .or(just(Token::Semicolon).to(None)),
+            )
+            .then(assignment.map(Box::new).or_not())
+            .boxed();
+        let classic = classic_head
+            .clone()
+            .delimited_by(just(Token::LParen), just(Token::RParen))
+            .or(classic_head)
+            .then(raw_block.clone())
+            .map_with_span(|(((init, condition), update), body), span| Stmt::For {
+                span,
+                init,
+                condition,
+                update,
+                body,
+            });
+        let for_in_head = ident
+            .clone()
+            .then_ignore(just(Token::In))
+            .then(expr.clone())
+            .boxed();
+        let for_in = for_in_head
+            .clone()
+            .delimited_by(just(Token::LParen), just(Token::RParen))
+            .or(for_in_head)
+            .then(raw_block.clone())
+            .map_with_span(|((iterator, iterable), body), span| Stmt::ForIn {
+                span,
+                iterator,
+                iterable,
+                body,
+            });
+        let for_stmt = just(Token::For).ignore_then(for_in.or(classic));
 
         // Break
         let break_stmt = just(Token::Break)

@@ -1,0 +1,5 @@
+import tests.integration.module.trace_support
+
+int main() {
+    return trace_failure(2)
+}

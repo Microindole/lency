@@ -18,8 +18,10 @@ pub mod error;
 pub mod expr;
 pub mod function;
 pub mod module;
+mod nullable;
 pub mod runtime;
 pub mod stmt;
+mod trace;
 pub mod types;
 
 // 重新导出核心类型
@@ -58,6 +60,19 @@ pub fn compile_to_ir(
     ctx.verify()?;
 
     // 返回 IR 字符串
+    Ok(ctx.print_to_string())
+}
+
+pub fn compile_to_ir_with_sources(
+    program: &Program,
+    module_name: &str,
+    sources: &lency_syntax::source_map::SourceMap,
+) -> CodegenResult<String> {
+    let context = Context::create();
+    let mut ctx = CodegenContext::new(&context, module_name, None);
+    ctx.source_map = sources.clone();
+    ModuleGenerator::new(&mut ctx).generate(program)?;
+    ctx.verify()?;
     Ok(ctx.print_to_string())
 }
 

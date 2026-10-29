@@ -27,11 +27,7 @@ pub fn gen_match<'ctx>(
     // So subject_val.value SHOULD be a PointerValue to the struct/enum.
     // For primitive Int/Bool, it is an IntValue.
 
-    let subject_ptr = if subject_val.value.is_pointer_value()
-        && !matches!(subject_val.ty, Type::String | Type::Vec(_))
-    {
-        subject_val.value.into_pointer_value()
-    } else {
+    let subject_ptr = {
         // Primitive type (Int/Bool/Float) OR String/Vec (which are pointers but treated as values).
         // Create a temporary alloca to store it.
 
@@ -155,6 +151,15 @@ pub fn gen_match<'ctx>(
         }
 
         let body_val = generate_expr(ctx, &body_locals, &case.body)?;
+        if ctx
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_some()
+        {
+            continue;
+        }
 
         // Record result type from first arm
         if result_llvm_type.is_none() {
@@ -162,8 +167,14 @@ pub fn gen_match<'ctx>(
             result_llvm_type = Some(body_val.value.get_type());
         }
 
-        // Capture result
-        incoming_values.push((body_val.value, body_bb));
+        let body_val = crate::nullable::coerce(
+            ctx,
+            body_val,
+            &result_type,
+            ctx.get_line(case.body.span.start),
+        )?;
+        // 子表达式可能改变结束块，合流只记录真正到达该处的前驱。
+        incoming_values.push((body_val.value, ctx.builder.get_insert_block().unwrap()));
 
         // Jump to merge
         if ctx
@@ -188,19 +199,38 @@ pub fn gen_match<'ctx>(
 
     if let Some(def) = default {
         let def_val = generate_expr(ctx, locals, def)?;
-        if result_llvm_type.is_none() {
-            result_type = def_val.ty.clone();
-            result_llvm_type = Some(def_val.value.get_type());
+        if ctx
+            .builder
+            .get_insert_block()
+            .unwrap()
+            .get_terminator()
+            .is_none()
+        {
+            if result_llvm_type.is_none() {
+                result_type = def_val.ty.clone();
+                result_llvm_type = Some(def_val.value.get_type());
+            }
+            let def_val =
+                crate::nullable::coerce(ctx, def_val, &result_type, ctx.get_line(def.span.start))?;
+            incoming_values.push((def_val.value, ctx.builder.get_insert_block().unwrap()));
+            ctx.builder.build_unconditional_branch(merge_bb).unwrap();
         }
-        incoming_values.push((def_val.value, next_check_bb));
-        ctx.builder.build_unconditional_branch(merge_bb).unwrap();
     } else {
         // No default. If we reach here, it's a runtime mismatch error (or undefined).
         // Lency Sema should ensure exhaustiveness.
         // For safety, let's panic or unreachable.
         // If we want to be nice: panic("Pattern matching failed").
         // For now: unreachable.
-        ctx.builder.build_unreachable().unwrap();
+        let panic = ctx
+            .panic_func
+            .ok_or_else(|| CodegenError::LLVMBuildError("panic runtime missing".into()))?;
+        crate::runtime::gen_panic(
+            ctx.context,
+            &ctx.builder,
+            panic,
+            "Pattern matching failed",
+            ctx.get_line(value.span.start),
+        );
     }
 
     // -----------------------------------------------------
@@ -210,7 +240,11 @@ pub fn gen_match<'ctx>(
 
     if incoming_values.is_empty() {
         // Should not happen if cases > 0 or default exists
-        return Err(CodegenError::LLVMBuildError("Empty match".to_string()));
+        ctx.builder.build_unreachable().unwrap();
+        return Ok(CodegenValue {
+            value: ctx.context.i64_type().const_zero().into(),
+            ty: Type::Void,
+        });
     }
 
     if let Some(phi_ty) = result_llvm_type {

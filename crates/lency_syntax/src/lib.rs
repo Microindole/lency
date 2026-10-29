@@ -1,6 +1,7 @@
 pub mod ast;
 pub mod lexer;
 pub mod parser; // Now points to parser/mod.rs
+pub mod source_map;
 
 #[cfg(test)]
 mod tests {

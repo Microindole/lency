@@ -1,0 +1,21 @@
+struct Item {
+    int value
+}
+
+Item keep(Item item) {
+    return item
+}
+
+int main() {
+    Item item = Item { value: 1 }
+    Item? maybe = keep(item)
+    if maybe != null {
+        maybe.value = 7
+        if maybe.value != 7 { return 1 }
+    }
+    Item? absent = null
+    var found = absent ?? keep(item)
+    found.value = 9
+    if item.value != 9 { return 2 }
+    return (0 ?? 10)
+}

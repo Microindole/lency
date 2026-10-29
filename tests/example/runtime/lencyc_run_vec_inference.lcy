@@ -1,0 +1,20 @@
+// Vec element types inferred from expressions must survive LIR lowering.
+// @expect-exit: 0
+struct Entry {
+    int value
+}
+int main() {
+    var values = vec[1 + 2, -4, (5)]
+    values.push(6)
+    if values[0] != 3 || values.get(1) != -4 { return 1 }
+    var nested = vec[vec[1 + 2], vec[4]]
+    var first = nested[0]
+    first.push(5)
+    if first[0] != 3 || first[1] != 5 { return 2 }
+    var words = vec[int_to_string(12), "34"]
+    if words[0] != "12" || words[1] != "34" { return 3 }
+    var entries = vec[Entry { value: 7 }, Entry { value: 8 }]
+    var entry = entries[0]
+    return entry.value - 7
+}
+

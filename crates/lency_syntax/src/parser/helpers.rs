@@ -44,16 +44,26 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
                 }
             });
 
-        // Vec<Type>
-        let vec_type = select! { Token::Ident(name) if name == "Vec" => () }
+        // TODO: 自举源码完成迁移后移除大写兼容入口；公开类型名为 vec。
+        let vec_type = select! { Token::Ident(name) if name == "vec" || name == "Vec" => () }
             .ignore_then(just(Token::Lt))
             .ignore_then(ty.clone())
             .then_ignore(just(Token::Gt))
             .map(|inner| Type::Vec(Box::new(inner)));
 
-        // Type[N]
+        // TODO: 源码完成迁移后移除旧的类型后数组维度兼容入口。
         let array_size = just(Token::LBracket)
-            .ignore_then(select! { Token::Int(n) => n as usize })
+            .ignore_then(select! { Token::Int(n) => n })
+            .try_map(|n, span| {
+                if n > 0 && n <= u32::MAX as i64 {
+                    Ok(n as usize)
+                } else {
+                    Err(Simple::custom(
+                        span,
+                        "array length must be a positive 32-bit integer",
+                    ))
+                }
+            })
             .then_ignore(just(Token::RBracket));
 
         // 组合
@@ -101,10 +111,56 @@ pub fn type_parser() -> impl Parser<Token, Type, Error = ParserError> + Clone {
 
 /// 解析字段
 pub fn field_parser() -> impl Parser<Token, Field, Error = ParserError> + Clone {
-    type_parser()
-        .then(ident_parser())
+    typed_name_parser()
         .then_ignore(just(Token::Semicolon).or_not())
         .map(|(ty, name)| Field { name, ty })
+}
+
+/// C 风格声明项；数组维度属于名称后的声明部分。
+pub fn typed_name_parser() -> impl Parser<Token, (Type, String), Error = ParserError> + Clone {
+    type_parser()
+        .then(ident_parser())
+        .then(
+            select! { Token::Int(n) => n }
+                .try_map(|n, span| {
+                    if n > 0 && n <= u32::MAX as i64 {
+                        Ok(n as usize)
+                    } else {
+                        Err(Simple::custom(
+                            span,
+                            "array length must be a positive 32-bit integer",
+                        ))
+                    }
+                })
+                .delimited_by(just(Token::LBracket), just(Token::RBracket))
+                .repeated(),
+        )
+        .map(|((ty, name), sizes)| {
+            let ty = sizes
+                .into_iter()
+                .rev()
+                .fold(ty, |element_type, size| Type::Array {
+                    element_type: Box::new(element_type),
+                    size,
+                });
+            (ty, name)
+        })
+}
+
+/// 花括号初始化仅在声明初始值位置解析，不改变普通语句块的含义。
+pub fn initializer_parser(
+    expr: impl Parser<Token, crate::ast::Expr, Error = ParserError> + Clone + 'static,
+) -> impl Parser<Token, crate::ast::Expr, Error = ParserError> + Clone {
+    recursive(|init| {
+        init.separated_by(just(Token::Comma))
+            .allow_trailing()
+            .delimited_by(just(Token::LBrace), just(Token::RBrace))
+            .map_with_span(|values, span| crate::ast::Expr {
+                kind: crate::ast::ExprKind::Array(values),
+                span,
+            })
+            .or(expr.clone())
+    })
 }
 
 /// 解析泛型参数列表: <T, U> 或 <T: Bound, U: Bound>

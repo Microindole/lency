@@ -6,7 +6,7 @@
 use crate::error::SemanticError;
 use crate::scope::ScopeStack;
 use crate::type_infer::TypeInferer;
-use lency_syntax::ast::{Decl, Expr, Program, Stmt, Type};
+use lency_syntax::ast::{Decl, Expr, ExprKind, Program, Stmt, Type};
 
 pub mod decl;
 pub mod expr;
@@ -83,6 +83,12 @@ impl<'a> TypeChecker<'a> {
         for stmt in stmts {
             match stmt {
                 Stmt::Return { .. } => return true,
+                Stmt::Expression(Expr {
+                    kind: ExprKind::Call { callee, .. },
+                    ..
+                }) if matches!(&callee.kind, ExprKind::Variable(name) if name == "panic") => {
+                    return true
+                }
                 Stmt::If {
                     then_block,
                     else_block,

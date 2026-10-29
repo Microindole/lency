@@ -14,7 +14,10 @@ impl LirBuilder {
         this.enum_var_types = vec[]
         this.typed_var_names = vec[]
         this.typed_var_types = vec[]
-        this.current_function_returns = false
+        this.local_names = vec[]
+        this.local_values = vec[]
+        this.current_block_terminated = false
+        this.current_function_return_type_name = ""
         this.current_function_name = ""
     }
 
@@ -117,7 +120,7 @@ impl LirBuilder {
             }
             i = i + 1
         }
-        if !this.current_function_returns {
+        if !this.current_block_terminated {
             this.emit_line("  ret 0")
         }
         this.emit_line("}")
@@ -146,6 +149,7 @@ impl LirBuilder {
 
     void emit_method_decl(string owner_name, Decl decl) {
         this.reset_function_state()
+        this.current_function_return_type_name = decl.return_type.name
         this.current_function_name = owner_name + "__" + decl.name.lexeme
         var params = vec["this"]
         var param_types = vec[owner_name]
@@ -163,18 +167,13 @@ impl LirBuilder {
             i = i + 1
         }
         this.emit_stmt_list(decl.body)
-        if !this.current_function_returns {
-            if decl.return_type.name == "void" {
-                this.emit_line("  ret")
-            } else {
-                this.emit_line("  ret 0")
-            }
-        }
+        this.finish_declared_function()
         this.emit_line("}")
     }
 
     void emit_function_decl(Decl decl) {
         this.reset_function_state()
+        this.current_function_return_type_name = decl.return_type.name
         this.current_function_name = decl.name.lexeme
         this.emit_function_header(
             decl.name.lexeme,
@@ -188,15 +187,18 @@ impl LirBuilder {
             i = i + 1
         }
         this.emit_stmt_list(decl.body)
-        if !this.current_function_returns {
-            if decl.return_type.name == "void" {
+        this.finish_declared_function()
+        this.emit_line("}")
+    }
+
+    void finish_declared_function() {
+        if !this.current_block_terminated {
+            if this.current_function_return_type_name == "void" {
                 this.emit_line("  ret")
             } else {
-                // TODO: 统一补齐无显式 return 的控制流诊断；当前 codegen 仅保底补一个默认返回。
-                this.emit_line("  ret 0")
+                this.error("function body may exit without returning a value")
             }
         }
-        this.emit_line("}")
     }
 
     Vec<string> extract_type_names(Vec<TypeRef> type_refs) {

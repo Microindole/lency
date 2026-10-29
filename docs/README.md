@@ -1,33 +1,40 @@
 # Lency 文档
 
-Lency 是一门强调简洁、显式和静态类型的编译语言。仓库同时包含两套实现：
+Lency 是一门强调简洁、显式和静态类型的编译语言。设计方向以[设计原则](./design.md)为准，当前自举阶段和阻塞项见[自举状态](./development/status.md)。
 
-- `crates/`：端到端可用的 Rust 母体编译器，负责提供冻结的 stage0 和参考行为；冻结不表示继续扩展全部语言能力。
-- `lencyc/`：使用 Lency 编写的自举编译器，是当前开发主线。
+## 从这里开始
 
-当前目标不是继续扩展 Rust 母体，而是先让 Lency 自举编译器以最小语言子集稳定编译自身。实现状态与规划以[自举状态](./development/status.md)为准。
+普通程序示例使用 Rust 母体编译器。请按以下顺序阅读：
 
-## 文档导航
+1. [基础语法](./basics/syntax.md)：源码文件、入口、花括号块、分号和注释。
+2. [变量与类型](./basics/variables.md)：显式声明、静态推导、常量、可空值和集合。
+3. [表达式](./basics/expressions.md)：字面量、运算、调用、成员与索引。
+4. [函数](./basics/functions.md)：签名、返回路径、泛型、外部函数与业务错误结果。
+5. [控制流](./basics/control-flow.md)：条件、循环、跳转和匹配。
+6. [模块](./basics/modules.md)：源码导入与两套前端的差异。
+7. [内存管理](./basics/memory.md)：手动释放、归属、借用和共享引用边界。
 
-### 项目与开发
+示例会标明自举专用写法；不要将语法可解析等同于自举后端已可运行。实现与设计不一致时，应确认偏差来源，不能直接将偏差写成语言规则。
+
+## 类型与标准库
+
+- 类型：[基础类型](./types/primitives.md)、[结构体](./types/structs.md)、[枚举与匹配](./types/enums.md)、[可空类型](./types/null-safety.md)。
+- 标准库：[Vec](./stdlib/vec.md)、[字符串](./stdlib/string.md)、[文件 I/O](./stdlib/file-io.md)、[HashMap](./stdlib/hashmap.md)。
+
+## 项目与开发
 
 - [设计原则](./design.md)
-- [实现分层与成熟度](./development/implementations.md)
+- [实现分层](./development/implementations.md)
 - [自举路线](./development/bootstrap.md)
 - [当前状态](./development/status.md)
+- [Rust 母体固化基线](./development/stage0.md)
 - [贡献与维护规则](./development/contributing.md)
 - [工具与脚本](./tools/scripts.md)
 - [持续集成](./development/ci.md)
 
-### 语言
+Rust 母体位于 crates，提供普通程序编译入口和自举支撑，承担已确认语法要求的对齐和参考行为修复。Lency 自举编译器位于 lencyc，是当前开发主线。
 
-- 基础：[变量与类型](./basics/variables.md)、[函数](./basics/functions.md)、[控制流](./basics/control-flow.md)
-- 类型：[基础类型](./types/primitives.md)、[结构体](./types/structs.md)、[枚举与匹配](./types/enums.md)、[可空类型](./types/null-safety.md)
-- 标准库：[Vec](./stdlib/vec.md)、[字符串](./stdlib/string.md)、[文件 I/O](./stdlib/file-io.md)、[HashMap](./stdlib/hashmap.md)
-
-语言文档以 Rust 母体的已实现行为作为当前参考语义，同时会明确标注 Lency 自举链路尚未支持的部分。不能仅凭 Rust 母体能够编译某段程序，就认定自举编译器也已支持。
-
-在 selfhost 成为独立可用编译器之前，普通 Lency 程序默认使用 Rust 母体的 `lencyc`：
+普通程序的命令入口：
 
 ```powershell
 cargo run --bin lencyc -- check <input.lcy>
@@ -35,20 +42,16 @@ cargo run --bin lencyc -- run <input.lcy>
 cargo run --bin lencyc -- build <input.lcy> -o <name>
 ```
 
-`xtask selfhost-*` 是自举开发和验证入口，不是当前默认的用户编译器入口。
-
-## 最小验证
-
-环境需要 Rust、MSVC/系统链接器和 LLVM 15。配置方法见[工具与脚本](./tools/scripts.md)。
+开发检查入口：
 
 ```powershell
-cargo build --release -p lency_cli -p lency_runtime
-cargo run -p xtask -- check-lency
+cargo run -p xtask -- auto-check
+```
+
+阶段收敛检查：
+
+```powershell
 cargo run -p xtask -- bootstrap-check
 ```
 
-涉及 Rust 母体修改时再额外运行：
-
-```powershell
-cargo run -p xtask -- check-rust
-```
+环境需要 Rust、LLVM 15 和平台链接器，配置及自举开发命令见工具文档。阶段构建当前仍依赖 Rust LIR 后端与 runtime。

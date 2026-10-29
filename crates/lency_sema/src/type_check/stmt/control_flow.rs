@@ -47,7 +47,9 @@ pub fn check_if(
 
             if let Some(&child_id) = children.get(checker.next_child_index) {
                 if let Some(child_scope) = checker.scopes.get_scope_mut(child_id) {
-                    child_scope.add_refinement(name, inner_ty);
+                    if child_scope.lookup_local(&name).is_none() {
+                        child_scope.add_refinement(name, inner_ty);
+                    }
                 }
             }
         }

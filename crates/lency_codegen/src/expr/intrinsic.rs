@@ -49,6 +49,36 @@ fn gen_print_value_impl<'ctx>(
     };
 
     match ty {
+        Type::Nullable(_) => {
+            if crate::nullable::is_null_type(ty) {
+                return gen_print_str_literal(ctx, "null");
+            }
+            let optional = CodegenValue {
+                value,
+                ty: ty.clone(),
+            };
+            let present = crate::nullable::present(ctx, &optional)?;
+            let function = ctx
+                .builder
+                .get_insert_block()
+                .unwrap()
+                .get_parent()
+                .unwrap();
+            let some = ctx.context.append_basic_block(function, "print.some");
+            let none = ctx.context.append_basic_block(function, "print.none");
+            let merge = ctx.context.append_basic_block(function, "print.merge");
+            ctx.builder
+                .build_conditional_branch(present, some, none)
+                .unwrap();
+            ctx.builder.position_at_end(some);
+            let payload = crate::nullable::unwrap(ctx, optional, 0)?;
+            gen_print_value_impl(ctx, payload.value, &payload.ty)?;
+            ctx.builder.build_unconditional_branch(merge).unwrap();
+            ctx.builder.position_at_end(none);
+            gen_print_str_literal(ctx, "null")?;
+            ctx.builder.build_unconditional_branch(merge).unwrap();
+            ctx.builder.position_at_end(merge);
+        }
         Type::Int => {
             let printf_fn = get_printf();
             let format_str = ctx
@@ -279,23 +309,26 @@ pub fn gen_panic<'ctx>(
     ctx: &CodegenContext<'ctx>,
     locals: &HashMap<String, (inkwell::values::PointerValue<'ctx>, lency_syntax::ast::Type)>,
     arg: &Expr,
+    offset: usize,
 ) -> CodegenResult<CodegenValue<'ctx>> {
     let arg_val = generate_expr(ctx, locals, arg)?;
+    crate::trace::location(ctx, offset)?;
+    let line = ctx.get_line(offset);
     let msg_ptr = arg_val.value.into_pointer_value();
 
-    let i8_ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
-
-    // 声明 C runtime 函数: void lency_panic(char* message)
-    let panic_fn = ctx.module.get_function("lency_panic").unwrap_or_else(|| {
-        let fn_type = ctx
-            .context
-            .void_type()
-            .fn_type(&[i8_ptr_type.into()], false);
-        ctx.module.add_function("lency_panic", fn_type, None)
-    });
+    let panic_fn = ctx.panic_func.ok_or_else(|| {
+        CodegenError::LLVMBuildError("panic runtime is not initialized".to_string())
+    })?;
 
     ctx.builder
-        .build_call(panic_fn, &[msg_ptr.into()], "panic_call")
+        .build_call(
+            panic_fn,
+            &[
+                msg_ptr.into(),
+                ctx.context.i32_type().const_int(line as u64, false).into(),
+            ],
+            "",
+        )
         .map_err(|e| CodegenError::LLVMBuildError(e.to_string()))?;
 
     // panic 永远不返回，添加 unreachable 指令

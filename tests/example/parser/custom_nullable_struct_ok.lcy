@@ -9,6 +9,6 @@ Boxed? keep(Boxed? x) {
     return x
 }
 
-var x = null
+Boxed? x = null
 var y = keep(x)
 return 0

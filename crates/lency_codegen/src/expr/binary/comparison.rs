@@ -88,7 +88,7 @@ pub fn gen_neq<'ctx>(
             .map_err(|e| CodegenError::LLVMBuildError(e.to_string())),
         (BasicValueEnum::FloatValue(l), BasicValueEnum::FloatValue(r)) => ctx
             .builder
-            .build_float_compare(inkwell::FloatPredicate::ONE, l, r, "netmp")
+            .build_float_compare(inkwell::FloatPredicate::UNE, l, r, "netmp")
             .map(Into::into)
             .map_err(|e| CodegenError::LLVMBuildError(e.to_string())),
         (BasicValueEnum::PointerValue(l), BasicValueEnum::PointerValue(r)) => {

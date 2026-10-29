@@ -19,7 +19,7 @@ struct Parser {
     int loop_depth
     bool signature_only
     bool suppress_error_output
-    Vec<Vec<string>> queued_import_paths
+    vec<vec<string>> queued_import_paths
 }
 
 Parser make_parser(string source) {
@@ -186,8 +186,8 @@ impl Parser {
     }
 
     Program parse_program() {
-        Vec<Stmt> statements = vec[]
-        Vec<Decl> decls = vec[]
+        vec<Stmt> statements = vec[]
+        vec<Decl> decls = vec[]
         this.advance() // 启动 parser
         
         while !this.is_at_end() {

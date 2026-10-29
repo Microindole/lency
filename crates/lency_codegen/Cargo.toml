@@ -10,3 +10,6 @@ lency_monomorph = { workspace = true }
 lency_diagnostics = { workspace = true }
 inkwell = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+lency_runtime = { path = "../lency_runtime" }

@@ -127,33 +127,7 @@ impl Resolver {
                 }
             }
             if decl.kind == DECL_IMPL() {
-                var m = 0
-                while m < decl.body.len() {
-                    var member = stmt_to_decl(decl.body[m])
-                    if member.kind == DECL_FUNCTION() && !this.table.resolve(member.name.lexeme) {
-                        this.table.define(member.name.lexeme)
-                        this.preload_builtin_arity(member.name.lexeme, member.params.len())
-                        Vec<int> member_param_tys = vec[]
-                        Vec<string> member_param_ty_names = vec[]
-                        var mp = 0
-                        while mp < member.param_types.len() {
-                            member_param_tys.push(this.resolve_signature_type_with_params_or_error(member.param_types[mp], member.generic_params))
-                            member_param_ty_names.push(this.resolve_signature_type_name(member.param_types[mp]))
-                            mp = mp + 1
-                        }
-                        this.function_signatures.push(
-                            make_function_signature(
-                                member.name.lexeme,
-                                this.resolve_signature_type_with_params_or_error(member.return_type, member.generic_params),
-                                member_param_tys,
-                                this.resolve_signature_type_name(member.return_type),
-                                member_param_ty_names,
-                                this.resolve_signature_enum_name_or_empty(member.return_type)
-                            )
-                        )
-                    }
-                    m = m + 1
-                }
+                this.preload_method_signatures(decl)
             }
             i = i + 1
         }

@@ -15,12 +15,34 @@ pub fn inject_runtime_functions<'ctx>(
     let i8_ptr_type = context.i8_type().ptr_type(AddressSpace::default());
 
     let printf_type = i32_type.fn_type(&[i8_ptr_type.into()], true);
-    let printf_func = module.add_function("printf", printf_type, None);
+    module.add_function("printf", printf_type, None);
 
     // 2. Declare exit: void exit(i32)
     let void_type = context.void_type();
+    module.add_function(
+        "lency_trace_enter",
+        void_type.fn_type(
+            &[
+                i8_ptr_type.into(),
+                i8_ptr_type.into(),
+                i32_type.into(),
+                i32_type.into(),
+            ],
+            false,
+        ),
+        None,
+    );
+    module.add_function(
+        "lency_trace_location",
+        void_type.fn_type(
+            &[i8_ptr_type.into(), i32_type.into(), i32_type.into()],
+            false,
+        ),
+        None,
+    );
+    module.add_function("lency_trace_leave", void_type.fn_type(&[], false), None);
     let exit_type = void_type.fn_type(&[i32_type.into()], false);
-    let exit_func = module.add_function("exit", exit_type, None);
+    module.add_function("exit", exit_type, None);
 
     // 3. Define __lency_panic(msg: i8*, line: i32)
     let panic_type = void_type.fn_type(&[i8_ptr_type.into(), i32_type.into()], false);
@@ -35,35 +57,11 @@ pub fn inject_runtime_functions<'ctx>(
     let msg = panic_func.get_nth_param(0).unwrap().into_pointer_value();
     let line = panic_func.get_nth_param(1).unwrap().into_int_value();
 
-    // Call printf("Panic at line %d: %s\n", line, msg)
-    // We need a format string global
-    let format_str = "Panic at line %d: %s\n";
-    let format_global = builder
-        .build_global_string_ptr(format_str, "panic_fmt")
-        .unwrap();
-
-    // printf args: format, line, msg
-    // Note: printf arg order in C is (fmt, ...). Here: fmt, line, msg.
+    let report = module.add_function("lency_panic_at", panic_type, None);
     builder
-        .build_call(
-            printf_func,
-            &[
-                format_global.as_pointer_value().into(),
-                line.into(),
-                msg.into(),
-            ],
-            "call_printf",
-        )
+        .build_call(report, &[msg.into(), line.into()], "")
         .unwrap();
-
-    // Call exit(1)
-    let exit_code = i32_type.const_int(1, false);
-    builder
-        .build_call(exit_func, &[exit_code.into()], "call_exit")
-        .unwrap();
-
-    // Unreachable
-    builder.build_return(None).unwrap();
+    builder.build_unreachable().unwrap();
 
     panic_func
 }

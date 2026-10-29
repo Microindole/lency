@@ -1,0 +1,51 @@
+import std.{str, io}
+extern int lency_memory_live_allocations();
+
+void expect_owned(string actual, string expected) {
+    if actual != expected { panic("library result mismatch") }
+    free(actual)
+}
+
+int main() {
+    int baseline = lency_memory_live_allocations()
+    int i = 0
+    while i < 20 {
+        if !starts_with("hello", "he") || !ends_with("hello", "lo") { return 1 }
+        if !contains("hello", "ell") || contains("hello", "bad") { return 2 }
+        if index_of("hello", "ll") != 2 || last_index_of("ababa", "ba") != 3 { return 3 }
+        if count("aaaa", "aa") != 2 { return 4 }
+        expect_owned(repeat("ab", 0), "")
+        expect_owned(repeat("ab", 1), "ab")
+        expect_owned(repeat("ab", 3), "ababab")
+        expect_owned(pad_left("a", 3, "0"), "00a")
+        expect_owned(pad_right("abc", 2, "0"), "abc")
+        expect_owned(pad_left("abc", 2, "0"), "abc")
+        expect_owned(pad_right("a", 3, "0"), "a00")
+        expect_owned(replace_first("abc", "b", "XX"), "aXXc")
+        expect_owned(replace_first("abc", "z", "X"), "abc")
+        expect_owned(replace_first("abc", "", "X"), "abc")
+        expect_owned(replace_first("a", "long", "X"), "a")
+        expect_owned(replace_all("aba", "a", "X"), "XbX")
+        expect_owned(replace_all("abc", "", "X"), "abc")
+        expect_owned(to_upper("abC"), "ABC")
+        expect_owned(to_lower("AbC"), "abc")
+        expect_owned(reverse("abc"), "cba")
+        expect_owned(reverse(""), "")
+        expect_owned(to_upper(""), "")
+        expect_owned(to_lower(""), "")
+        expect_owned(trim_left("  x"), "x")
+        expect_owned(trim_right("x  "), "x")
+        expect_owned(trim_left("  "), "")
+        expect_owned(trim_right("  "), "")
+        expect_owned(get_filename("a/b.txt"), "b.txt")
+        expect_owned(get_directory("/a/b.txt"), "/a")
+        expect_owned(get_extension("dir.name/file"), "")
+        expect_owned(get_extension("file.txt"), "txt")
+        expect_owned(join_path("", "file"), "file")
+        expect_owned(join_path("a", "file"), "a/file")
+        i = i + 1
+    }
+    if lency_memory_live_allocations() != baseline { return 5 }
+    print("stage0 library ok")
+    return 0
+}

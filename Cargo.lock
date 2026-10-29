@@ -582,6 +582,7 @@ dependencies = [
  "inkwell",
  "lency_diagnostics",
  "lency_monomorph",
+ "lency_runtime",
  "lency_sema",
  "lency_syntax",
  "thiserror",

@@ -81,12 +81,12 @@ fn get_or_declare_strlen<'ctx>(ctx: &CodegenContext<'ctx>) -> FunctionValue<'ctx
 }
 
 fn get_or_declare_malloc<'ctx>(ctx: &CodegenContext<'ctx>) -> FunctionValue<'ctx> {
-    if let Some(func) = ctx.module.get_function("malloc") {
+    if let Some(func) = ctx.module.get_function("lency_alloc") {
         return func;
     }
     let i8_ptr_type = ctx.context.i8_type().ptr_type(AddressSpace::default());
     let fn_type = i8_ptr_type.fn_type(&[ctx.context.i64_type().into()], false);
-    ctx.module.add_function("malloc", fn_type, None)
+    ctx.module.add_function("lency_alloc", fn_type, None)
 }
 
 fn get_or_declare_strcpy<'ctx>(ctx: &CodegenContext<'ctx>) -> FunctionValue<'ctx> {
