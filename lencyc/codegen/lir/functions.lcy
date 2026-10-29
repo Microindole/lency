@@ -14,6 +14,8 @@ impl LirBuilder {
         this.enum_var_types = vec[]
         this.typed_var_names = vec[]
         this.typed_var_types = vec[]
+        this.local_names = vec[]
+        this.local_values = vec[]
         this.current_block_terminated = false
         this.current_function_return_type_name = ""
         this.current_function_name = ""

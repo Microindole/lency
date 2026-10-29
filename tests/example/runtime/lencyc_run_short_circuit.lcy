@@ -1,0 +1,65 @@
+// 逻辑运算从左到右短路，操作数副作用按需执行且只执行一次。
+// @expect-exit: 0
+struct LogicProbe {
+    int trace
+}
+bool record(LogicProbe probe, int digit, bool value) {
+    probe.trace = probe.trace * 10 + digit
+    return value
+}
+bool pass_bool(bool value) { return value }
+bool nested_result(LogicProbe probe) {
+    return record(probe, 1, false) && record(probe, 2, true) || record(probe, 3, true)
+}
+int main() {
+    var probe = LogicProbe { trace: 0 }
+    bool value = record(probe, 1, false) && record(probe, 2, true)
+    if value || probe.trace != 1 { return 1 }
+    probe.trace = 0
+    value = record(probe, 1, true) || record(probe, 2, false)
+    if !value || probe.trace != 1 { return 2 }
+    probe.trace = 0
+    value = record(probe, 1, true) && record(probe, 2, true)
+    if !value || probe.trace != 12 { return 3 }
+    probe.trace = 0
+    value = record(probe, 1, true) && record(probe, 2, false)
+    if value || probe.trace != 12 { return 4 }
+    probe.trace = 0
+    value = record(probe, 1, false) || record(probe, 2, true)
+    if !value || probe.trace != 12 { return 5 }
+    probe.trace = 0
+    value = record(probe, 1, false) || record(probe, 2, false)
+    if value || probe.trace != 12 { return 6 }
+    probe.trace = 0
+    value = nested_result(probe)
+    if !value || probe.trace != 13 { return 7 }
+    probe.trace = 0
+    value = pass_bool(record(probe, 1, true) && (record(probe, 2, false) || record(probe, 3, true)))
+    if !value || probe.trace != 123 { return 8 }
+
+    vec<bool> empty = vec[]
+    value = false && empty[0]
+    if value { return 9 }
+    value = true || empty[0]
+    if !value { return 10 }
+    int zero = 0
+    value = false && 1 / zero > 0
+    if value { return 11 }
+    value = true || 1 / zero > 0
+    if !value { return 12 }
+
+    int count = 0
+    probe.trace = 0
+    while count < 2 && record(probe, 1, true) {
+        count = count + 1
+    }
+    if count != 2 || probe.trace != 11 { return 13 }
+    probe.trace = 0
+    for (int i = 0 i < 2 && record(probe, 2, true) i = i + 1) {
+        if false && empty[0] { return 14 }
+    }
+    if probe.trace != 22 { return 15 }
+    int chosen = match (1) { _ if (false && empty[0]) => 0, _ if (true || empty[0]) => 7, _ => 0 }
+    if chosen != 7 { return 16 }
+    return 0
+}

@@ -49,9 +49,6 @@ string src_nested_loop_continue_safety() {
 
 string src_invalid_break_top_level() { return "break"; }
 string src_invalid_continue_top_level() { return "continue"; }
-string src_invalid_for_missing_first_semicolon_expr_init() { return "for i = 0 i < 3; i = i + 1 { }"; }
-string src_invalid_for_missing_first_semicolon_var_init() { return "for var i = 0 i < 3; i = i + 1 { }"; }
-string src_invalid_for_missing_second_semicolon() { return "for var i = 0; i < 3 i = i + 1 { }"; }
 string src_invalid_for_missing_left_brace() { return "for var i = 0; i < 3; i = i + 1 i = i + 2 }"; }
 string src_invalid_unterminated_string_literal() { return "var msg = \"unterminated"; }
 string src_invalid_float_missing_fraction_digits() { return "var bad = 12."; }

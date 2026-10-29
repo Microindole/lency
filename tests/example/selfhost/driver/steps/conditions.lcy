@@ -6,6 +6,10 @@ import lencyc.syntax.parser
 import lencyc.sema.resolver
 
 bool run_condition_type_tests() {
+    if !expect_shared_resolve_error("bool value = false && missing\nreturn 0", "short circuit still checks undefined RHS") { return false }
+    if !expect_shared_resolve_error("bool value = true || 1\nreturn 0", "short circuit still checks RHS type") { return false }
+    if !expect_shared_resolve_error("bool? flag = null\nbool value = false && flag\nreturn 0", "short circuit rejects nullable RHS") { return false }
+    if !expect_shared_resolve_error("void work() {}\nbool value = true || work()\nreturn 0", "short circuit rejects void RHS") { return false }
     if !expect_shared_function_body_resolve_error(vec["flag"], "if flag { }\nreturn 0", "unknown condition type") { return false }
     var parser = make_parser("if 1 { var value = missing }\nreturn 0")
     var program = parser.parse_program()

@@ -8,6 +8,40 @@ import tests.example.selfhost.driver.test_support
 import lencyc.syntax.parser
 import lencyc.syntax.ast
 
+bool run_for_header_tests() {
+    Vec<string> initializers = vec["int i = 0", "var i = 0", "const i = 0", "i = 0"]
+    Vec<string> separators = vec[" ", "; "]
+    var p = 0
+    while p < 2 {
+        var a = 0
+        while a < initializers.len() {
+            var b = 0
+            while b < 2 {
+                var c = 0
+                while c < 2 {
+                    var header = initializers[a] + separators[b] + "i < 3" + separators[c] + "i = i + 1"
+                    if p == 1 { header = "(" + header + ")" }
+                    var parser = make_parser("for " + header + " { continue }")
+                    var program = parser.parse_program()
+                    if parser.has_error || program.statements.len() != 1 {
+                        print("For header parse failed: " + header + "\n")
+                        return false
+                    }
+                    c = c + 1
+                }
+                b = b + 1
+            }
+            a = a + 1
+        }
+        p = p + 1
+    }
+    if !expect_shared_resolve_success("for (int i = 0 i < 3 i = i + 1) {}\nreturn 0", "typed for initializer") { return false }
+    if !expect_shared_resolve_error("for (int i = true; i < 3; i = i + 1) {}\nreturn 0", "for initializer type mismatch") { return false }
+    if !expect_shared_resolve_error("for (int i = 0; 3; i = i + 1) {}\nreturn 0", "for condition type mismatch") { return false }
+    if !expect_shared_resolve_error("for (int i = 0; i < 3; i = i + 1) {}\nreturn i", "for initializer scope") { return false }
+    return true
+}
+
 bool run_parser_frontend_steps() {
     print("Step 3: Invalid placement tests...\n")
     if !expect_shared_parse_error(src_invalid_break_top_level(), "top-level break") {
@@ -18,15 +52,11 @@ bool run_parser_frontend_steps() {
     }
 
     print("Step 4: Invalid for syntax tests...\n")
-    if !expect_shared_parse_error(src_invalid_for_missing_first_semicolon_expr_init(), "for missing first semicolon") {
-        return false
-    }
-    if !expect_shared_parse_error(src_invalid_for_missing_first_semicolon_var_init(), "for(var) missing first semicolon") {
-        return false
-    }
-    if !expect_shared_parse_error(src_invalid_for_missing_second_semicolon(), "for missing second semicolon") {
-        return false
-    }
+    if !run_for_header_tests() { return false }
+    if !expect_shared_parse_error("for (int i = 0; ; i = i + 1) {}", "for missing condition") { return false }
+    if !expect_shared_parse_error("for (int i = 0; i < 3; ) {}", "for missing increment") { return false }
+    if !expect_shared_parse_error("for (int i = 0; i < 3; i = i + 1 {}", "for missing closing parenthesis") { return false }
+    if !expect_shared_parse_error("for int i = 0; i < 3; i = i + 1) {}", "for unmatched closing parenthesis") { return false }
     if !expect_shared_parse_error(src_invalid_for_missing_left_brace(), "for missing left brace") {
         return false
     }

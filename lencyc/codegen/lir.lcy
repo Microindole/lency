@@ -8,6 +8,8 @@ import lencyc.codegen.lir.functions
 import lencyc.codegen.lir.enum_support
 import lencyc.codegen.lir.expr_call
 import lencyc.codegen.lir.match_expr
+import lencyc.codegen.lir.locals
+import lencyc.codegen.lir.logical
 
 struct LirBuilder {
     string out
@@ -33,6 +35,8 @@ struct LirBuilder {
     Vec<string> enum_var_types
     Vec<string> typed_var_names
     Vec<string> typed_var_types
+    Vec<string> local_names
+    Vec<string> local_values
     Vec<string> declared_struct_type_names
     Vec<string> declared_enum_type_names
     Vec<string> struct_field_struct_names
@@ -76,6 +80,8 @@ LirBuilder make_lir_builder() {
         enum_var_types: vec[],
         typed_var_names: vec[],
         typed_var_types: vec[],
+        local_names: vec[],
+        local_values: vec[],
         declared_struct_type_names: vec[],
         declared_enum_type_names: vec[],
         struct_field_struct_names: vec[],
@@ -144,6 +150,8 @@ impl LirBuilder {
     void pop_loop_targets() {
         if this.loop_depth > 0 {
             this.loop_depth = this.loop_depth - 1
+            this.break_targets.pop()
+            this.continue_targets.pop()
         }
     }
 
@@ -172,8 +180,6 @@ impl LirBuilder {
         if op == "<=" { return "cmp_le" }
         if op == ">" { return "cmp_gt" }
         if op == ">=" { return "cmp_ge" }
-        if op == "&&" { return "and" }
-        if op == "||" { return "or" }
         this.error("unsupported binary operator: " + op)
         return ""
     }
@@ -233,19 +239,22 @@ impl LirBuilder {
     }
 
     void emit_stmt_list(Vec<Stmt> statements) {
+        var scope = this.local_scope()
         var i = 0
         while i < statements.len() {
             this.emit_stmt(statements[i])
             i = i + 1
         }
+        this.restore_local_scope(scope)
     }
     void emit_stmt(Stmt stmt) {
         if this.current_block_terminated { return }
         if stmt.kind == STMT_VAR_DECL() {
             var init_val = this.emit_expr(stmt.expr)
-            this.emit_line("  var %" + stmt.name.lexeme + " = " + init_val)
             var enum_name = this.infer_expr_enum_name(stmt.expr)
             var type_name = this.infer_expr_type_name(stmt.expr)
+            var local_value = this.declare_local(stmt.name.lexeme)
+            this.emit_line("  var " + local_value + " = " + init_val)
             if stmt.has_declared_type {
                 type_name = stmt.declared_type.name
             }
@@ -354,7 +363,7 @@ impl LirBuilder {
             return expr.literal_value.lexeme
         }
         if expr.kind == EXPR_VARIABLE() {
-            return "%" + expr.literal_value.lexeme
+            return this.local_value(expr.literal_value.lexeme)
         }
         if expr.kind == EXPR_GROUPING() {
             if expr.children.len() == 0 {
@@ -367,7 +376,7 @@ impl LirBuilder {
             if expr.children.len() > 0 {
                 val = this.emit_expr(expr.children[0])
             }
-            this.emit_line("  store %" + expr.literal_value.lexeme + ", " + val)
+            this.emit_line("  store " + this.local_value(expr.literal_value.lexeme) + ", " + val)
             var enum_name = ""
             var type_name = ""
             if expr.children.len() > 0 {
@@ -410,7 +419,10 @@ impl LirBuilder {
             this.emit_line("  " + dst + " = " + opcode + " " + rhs)
             return dst
         }
-        if expr.kind == EXPR_BINARY() || expr.kind == EXPR_LOGICAL() {
+        if expr.kind == EXPR_LOGICAL() {
+            return this.emit_expr_logical(expr)
+        }
+        if expr.kind == EXPR_BINARY() {
             var lhs = "0"
             var rhs = "0"
             if expr.children.len() > 0 {

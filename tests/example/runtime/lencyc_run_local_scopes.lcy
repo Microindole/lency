@@ -1,0 +1,49 @@
+// 局部遮蔽、参数、分支及匹配绑定在自举 LIR 中保持独立身份。
+// @expect-exit: 0
+struct ScopedValue {
+    int value
+}
+enum ScopedChoice {
+    Value(int),
+    Empty
+}
+int parameter_scope(int value) {
+    {
+        int value = value + 1
+        if value != 8 { return 0 }
+    }
+    return value
+}
+int main() {
+    int value = 7
+    {
+        int value = value + 1
+        value = value + 1
+        if value != 9 { return 1 }
+    }
+    if value != 7 || parameter_scope(value) != 7 { return 2 }
+    var item = ScopedValue { value: 11 }
+    if true {
+        string item = "abc"
+        if item.len() != 3 { return 3 }
+        value = value + 1
+    } else {
+        int item = 99
+        value = item
+    }
+    if item.value != 11 || value != 8 { return 4 }
+    var choice = Value(4)
+    int result = match (choice) {
+        Value(value) if (value == 4) => value + 1,
+        Value(value) => value,
+        Empty => 0
+    }
+    if result != 5 || value != 8 { return 5 }
+    {
+        string choice = "inner"
+        if choice.len() != 5 { return 6 }
+    }
+    int restored = match (choice) { Value(value) => value, Empty => 0 }
+    if restored != 4 || value != 8 { return 7 }
+    return 0
+}

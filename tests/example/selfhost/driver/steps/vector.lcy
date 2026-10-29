@@ -4,6 +4,14 @@ import std.core
 import tests.example.selfhost.driver.test_support
 
 bool run_vector_type_tests() {
+    if !expect_shared_resolve_success("vec<int> values = vec[]\nvalues.push(1)\nreturn values[0]", "lowercase vec declaration") { return false }
+    if !expect_shared_resolve_success("vec<vec<int>> wrap(Vec<int> values) { return vec[values] }\nVec<vec<int>> nested = wrap(vec[1])\nreturn nested[0][0]", "mixed spelling nested vec signature") { return false }
+    if !expect_shared_resolve_success("struct Bucket { vec<int> values }\nimpl Bucket { vec<int> items() { return this.values } }\nvar bucket = Bucket { values: vec[1] }\nreturn bucket.items()[0]", "lowercase vec field and method result") { return false }
+    if !expect_shared_resolve_success("vec[1, 2]\nvec // type comment\n<int> values = vec[3]\nreturn values[0]", "vec literal and commented type lookahead") { return false }
+    if !expect_shared_resolve_error("vec<int> values = vec[true]\nreturn 0", "lowercase vec initializer mismatch") { return false }
+    if !expect_shared_resolve_error("vec<vec<int>> values = vec[vec[true]]\nreturn 0", "nested lowercase vec mismatch") { return false }
+    if !expect_shared_resolve_error("vec<int> values = vec[]\nvalues.push(true)\nreturn 0", "lowercase empty vec element check") { return false }
+    if !expect_shared_resolve_error("vec<Missing> values = vec[]\nreturn 0", "lowercase vec unknown element") { return false }
     if !expect_shared_resolve_error("var values = vec[1, true]\nreturn 0", "mixed Vec primitive elements") { return false }
     if !expect_shared_resolve_error("var values = vec[1, \"x\"]\nreturn 0", "mixed Vec string elements") { return false }
     if !expect_shared_resolve_error("Vec<int> values = vec[1, true]\nreturn 0", "annotated Vec checks all elements") { return false }
