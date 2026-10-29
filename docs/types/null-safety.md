@@ -42,7 +42,9 @@ int main() {
 
 - lexer/parser 支持 `null` 和 `T?`。
 - resolver 已对基础类型和自定义类型的 nullable 签名做最小一致性检查。
+- 没有显式类型的局部声明不能从单独的空值推导可空类型。
 - literal `null` 可参与当前 match 子集。
+- 自举 LIR 尚未为可空基础值提供区分零、假与空值的运行表示；仅通过签名或语义检查不表示这些值已能正确执行。
 - 安全导航、空值合并和完整流敏感智能转型尚未作为稳定 selfhost 能力记录，不应在依赖它们前只参考 Rust 母体行为。
 
 对应 parser 回归位于 `tests/example/parser/custom_nullable_*.lcy`。

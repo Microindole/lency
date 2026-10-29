@@ -18,7 +18,7 @@ B? keep_b(B? x) {
     return x
 }
 
-var n = null
+B? n = null
 var b = keep_b(n)
 var y = keep_a(b)
 return 0

@@ -4,6 +4,9 @@ import std.core
 import tests.example.selfhost.driver.test_support
 
 bool run_vector_type_tests() {
+    if !expect_shared_resolve_error("var values = vec[]\nreturn 0", "empty vec without element type") { return false }
+    if !expect_shared_resolve_error("var values = (vec[])\nreturn 0", "grouped empty vec without element type") { return false }
+    if !expect_shared_resolve_success("vec<int> values = vec[]\nvalues.push(1)\nreturn values[0]", "typed empty vec") { return false }
     if !expect_shared_resolve_success("vec<int> values = vec[]\nvalues.push(1)\nreturn values[0]", "lowercase vec declaration") { return false }
     if !expect_shared_resolve_success("vec<vec<int>> wrap(Vec<int> values) { return vec[values] }\nVec<vec<int>> nested = wrap(vec[1])\nreturn nested[0][0]", "mixed spelling nested vec signature") { return false }
     if !expect_shared_resolve_success("struct Bucket { vec<int> values }\nimpl Bucket { vec<int> items() { return this.values } }\nvar bucket = Bucket { values: vec[1] }\nreturn bucket.items()[0]", "lowercase vec field and method result") { return false }

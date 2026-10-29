@@ -6,6 +6,12 @@ import lencyc.syntax.parser
 import lencyc.sema.resolver
 
 bool run_condition_type_tests() {
+    if !expect_shared_resolve_error("var value = null\nreturn 0", "null without declared type") { return false }
+    if !expect_shared_resolve_error("var value = (null)\nreturn 0", "grouped null without declared type") { return false }
+    if !expect_shared_resolve_error("const VALUE = null\nreturn 0", "constant null without declared type") { return false }
+    if !expect_shared_resolve_success("int? value = null\nreturn 0", "typed nullable null") { return false }
+    if !expect_shared_resolve_error("void work() {}\nvar value = work()\nreturn 0", "void result cannot initialize inferred variable") { return false }
+    if !expect_shared_resolve_error("void work() {}\nint value = work()\nreturn 0", "void result cannot initialize typed variable") { return false }
     if !expect_shared_resolve_error("bool value = false && missing\nreturn 0", "short circuit still checks undefined RHS") { return false }
     if !expect_shared_resolve_error("bool value = true || 1\nreturn 0", "short circuit still checks RHS type") { return false }
     if !expect_shared_resolve_error("bool? flag = null\nbool value = false && flag\nreturn 0", "short circuit rejects nullable RHS") { return false }

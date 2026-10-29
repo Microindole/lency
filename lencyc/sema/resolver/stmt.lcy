@@ -22,6 +22,12 @@ impl Resolver {
             var value_ty_name = this.infer_expr_type_name(stmt.expr, value_ty)
             var symbol_ty = value_ty
             var symbol_ty_name = value_ty_name
+            if value_ty == TYPE_VOID() {
+                this.error("void expression cannot initialize a variable")
+            }
+            if !stmt.has_declared_type && (value_ty_name == "null" || value_ty_name == "Vec") {
+                this.error("cannot infer variable type from " + value_ty_name + "; add an explicit type")
+            }
             if stmt.has_declared_type {
                 symbol_ty = this.resolve_signature_type_or_error(stmt.declared_type)
                 symbol_ty_name = this.resolve_signature_type_name(stmt.declared_type)

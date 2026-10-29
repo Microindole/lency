@@ -7,7 +7,7 @@ var a = match (flag) {
   _ => 1
 }
 
-var nothing = null
+int? nothing = null
 var b = match (nothing) {
   null => 4,
   _ => 2
